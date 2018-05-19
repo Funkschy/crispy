@@ -3,6 +3,7 @@
 #include "debug.h"
 #include "value.h"
 #include "vm.h"
+#include "opcode.h"
 
 #define DEBUG_TRACE_EXECUTION 0
 

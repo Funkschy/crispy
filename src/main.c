@@ -5,6 +5,7 @@
 #include "value.h"
 #include "debug.h"
 #include "vm.h"
+#include "opcode.h"
 
 int main(void) {
     Chunk chunk;
@@ -98,17 +99,18 @@ int main(void) {
             OP_RETURN
     };
 
-    uint8_t  *code_heap = malloc(sizeof(code));
-    memcpy(code_heap, code, sizeof(code));
+    size_t size = sizeof(code);
+    uint8_t  *code_heap = malloc(size);
+    memcpy(code_heap, code, size);
 
-    init_chunk_direct(&chunk, code_heap, sizeof(code_heap));
+    init_chunk_direct(&chunk, code_heap, size);
 
     Vm vm;
     init_vm(&vm);
 
     interpret(&vm, &chunk);
 
-    disassemble_chunk(&chunk, "10 - 1 Zähler");
+    // disassemble_chunk(&chunk, "10 - 1 Zähler");
 
     free_vm(&vm);
     free_chunk(&chunk);

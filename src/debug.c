@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "debug.h"
+#include "opcode.h"
 
 void disassemble_chunk(Chunk *chunk, const char *name) {
     printf("======== %s ========\n", name);
