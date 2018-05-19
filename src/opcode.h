@@ -2,11 +2,13 @@
 #define CALC_OPCODE_H
 
 typedef enum {
+    OP_NOP,
     OP_ADD,         // add two numbers
     OP_SUB,         // subtract two numbers
     OP_MUL,         // multiply two numbers
     OP_DIV,         // divide two numbers
-    OP_LDC,         // load number from constant pool
+    OP_LDC,         // push number from constant pool to stack
+    OP_LDC_W,       // push number from constant pool to stack index: (indexbyte1 << 8) | indexbyte2
     OP_LDC_0,       // Load 0 as a constant
     OP_LDC_1,       // Load 1 as a constant
     OP_NEGATE,      // negate a number

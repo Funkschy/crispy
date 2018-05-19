@@ -78,15 +78,22 @@ int main(void) {
     write_chunk(&chunk, OP_RETURN);
     */
 
-
     uint8_t number = (uint8_t) add_constant(&chunk, 10);
-    uint8_t condition = (uint8_t) add_constant(&chunk, 10);
+
+    for(int i = 0; i < 256; ++i) {
+        add_constant(&chunk, 0);
+    }
+
+    uint16_t condition = (uint16_t) add_constant(&chunk, 10);
+
+    uint8_t first_index = (uint8_t) (condition >> 8);
+    uint8_t second_index = (uint8_t) (condition & 0xFF);
 
     uint8_t code[] = {
             OP_LDC, number,       // load number to print
             OP_LDC_0,             // i
             OP_STORE, 0,
-            OP_LDC, condition,    // 10
+            OP_LDC_W, first_index, second_index,    // 10
             OP_STORE, 1,
             OP_DUP, OP_PRINT,     // print number
             OP_DEC, 1,            // number--
@@ -95,7 +102,7 @@ int main(void) {
             OP_DUP,
             OP_STORE, 0,
             OP_LOAD, 1,
-            OP_JLT, 9,            // if i < 10 jump
+            OP_JLT, 10,            // if i < 10 jump
             OP_RETURN
     };
 

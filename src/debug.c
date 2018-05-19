@@ -47,6 +47,8 @@ int disassemble_instruction(Chunk *chunk, int offset) {
     
     uint8_t instruction = chunk->code[offset];
     switch(instruction) {
+        case OP_NOP:
+            return simple_instruction("OP_NOP", offset);
         case OP_ADD:
             return simple_instruction("OP_ADD", offset);
         case OP_SUB:
@@ -57,6 +59,8 @@ int disassemble_instruction(Chunk *chunk, int offset) {
             return simple_instruction("OP_DIV", offset);
         case OP_LDC:
             return constant_instruction("OP_LDC", chunk, offset);
+        case OP_LDC_W:
+            return constant_instruction("OP_LDC_W", chunk, offset);
         case OP_NEGATE:
             return simple_instruction("OP_NEGATE", offset);
         case OP_STORE:

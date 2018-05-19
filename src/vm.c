@@ -4,6 +4,7 @@
 #include "value.h"
 #include "vm.h"
 #include "opcode.h"
+#include "chunk.h"
 
 #define DEBUG_TRACE_EXECUTION 0
 
@@ -33,6 +34,7 @@ static InterpretResult run(Vm *vm) {
 // Return byte at ip and advance ip
 #define READ_BYTE() (*ip++)
 #define READ_CONST() (chunk->constants.values[READ_BYTE()])
+#define READ_CONST_W() (chunk->constants.values[(READ_BYTE() << 8) | READ_BYTE()])
 #define BINARY_OP(op)                \
     do {                             \
         double first = pop(vm);      \
@@ -70,6 +72,10 @@ static InterpretResult run(Vm *vm) {
             case OP_LDC:
                 push(vm, READ_CONST());
                 break;
+            case OP_LDC_W: {
+                push(vm, READ_CONST_W());
+                break;
+            }
             case OP_LDC_0:
                 push(vm, 0);
                 break;
@@ -135,6 +141,8 @@ static InterpretResult run(Vm *vm) {
             case OP_DEC:
                 push(vm, pop(vm) - READ_BYTE());
                 break;
+            case OP_NOP:
+                break;
             default:
                 printf("Unknown instruction %d\n", instruction);
                 return INTERPRET_RUNTIME_ERROR;
@@ -144,6 +152,7 @@ static InterpretResult run(Vm *vm) {
 #undef JUMP
 #undef BINARY_OP
 #undef READ_CONST
+#undef READ_CONST_W
 #undef READ_BYTE
 }
 
