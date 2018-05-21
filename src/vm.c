@@ -44,8 +44,8 @@ static InterpretResult run(Vm *vm) {
 
 #define JUMP(op)                            \
     do {                                    \
-        uint8_t second = pop(vm);           \
-        uint8_t first = pop(vm);            \
+        double second = pop(vm);            \
+        double first = pop(vm);             \
         if (first op second) {              \
             ip = chunk->code + READ_BYTE(); \
         } else {                            \
@@ -58,11 +58,12 @@ static InterpretResult run(Vm *vm) {
 
 #if DEBUG_TRACE_EXECUTION
         printf("-----\n");
-        int stack_size = vm->sp - vm->stack;
+        long stack_size = vm->sp - vm->stack;
         for (int i = 0; i < stack_size; ++i) {
             printf("%f\n", vm->stack[i]);
         }
-        printf("sp: %d\n", vm->sp - vm->stack);
+        printf("sp: %li\n", stack_size);
+        printf("ip: %li\n", ip - chunk->code);
         disassemble_instruction(chunk, ip - chunk->code);
 #endif
 
@@ -137,6 +138,9 @@ static InterpretResult run(Vm *vm) {
                 break;
             case OP_INC:
                 push(vm, pop(vm) + READ_BYTE());
+                break;
+            case OP_INC_1:
+                push(vm, pop(vm) + 1);
                 break;
             case OP_DEC:
                 push(vm, pop(vm) - READ_BYTE());

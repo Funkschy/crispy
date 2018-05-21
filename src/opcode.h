@@ -25,6 +25,7 @@ typedef enum {
     OP_JGT,         // jump if equals or greater
     OP_JGE,         // jump if greater
     OP_INC,         // increment
+    OP_INC_1,       // increment by 1
     OP_DEC,         // decrement
     OP_RETURN       // return from Chunk
 } OP_CODE;

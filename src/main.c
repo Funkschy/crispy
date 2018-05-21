@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <time.h>
+
 #include "chunk.h"
 #include "value.h"
 #include "debug.h"
@@ -8,6 +10,9 @@
 #include "opcode.h"
 
 int main(void) {
+    struct timespec stop, start;
+    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
     Chunk chunk;
     init_chunk(&chunk);
 
@@ -78,22 +83,16 @@ int main(void) {
     write_chunk(&chunk, OP_RETURN);
     */
 
+
+    /* Count from 10 to 1
     uint8_t number = (uint8_t) add_constant(&chunk, 10);
-
-    for(int i = 0; i < 256; ++i) {
-        add_constant(&chunk, 0);
-    }
-
-    uint16_t condition = (uint16_t) add_constant(&chunk, 10);
-
-    uint8_t first_index = (uint8_t) (condition >> 8);
-    uint8_t second_index = (uint8_t) (condition & 0xFF);
+    uint8_t condition = (uint8_t) add_constant(&chunk, 10);
 
     uint8_t code[] = {
             OP_LDC, number,       // load number to print
             OP_LDC_0,             // i
             OP_STORE, 0,
-            OP_LDC_W, first_index, second_index,    // 10
+            OP_LDC, condition,    // 10
             OP_STORE, 1,
             OP_DUP, OP_PRINT,     // print number
             OP_DEC, 1,            // number--
@@ -102,12 +101,33 @@ int main(void) {
             OP_DUP,
             OP_STORE, 0,
             OP_LOAD, 1,
-            OP_JLT, 10,            // if i < 10 jump
+            OP_JLT, 9,            // if i < 10 jump
+            OP_RETURN
+    };
+     */
+
+    uint8_t condition = (uint8_t) add_constant(&chunk, 10000000);
+
+    uint8_t code[] = {
+            OP_LDC_0,
+            OP_STORE, 0,
+            OP_LDC, condition,
+            OP_STORE, 1,
+            OP_LDC_0,
+            OP_INC_1,
+            OP_DUP, OP_PRINT,
+            OP_LOAD, 0,
+            OP_INC, 1,
+            OP_DUP,
+            OP_STORE, 0,
+            OP_LOAD, 1,
+            OP_JLT, 8,
             OP_RETURN
     };
 
     size_t size = sizeof(code);
-    uint8_t  *code_heap = malloc(size);
+
+    uint8_t *code_heap = malloc(size);
     memcpy(code_heap, code, size);
 
     init_chunk_direct(&chunk, code_heap, size);
@@ -121,5 +141,10 @@ int main(void) {
 
     free_vm(&vm);
     free_chunk(&chunk);
+
+    clock_gettime(CLOCK_MONOTONIC_RAW, &stop);
+    printf("%.5f seconds\n",
+           ((double)stop.tv_sec + 1.0e-9*stop.tv_nsec) -
+           ((double)start.tv_sec + 1.0e-9*start.tv_nsec));
     return 0;
 }

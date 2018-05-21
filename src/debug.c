@@ -5,7 +5,7 @@
 
 void disassemble_chunk(Chunk *chunk, const char *name) {
     printf("======== %s ========\n", name);
-    
+
     for (int i = 0; i < chunk->count;) {
         i = disassemble_instruction(chunk, i);
     }
@@ -18,35 +18,35 @@ static int simple_instruction(const char *name, int offset) {
 
 static int constant_instruction(const char *name, Chunk *chunk, int offset) {
     uint8_t constant_index = chunk->code[offset + 1];
-    
+
     printf("%-16s %4d '", name, constant_index);
     print_value(chunk->constants.values[constant_index]);
     printf("'\n");
-    
+
     return offset + 2;
 }
 
 static int var_instruction(const char *name, Chunk *chunk, int offset) {
     uint8_t var_index = chunk->code[offset + 1];
-    
+
     printf("%-16s %4d\n", name, var_index);
-    
+
     return offset + 2;
 }
 
 static int jump_instruction(const char *name, Chunk *chunk, int offset) {
     uint8_t jmp_address = chunk->code[offset + 1];
-    
+
     printf("%-16s   -> %04d\n", name, jmp_address);
-    
+
     return offset + 2;
 }
 
 int disassemble_instruction(Chunk *chunk, int offset) {
     printf("%04d ", offset);
-    
+
     uint8_t instruction = chunk->code[offset];
-    switch(instruction) {
+    switch (instruction) {
         case OP_NOP:
             return simple_instruction("OP_NOP", offset);
         case OP_ADD:
@@ -90,9 +90,11 @@ int disassemble_instruction(Chunk *chunk, int offset) {
         case OP_JGE:
             return jump_instruction("OP_JGE", chunk, offset);
         case OP_INC:
-            return simple_instruction("OP_INC", offset);
+            return var_instruction("OP_INC", chunk, offset);
+        case OP_INC_1:
+            return simple_instruction("OP_INC_1", offset);
         case OP_DEC:
-            return simple_instruction("OP_DEC", offset);
+            return var_instruction("OP_DEC", chunk, offset);
         case OP_LDC_0:
             return simple_instruction("LDC_0", offset);
         case OP_LDC_1:
