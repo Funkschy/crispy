@@ -1,7 +1,7 @@
 #ifndef CHUNK_H
 #define CHUNK_H
 
-#include "common.h"
+#include "../cli/common.h"
 #include "value.h"
 #include "memory.h"
 

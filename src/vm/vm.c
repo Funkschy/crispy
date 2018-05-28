@@ -5,8 +5,11 @@
 #include "vm.h"
 #include "opcode.h"
 #include "chunk.h"
+#include "../compiler/compiler.h"
 
 #define DEBUG_TRACE_EXECUTION 0
+
+static InterpretResult run(Vm *vm);
 
 void init_vm(Vm *vm) {
     vm->sp = vm->stack;
@@ -25,6 +28,21 @@ inline Value pop(Vm *vm) {
 
 inline Value peek(Vm *vm) {
     return *(vm->sp - 1);
+}
+
+InterpretResult interpret(Vm *vm, const char *source) {
+    Chunk chunk;
+    init_chunk(&chunk);
+    compile(source, &chunk);
+
+    vm->chunk = &chunk;
+    vm->ip = vm->chunk->code;
+    InterpretResult result = run(vm);
+    vm->chunk = NULL;
+
+    free_chunk(&chunk);
+
+    return result;
 }
 
 static InterpretResult run(Vm *vm) {
@@ -158,13 +176,4 @@ static InterpretResult run(Vm *vm) {
 #undef READ_CONST
 #undef READ_CONST_W
 #undef READ_BYTE
-}
-
-InterpretResult interpret(Vm *vm, Chunk *chunk) {
-    vm->chunk = chunk;
-    vm->ip = vm->chunk->code;
-
-    InterpretResult result = run(vm);
-
-    return result;
 }

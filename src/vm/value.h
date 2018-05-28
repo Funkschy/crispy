@@ -1,7 +1,7 @@
 #ifndef VALUE_H
 #define VALUE_H
 
-#include "common.h"
+#include "../cli/common.h"
 #include "memory.h"
 
 typedef double Value;

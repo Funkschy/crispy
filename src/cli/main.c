@@ -5,14 +5,14 @@
 
 #include "../vm/vm.h"
 
-static void repl();
+static void repl(Vm *vm);
 
 int main(int argc, char **argv) {
     Vm vm;
     init_vm(&vm);
 
     if (argc == 1) {
-        repl();
+        repl(&vm);
     } else {
         fprintf(stderr, "Usage: calc");
     }
@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-static void repl() {
+static void repl(Vm *vm) {
     char line[1024];
     while(true) {
         printf(">>> ");
@@ -31,6 +31,6 @@ static void repl() {
             break;
         }
 
-        interpret(line);
+        interpret(vm, line);
     }
 }

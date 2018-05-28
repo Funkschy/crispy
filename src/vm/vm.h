@@ -1,7 +1,7 @@
 #ifndef VM_H
 #define VM_H
 
-#include "common.h"
+#include "../cli/common.h"
 #include "chunk.h"
 #include "value.h"
 
@@ -24,7 +24,7 @@ typedef struct {
 void init_vm(Vm *vm);
 void free_vm(Vm *vm);
 
-InterpretResult interpret(Vm *vm, Chunk *chunk);
+InterpretResult interpret(Vm *vm, const char *source);
 void push(Vm *vm, Value value);
 Value pop(Vm *vm);
 Value peek(Vm *vm);
