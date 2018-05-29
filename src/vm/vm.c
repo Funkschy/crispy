@@ -53,11 +53,11 @@ static InterpretResult run(Vm *vm) {
 #define READ_BYTE() (*ip++)
 #define READ_CONST() (chunk->constants.values[READ_BYTE()])
 #define READ_CONST_W() (chunk->constants.values[(READ_BYTE() << 8) | READ_BYTE()])
-#define BINARY_OP(op)                \
-    do {                             \
-        double first = pop(vm);      \
-        double second = pop(vm);     \
-        push(vm, (first op second)); \
+#define BINARY_OP(op)                   \
+    do {                                \
+        double second = pop(vm);        \
+        double first = pop(vm);         \
+        push(vm, (first op second));    \
     } while (false)
 
 #define JUMP(op)                            \

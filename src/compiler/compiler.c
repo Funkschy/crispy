@@ -81,8 +81,10 @@ static void factor() {
 static void primary() {
     switch (compiler.token.type) {
         case TOKEN_NUMBER: {
-            char str[compiler.token.length + 1];
-            memcpy(str, compiler.token.start, compiler.token.length);
+            size_t length = compiler.token.length;
+            char str[length + 1];
+            memcpy(str, compiler.token.start, length);
+            str[length] = '\0';
             char *ptr;
             double res;
 
@@ -110,7 +112,7 @@ static void primary() {
         case TOKEN_OPEN_PAREN: {
             advance();
             term();
-            if(!match(TOKEN_CLOSE_PAREN)) {
+            if(!compiler.token.type == TOKEN_CLOSE_PAREN) {
                 error(); // TODO fix
             }
             break;
