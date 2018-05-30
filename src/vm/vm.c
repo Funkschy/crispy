@@ -9,7 +9,7 @@
 
 #define DEBUG_TRACE_EXECUTION 0
 
-static InterpretResult run(Vm *vm);
+static InterpretResult run(Vm *vm, Chunk *chunk);
 
 void init_vm(Vm *vm) {
     vm->sp = vm->stack;
@@ -35,9 +35,8 @@ InterpretResult interpret(Vm *vm, const char *source) {
     init_chunk(&chunk);
     compile(source, &chunk);
 
-    vm->chunk = &chunk;
-    vm->ip = vm->chunk->code;
-    InterpretResult result = run(vm);
+    vm->ip = chunk.code;
+    InterpretResult result = run(vm, &chunk);
     vm->chunk = NULL;
 
     free_chunk(&chunk);
@@ -45,22 +44,21 @@ InterpretResult interpret(Vm *vm, const char *source) {
     return result;
 }
 
-static InterpretResult run(Vm *vm) {
+static InterpretResult run(Vm *vm, Chunk *chunk) {
     register uint8_t *ip = vm->ip;
-    Chunk *chunk = vm->chunk;
 
 // Return byte at ip and advance ip
 #define READ_BYTE() (*ip++)
 #define READ_CONST() (chunk->constants.values[READ_BYTE()])
 #define READ_CONST_W() (chunk->constants.values[(READ_BYTE() << 8) | READ_BYTE()])
-#define BINARY_OP(op)                   \
-    do {                                \
-        double second = pop(vm);        \
-        double first = pop(vm);         \
-        push(vm, (first op second));    \
+#define BINARY_OP(op)                       \
+    do {                                    \
+        double second = pop(vm);            \
+        double first = pop(vm);             \
+        push(vm, (first op second));        \
     } while (false)
 
-#define JUMP(op)                            \
+#define COND_JUMP(op)                       \
     do {                                    \
         double second = pop(vm);            \
         double first = pop(vm);             \
@@ -137,22 +135,22 @@ static InterpretResult run(Vm *vm) {
                 ip = chunk->code + READ_BYTE();
                 break;
             case OP_JEQ:
-                JUMP(==);
+                COND_JUMP(==);
                 break;
             case OP_JNE:
-                JUMP(!=);
+                COND_JUMP(!=);
                 break;
             case OP_JLT:
-                JUMP(<);
+                COND_JUMP(<);
                 break;
             case OP_JLE:
-                JUMP(<=);
+                COND_JUMP(<=);
                 break;
             case OP_JGT:
-                JUMP(>);
+                COND_JUMP(>);
                 break;
             case OP_JGE:
-                JUMP(>=);
+                COND_JUMP(>=);
                 break;
             case OP_INC:
                 push(vm, pop(vm) + READ_BYTE());
@@ -171,7 +169,7 @@ static InterpretResult run(Vm *vm) {
         }
     }
 
-#undef JUMP
+#undef COND_JUMP
 #undef BINARY_OP
 #undef READ_CONST
 #undef READ_CONST_W

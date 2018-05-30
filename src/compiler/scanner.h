@@ -14,6 +14,10 @@ typedef enum {
     TOKEN_MINUS,
     TOKEN_STAR,
     TOKEN_SLASH,
+    TOKEN_VAR,
+    TOKEN_EQUALS,
+    TOKEN_IDENTIFIER,
+    TOKEN_SEMICOLON,
 
     TOKEN_ERROR,
     TOKEN_EOF,
@@ -22,7 +26,7 @@ typedef enum {
 typedef struct {
     TokenType type;
     const char *start;
-    unsigned int length;
+    size_t length;
 } Token;
 
 void init_scanner(Scanner *scanner, const char *source);

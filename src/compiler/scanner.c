@@ -8,7 +8,7 @@ static bool at_end(Scanner *scanner);
 
 static Token make_token(Scanner *scanner, TokenType type);
 
-static Token error_token(Scanner *scanner, const char *message);
+static Token error_token(const char *message);
 
 static char advance(Scanner *scanner);
 
@@ -17,6 +17,14 @@ static void skip_whitespace(Scanner *scanner);
 static bool is_digit(char c);
 
 static Token number(Scanner *scanner);
+
+static bool is_alpha(char c);
+
+static Token identifier(Scanner *scanner);
+
+static TokenType identifier_type(Scanner *scanner);
+
+static TokenType check_keyword(Scanner *scanner, int start, size_t rest_length, const char *rest, TokenType type);
 
 void init_scanner(Scanner *scanner, const char *source) {
     scanner->start = source;
@@ -33,6 +41,7 @@ Token scan_token(Scanner *scanner) {
     char c = advance(scanner);
 
     if (is_digit(c)) return number(scanner);
+    if (is_alpha(c)) return identifier(scanner);
 
     switch (c) {
         case '(':
@@ -47,9 +56,17 @@ Token scan_token(Scanner *scanner) {
             return make_token(scanner, TOKEN_STAR);
         case '/':
             return make_token(scanner, TOKEN_SLASH);
+        case '=':
+            return make_token(scanner, TOKEN_EQUALS);
+        case ';':
+            return make_token(scanner, TOKEN_SEMICOLON);
         default:
-            return error_token(scanner, "Unexpected Character");
+            return error_token("Unexpected Character");
     }
+}
+
+static bool is_alpha(char c) {
+    return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';
 }
 
 static inline char peek(Scanner *scanner) {
@@ -98,7 +115,7 @@ static char advance(Scanner *scanner) {
     return scanner->current[-1];
 }
 
-static Token error_token(Scanner *scanner, const char *message) {
+static Token error_token(const char *message) {
     Token token;
     token.type = TOKEN_ERROR;
     token.start = message;
@@ -118,4 +135,27 @@ static Token make_token(Scanner *scanner, TokenType type) {
 
 static bool at_end(Scanner *scanner) {
     return *scanner->current == '\0';
+}
+
+static Token identifier(Scanner *scanner) {
+    while (is_alpha(peek(scanner)) || is_digit(peek(scanner))) advance(scanner);
+    return make_token(scanner, identifier_type(scanner));
+}
+
+static TokenType identifier_type(Scanner *scanner) {
+    switch (*scanner->start) {
+        case 'v':
+            return check_keyword(scanner, 1, 2, "ar", TOKEN_VAR);
+        default:
+            return TOKEN_IDENTIFIER;
+    }
+}
+
+static TokenType check_keyword(Scanner *scanner, int start, size_t rest_length, const char *rest, TokenType type) {
+    if (scanner->current - scanner->start == start + rest_length
+        && memcmp(scanner->start + start , rest, rest_length) == 0) {
+        return type;
+    }
+
+    return TOKEN_IDENTIFIER;
 }
