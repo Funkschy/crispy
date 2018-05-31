@@ -18,7 +18,7 @@ typedef struct {
 
 static void term(Compiler *compiler);
 
-static void assignment(Compiler *compiler);
+static void simple_stmt(Compiler *compiler);
 
 static void error(const char *err_message) {
     printf("%s\n", err_message);
@@ -62,10 +62,9 @@ void compile(const char *source, Chunk *chunk) {
     compiler.variables = variables;
 
     do {
-        assignment(&compiler);
+        simple_stmt(&compiler);
     } while (compiler.token.type != TOKEN_EOF);
 
-    write_chunk(chunk, OP_PRINT);
     write_chunk(chunk, OP_RETURN);
 
     free_variable_array(&compiler.variables);
@@ -89,7 +88,7 @@ static Variable resolve_var(Compiler *compiler, const char *name, size_t length)
     variable.name = name;
     variable.length = length;
 
-    if(variable.index != -1) return variable;
+    if (variable.index != -1) return variable;
 
     char message[34 + length];
     sprintf(message, "Could not find variable with name %s", name);
@@ -176,23 +175,57 @@ static void term(Compiler *compiler) {
     }
 }
 
+static void expr(Compiler *compiler) {
+    term(compiler);
+}
+
+static void var_decl(Compiler *compiler) {
+    advance(compiler);
+    Token identifier = consume(compiler, TOKEN_IDENTIFIER, "Expected variable name after 'var'");
+    consume(compiler, TOKEN_EQUALS, "Expected '=' after variable name");
+
+    term(compiler);
+
+    Variable variable = {identifier.start, identifier.length, (int) (compiler->variables.count)};
+    uint32_t index = write_variable(&compiler->variables, variable);
+
+    write_chunk(compiler->chunk, OP_STORE);
+    write_chunk(compiler->chunk, (uint8_t) index);
+}
+
 static void assignment(Compiler *compiler) {
+    Token identifier = consume(compiler, TOKEN_IDENTIFIER, "Expected identifier");
+    consume(compiler, TOKEN_EQUALS, "Expected '=' after variable name");
+    expr(compiler);
+
+    Variable var = resolve_var(compiler, identifier.start, identifier.length);
+    write_chunk(compiler->chunk, OP_STORE);
+    write_chunk(compiler->chunk, (uint8_t) var.index);
+}
+
+static void expr_stmt(Compiler *compiler) {
+    expr(compiler);
+}
+
+static void print_stmt(Compiler *compiler) {
+    advance(compiler);
+    expr(compiler);
+    write_chunk(compiler->chunk, OP_PRINT);
+}
+
+static void simple_stmt(Compiler *compiler) {
     switch (compiler->token.type) {
         case TOKEN_VAR:
-            advance(compiler);
-            Token identifier = consume(compiler, TOKEN_IDENTIFIER, "Expected variable name after 'var'");
-            consume(compiler, TOKEN_EQUALS, "Expected '=' after variable name");
-
-            term(compiler);
-
-            Variable variable = {identifier.start, identifier.length, (int) (compiler->variables.count)};
-            uint32_t index = write_variable(&compiler->variables, variable);
-
-            write_chunk(compiler->chunk, OP_STORE);
-            write_chunk(compiler->chunk, (uint8_t) index);
+            var_decl(compiler);
+            break;
+        case TOKEN_IDENTIFIER:
+            assignment(compiler);
+            break;
+        case TOKEN_PRINT:
+            print_stmt(compiler);
             break;
         default:
-            term(compiler);
+            expr_stmt(compiler);
             break;
     }
 

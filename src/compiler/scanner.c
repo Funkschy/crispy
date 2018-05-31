@@ -146,6 +146,8 @@ static TokenType identifier_type(Scanner *scanner) {
     switch (*scanner->start) {
         case 'v':
             return check_keyword(scanner, 1, 2, "ar", TOKEN_VAR);
+        case 'p':
+            return check_keyword(scanner, 1, 4, "rint", TOKEN_PRINT);
         default:
             return TOKEN_IDENTIFIER;
     }
@@ -153,7 +155,7 @@ static TokenType identifier_type(Scanner *scanner) {
 
 static TokenType check_keyword(Scanner *scanner, int start, size_t rest_length, const char *rest, TokenType type) {
     if (scanner->current - scanner->start == start + rest_length
-        && memcmp(scanner->start + start , rest, rest_length) == 0) {
+        && memcmp(scanner->start + start, rest, rest_length) == 0) {
         return type;
     }
 

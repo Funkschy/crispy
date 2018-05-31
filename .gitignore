@@ -31,7 +31,7 @@ fabric.properties
 # Editor-based Rest Client
 .idea/httpRequests
 
-src/vm/opcode.c
+/src/vm/opcode.c
 
 # Prerequisites
 *.d

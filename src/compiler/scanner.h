@@ -18,6 +18,7 @@ typedef enum {
     TOKEN_EQUALS,
     TOKEN_IDENTIFIER,
     TOKEN_SEMICOLON,
+    TOKEN_PRINT,
 
     TOKEN_ERROR,
     TOKEN_EOF,
