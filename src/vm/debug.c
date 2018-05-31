@@ -2,6 +2,7 @@
 
 #include "debug.h"
 #include "opcode.h"
+#include "chunk.h"
 
 void disassemble_chunk(Chunk *chunk, const char *name) {
     printf("======== %s ========\n", name);
@@ -35,11 +36,11 @@ static int var_instruction(const char *name, Chunk *chunk, int offset) {
 }
 
 static int jump_instruction(const char *name, Chunk *chunk, int offset) {
-    uint8_t jmp_address = chunk->code[offset + 1];
+    uint16_t jmp_address = (chunk->code[offset + 1] << 8) | chunk->code[offset + 2];
 
     printf("%-16s   -> %04d\n", name, jmp_address);
 
-    return offset + 2;
+    return offset + 3;
 }
 
 int disassemble_instruction(Chunk *chunk, int offset) {
@@ -55,6 +56,14 @@ int disassemble_instruction(Chunk *chunk, int offset) {
             return simple_instruction("OP_SUB", offset);
         case OP_MUL:
             return simple_instruction("OP_MUL", offset);
+        case OP_EQUAL:
+            return simple_instruction("OP_EQUAL", offset);
+        case OP_NOT_EQUAL:
+            return simple_instruction("OP_NOT_EQUAL", offset);
+        case OP_GREATER:
+            return simple_instruction("OP_GREATER", offset);
+        case OP_LESS:
+            return simple_instruction("OP_LESS", offset);
         case OP_DIV:
             return simple_instruction("OP_DIV", offset);
         case OP_LDC:
@@ -79,6 +88,10 @@ int disassemble_instruction(Chunk *chunk, int offset) {
             return jump_instruction("OP_JMP", chunk, offset);
         case OP_JEQ:
             return jump_instruction("OP_JEQ", chunk, offset);
+        case OP_JMT:
+            return jump_instruction("OP_JMT", chunk, offset);
+        case OP_JMF:
+            return jump_instruction("OP_JMF", chunk, offset);
         case OP_JNE:
             return jump_instruction("OP_JNE", chunk, offset);
         case OP_JLT:

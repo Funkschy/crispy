@@ -8,6 +8,7 @@
 #include "../compiler/compiler.h"
 
 #define DEBUG_TRACE_EXECUTION 0
+#define DEBUG_SHOW_DISASSEMBLY 0
 
 static InterpretResult run(Vm *vm, Chunk *chunk);
 
@@ -27,6 +28,10 @@ InterpretResult interpret(Vm *vm, const char *source) {
     init_chunk(&chunk);
     compile(source, &chunk);
 
+#if DEBUG_SHOW_DISASSEMBLY
+    disassemble_chunk(&chunk, "program");
+#endif
+
     vm->ip = chunk.code;
     InterpretResult result = run(vm, &chunk);
     vm->chunk = NULL;
@@ -43,36 +48,37 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
 
 // Return byte at ip and advance ip
 #define READ_BYTE() (*ip++)
+#define READ_SHORT() (ip += 2, (uint16_t)((ip[-2] << 8) | ip[-1]))
 #define READ_CONST() (const_values[READ_BYTE()])
 #define READ_CONST_W() (const_values[(READ_BYTE() << 8) | READ_BYTE()])
 #define READ_VAR() (chunk->variables.values[READ_BYTE()])
 #define POP() (*(--sp))
 #define PUSH(value) (*(sp++) = (value))
 #define PEEK() (*(sp - 1))
-#define BINARY_OP(op)                       \
-    do {                                    \
-        double second = POP();              \
-        double first = POP();               \
-        PUSH((first op second));            \
+#define BINARY_OP(op)                           \
+    do {                                        \
+        double second = POP();                  \
+        double first = POP();                   \
+        PUSH((first op second));                \
     } while (false)
 
-#define COND_JUMP(op)                       \
-    do {                                    \
-        double second = POP();              \
-        double first = POP();               \
-        if (first op second) {              \
-            ip = chunk->code + READ_BYTE(); \
-        } else {                            \
-            READ_BYTE();                    \
-        }                                   \
+#define COND_JUMP(op)                           \
+    do {                                        \
+        double second = POP();                  \
+        double first = POP();                   \
+        if (first op second) {                  \
+            ip = chunk->code + READ_SHORT();    \
+        } else {                                \
+            READ_SHORT();                       \
+        }                                       \
     } while(false)
 
     while (true) {
-        uint8_t instruction;
+        OP_CODE instruction;
 
 #if DEBUG_TRACE_EXECUTION
         printf("-----\n");
-        long stack_size = vm->sp - vm->stack;
+        long stack_size = sp - vm->stack;
         for (int i = 0; i < stack_size; ++i) {
             printf("%f\n", vm->stack[i]);
         }
@@ -93,14 +99,16 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
                 PUSH(READ_CONST_W());
                 break;
             }
-            case OP_LDC_0:
-                // push(vm, 0);
-                PUSH(0.0);
+            case OP_LDC_0: {
+                double zero = 0.0;
+                PUSH(zero);
                 break;
-            case OP_LDC_1:
-                // push(vm, 1);
-                PUSH(1.0);
+            }
+            case OP_LDC_1:{
+                double one = 1.0;
+                PUSH(one);
                 break;
+            }
             case OP_ADD:
                 BINARY_OP(+);
                 break;
@@ -112,6 +120,18 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
                 break;
             case OP_DIV:
                 BINARY_OP(/);
+                break;
+            case OP_EQUAL:
+                BINARY_OP(==);
+                break;
+            case OP_NOT_EQUAL:
+                BINARY_OP(!=);
+                break;
+            case OP_GREATER:
+                BINARY_OP(<=);
+                break;
+            case OP_LESS:
+                BINARY_OP(>=);
                 break;
             case OP_NEGATE:
                 //push(vm, -pop(vm));
@@ -136,8 +156,26 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
                 PUSH(PEEK());
                 break;
             case OP_JMP:
-                ip = chunk->code + READ_BYTE();
+                ip = chunk->code + READ_SHORT();
                 break;
+            case OP_JMT: {
+                Value value = POP();
+                if (value == 1) {
+                    ip = chunk->code + READ_SHORT();
+                } else {
+                    ip += 2;
+                }
+                break;
+            }
+            case OP_JMF: {
+                Value value = POP();
+                if (value == 0) {
+                    ip = chunk->code + READ_SHORT();
+                } else {
+                    ip += 2;
+                }
+                break;
+            }
             case OP_JEQ:
                 COND_JUMP(==);
                 break;
@@ -181,5 +219,6 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
 #undef READ_VAR
 #undef READ_CONST
 #undef READ_CONST_W
+#undef READ_SHORT
 #undef READ_BYTE
 }

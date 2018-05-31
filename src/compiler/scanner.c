@@ -31,6 +31,15 @@ void init_scanner(Scanner *scanner, const char *source) {
     scanner->current = source;
 }
 
+static inline char peek(Scanner *scanner) {
+    return *scanner->current;
+}
+
+static inline char peek_next(Scanner *scanner) {
+    if (at_end(scanner)) return '\0';
+    return scanner->current[1];
+}
+
 Token scan_token(Scanner *scanner) {
     skip_whitespace(scanner);
 
@@ -56,8 +65,24 @@ Token scan_token(Scanner *scanner) {
             return make_token(scanner, TOKEN_STAR);
         case '/':
             return make_token(scanner, TOKEN_SLASH);
+        case '{':
+            return make_token(scanner, TOKEN_OPEN_BRACE);
+        case '}':
+            return make_token(scanner, TOKEN_CLOSE_BRACE);
         case '=':
-            return make_token(scanner, TOKEN_EQUALS);
+            if (peek(scanner) == '=') {
+                advance(scanner);
+                return make_token(scanner, TOKEN_EQUALS_EQUALS);
+            } else {
+                return make_token(scanner, TOKEN_EQUALS);
+            }
+        case '!':
+            if (peek(scanner) == '=') {
+                advance(scanner);
+                return make_token(scanner, TOKEN_BANG_EQUALS);
+            } else {
+                return make_token(scanner, TOKEN_BANG);
+            }
         case ';':
             return make_token(scanner, TOKEN_SEMICOLON);
         default:
@@ -67,15 +92,6 @@ Token scan_token(Scanner *scanner) {
 
 static bool is_alpha(char c) {
     return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';
-}
-
-static inline char peek(Scanner *scanner) {
-    return *scanner->current;
-}
-
-static inline char peek_next(Scanner *scanner) {
-    if (at_end(scanner)) return '\0';
-    return scanner->current[1];
 }
 
 static Token number(Scanner *scanner) {
@@ -148,6 +164,8 @@ static TokenType identifier_type(Scanner *scanner) {
             return check_keyword(scanner, 1, 2, "ar", TOKEN_VAR);
         case 'p':
             return check_keyword(scanner, 1, 4, "rint", TOKEN_PRINT);
+        case 'w':
+            return check_keyword(scanner, 1, 4, "hile", TOKEN_WHILE);
         default:
             return TOKEN_IDENTIFIER;
     }

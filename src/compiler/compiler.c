@@ -6,6 +6,7 @@
 #include "scanner.h"
 #include "../vm/opcode.h"
 #include "variables.h"
+#include "../vm/chunk.h"
 
 typedef struct {
     Token token;
@@ -16,9 +17,9 @@ typedef struct {
     VariableArray variables;
 } Compiler;
 
-static void term(Compiler *compiler);
+static void expr(Compiler *compiler);
 
-static void simple_stmt(Compiler *compiler);
+static void stmt(Compiler *compiler);
 
 static void error(const char *err_message) {
     printf("%s\n", err_message);
@@ -48,19 +49,33 @@ static Token consume(Compiler *compiler, TokenType type, const char *err_message
     error(err_message);
 }
 
-static inline void emit_no_arg(Compiler *compiler, OP_CODE op_code) {
+static void emit_no_arg(Compiler *compiler, OP_CODE op_code) {
     write_chunk(compiler->chunk, op_code);
 }
 
-static inline void emit_byte_arg(Compiler *compiler, OP_CODE op_code, uint8_t arg) {
+static void emit_byte_arg(Compiler *compiler, OP_CODE op_code, uint8_t arg) {
     write_chunk(compiler->chunk, op_code);
     write_chunk(compiler->chunk, arg);
 }
 
-static inline void emit_short_arg(Compiler *compiler, OP_CODE op_code, uint8_t first, uint8_t second) {
+static void emit_short_arg(Compiler *compiler, OP_CODE op_code, uint8_t first, uint8_t second) {
     write_chunk(compiler->chunk, op_code);
     write_chunk(compiler->chunk, first);
     write_chunk(compiler->chunk, second);
+}
+
+static uint32_t emit_jump(Compiler *compiler, OP_CODE op_code) {
+    emit_short_arg(compiler, op_code, 0xFF, 0xFF);
+    return compiler->chunk->count - 2;
+}
+
+static void patch_jump_to(Compiler *compiler, uint32_t offset, uint32_t address) {
+    if (address > UINT16_MAX) {
+        error("Jump too big");
+    }
+
+    compiler->chunk->code[offset] = (uint8_t) ((address >> 8) & 0xFF);
+    compiler->chunk->code[offset + 1] = (uint8_t) (address & 0xFF);
 }
 
 void compile(const char *source, Chunk *chunk) {
@@ -77,7 +92,7 @@ void compile(const char *source, Chunk *chunk) {
     compiler.variables = variables;
 
     do {
-        simple_stmt(&compiler);
+        stmt(&compiler);
     } while (compiler.token.type != TOKEN_EOF);
 
     emit_no_arg(&compiler, OP_RETURN);
@@ -113,6 +128,17 @@ static Variable resolve_var(Compiler *compiler, const char *name, size_t length)
 static void primary(Compiler *compiler) {
     switch (compiler->token.type) {
         case TOKEN_NUMBER: {
+            Token token = compiler->token;
+            if (token.length == 1) {
+                if (*token.start == '0') {
+                    emit_no_arg(compiler, OP_LDC_0);
+                    break;
+                } else if (*compiler->token.start == '1') {
+                    emit_no_arg(compiler, OP_LDC_1);
+                    break;
+                }
+            }
+
             size_t length = compiler->token.length;
             char str[length + 1];
             memcpy(str, compiler->token.start, length);
@@ -140,7 +166,7 @@ static void primary(Compiler *compiler) {
         }
         case TOKEN_OPEN_PAREN: {
             advance(compiler);
-            term(compiler);
+            expr(compiler);
             if (!compiler->token.type == TOKEN_CLOSE_PAREN) {
                 error("Expected ')'");
             }
@@ -186,8 +212,22 @@ static void term(Compiler *compiler) {
     }
 }
 
-static void expr(Compiler *compiler) {
+static void equality(Compiler *compiler) {
     term(compiler);
+
+    while (match(TOKEN_EQUALS_EQUALS, compiler) || match(TOKEN_BANG_EQUALS, compiler)) {
+        if (compiler->previous.type == TOKEN_EQUALS_EQUALS) {
+            term(compiler);
+            emit_no_arg(compiler, OP_EQUAL);
+        } else {
+            term(compiler);
+            emit_no_arg(compiler, OP_NOT_EQUAL);
+        }
+    }
+}
+
+static void expr(Compiler *compiler) {
+    equality(compiler);
 }
 
 static void var_decl(Compiler *compiler) {
@@ -195,12 +235,12 @@ static void var_decl(Compiler *compiler) {
     Token identifier = consume(compiler, TOKEN_IDENTIFIER, "Expected variable name after 'var'");
     consume(compiler, TOKEN_EQUALS, "Expected '=' after variable name");
 
-    term(compiler);
+    expr(compiler);
 
     Variable variable = {identifier.start, identifier.length, (int) (compiler->variables.count)};
     uint32_t index = write_variable(&compiler->variables, variable);
 
-    emit_byte_arg(compiler, OP_STORE, (uint8_t)index);
+    emit_byte_arg(compiler, OP_STORE, (uint8_t) index);
 }
 
 static void assignment(Compiler *compiler) {
@@ -209,7 +249,7 @@ static void assignment(Compiler *compiler) {
     expr(compiler);
 
     Variable var = resolve_var(compiler, identifier.start, identifier.length);
-    emit_byte_arg(compiler, OP_STORE, (uint8_t)var.index);
+    emit_byte_arg(compiler, OP_STORE, (uint8_t) var.index);
 }
 
 static void expr_stmt(Compiler *compiler) {
@@ -220,6 +260,27 @@ static void print_stmt(Compiler *compiler) {
     advance(compiler);
     expr(compiler);
     emit_no_arg(compiler, OP_PRINT);
+}
+
+static void block(Compiler *compiler) {
+    advance(compiler);
+    while (compiler->token.type != TOKEN_CLOSE_BRACE && compiler->token.type != TOKEN_EOF) {
+        stmt(compiler);
+    }
+    advance(compiler);
+}
+
+static void while_stmt(Compiler *compiler) {
+    advance(compiler);
+    uint32_t start_instruction = compiler->chunk->count;
+    expr(compiler);
+
+    uint32_t exit_jmp = emit_jump(compiler, OP_JMF);
+    block(compiler);
+
+    uint32_t to_start = emit_jump(compiler, OP_JMP);
+    patch_jump_to(compiler, to_start, start_instruction);
+    patch_jump_to(compiler, exit_jmp, compiler->chunk->count);
 }
 
 static void simple_stmt(Compiler *compiler) {
@@ -239,4 +300,18 @@ static void simple_stmt(Compiler *compiler) {
     }
 
     consume(compiler, TOKEN_SEMICOLON, "Expected ';' after statement");
+}
+
+static void stmt(Compiler *compiler) {
+    switch (compiler->token.type) {
+        case TOKEN_WHILE:
+            while_stmt(compiler);
+            break;
+        case TOKEN_OPEN_BRACE:
+            block(compiler);
+            break;
+        default:
+            simple_stmt(compiler);
+            break;
+    }
 }

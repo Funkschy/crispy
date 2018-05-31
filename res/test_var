@@ -7,4 +7,6 @@ var test3 = 5;
 print test2;
 print test3;
 
-print test2 + test3;
+var res = test2 + test3;
+print res;
+print res == 7;

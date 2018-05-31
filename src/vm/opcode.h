@@ -8,7 +8,11 @@ typedef enum {
     OP_SUB,         // subtract two numbers
     OP_MUL,         // multiply two numbers
     OP_DIV,         // divide two numbers
-    OP_NEGATE,      // negate a number
+
+    OP_EQUAL,
+    OP_NOT_EQUAL,
+    OP_GREATER,
+    OP_LESS,
 
     OP_LDC,         // push number from constant pool to stack
     OP_LDC_W,       // push number from constant pool to stack index: (indexbyte1 << 8) | indexbyte2
@@ -19,10 +23,14 @@ typedef enum {
     OP_LOAD,        // load variable to stack
     OP_DUP,         // duplicate
     OP_POP,         // pop from stack
+
     OP_PRINT,       // pop and print the value on top of the stack
+    OP_NEGATE,      // negate a number
 
     OP_JMP,         // unconditional jump
     OP_JEQ,         // jump if equals
+    OP_JMT,         // jump if true
+    OP_JMF,         // jump if false
     OP_JNE,         // jump if not equals
     OP_JLT,         // jump if less than
     OP_JLE,         // jump if equals or less
