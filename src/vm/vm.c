@@ -13,9 +13,13 @@ static InterpretResult run(Vm *vm, Chunk *chunk);
 
 void init_vm(Vm *vm) {
     vm->sp = vm->stack;
+    vm->chunk = NULL;
 }
 
 void free_vm(Vm *vm) {
+    vm->chunk = NULL;
+    vm->sp = NULL;
+    vm->ip = NULL;
 }
 
 inline void push(Vm *vm, Value value) {
@@ -44,13 +48,15 @@ InterpretResult interpret(Vm *vm, const char *source) {
     return result;
 }
 
-static InterpretResult run(Vm *vm, Chunk *chunk) {
+static InterpretResult run(Vm *vm, register Chunk *chunk) {
     register uint8_t *ip = vm->ip;
+    register Value *const_values = chunk->constants.values;
 
 // Return byte at ip and advance ip
 #define READ_BYTE() (*ip++)
-#define READ_CONST() (chunk->constants.values[READ_BYTE()])
-#define READ_CONST_W() (chunk->constants.values[(READ_BYTE() << 8) | READ_BYTE()])
+#define READ_CONST() (const_values[READ_BYTE()])
+#define READ_CONST_W() (const_values[(READ_BYTE() << 8) | READ_BYTE()])
+#define READ_VAR() (chunk->variables.values[READ_BYTE()])
 #define BINARY_OP(op)                       \
     do {                                    \
         double second = pop(vm);            \
@@ -115,7 +121,7 @@ static InterpretResult run(Vm *vm, Chunk *chunk) {
                 push(vm, -pop(vm));
                 break;
             case OP_LOAD:
-                push(vm, chunk->variables.values[READ_BYTE()]);
+                push(vm, READ_VAR());
                 break;
             case OP_STORE: {
                 uint8_t index = READ_BYTE();
@@ -171,6 +177,7 @@ static InterpretResult run(Vm *vm, Chunk *chunk) {
 
 #undef COND_JUMP
 #undef BINARY_OP
+#undef READ_VAR
 #undef READ_CONST
 #undef READ_CONST_W
 #undef READ_BYTE
