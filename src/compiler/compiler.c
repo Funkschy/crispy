@@ -48,6 +48,21 @@ static Token consume(Compiler *compiler, TokenType type, const char *err_message
     error(err_message);
 }
 
+static inline void emit_no_arg(Compiler *compiler, OP_CODE op_code) {
+    write_chunk(compiler->chunk, op_code);
+}
+
+static inline void emit_byte_arg(Compiler *compiler, OP_CODE op_code, uint8_t arg) {
+    write_chunk(compiler->chunk, op_code);
+    write_chunk(compiler->chunk, arg);
+}
+
+static inline void emit_short_arg(Compiler *compiler, OP_CODE op_code, uint8_t first, uint8_t second) {
+    write_chunk(compiler->chunk, op_code);
+    write_chunk(compiler->chunk, first);
+    write_chunk(compiler->chunk, second);
+}
+
 void compile(const char *source, Chunk *chunk) {
     Scanner scanner;
     init_scanner(&scanner, source);
@@ -65,7 +80,7 @@ void compile(const char *source, Chunk *chunk) {
         simple_stmt(&compiler);
     } while (compiler.token.type != TOKEN_EOF);
 
-    write_chunk(chunk, OP_RETURN);
+    emit_no_arg(&compiler, OP_RETURN);
 
     free_variable_array(&compiler.variables);
     compiler.chunk = NULL;
@@ -111,19 +126,16 @@ static void primary(Compiler *compiler) {
             if (pos > 255) {
                 uint8_t index_1 = (uint8_t) (pos >> 8);
                 uint8_t index_2 = (uint8_t) (pos & 0xFF);
-                write_chunk(compiler->chunk, OP_LDC_W);
-                write_chunk(compiler->chunk, index_1);
-                write_chunk(compiler->chunk, index_2);
+                emit_short_arg(compiler, OP_LDC_W, index_1, index_2);
             } else {
-                write_chunk(compiler->chunk, OP_LDC);
-                write_chunk(compiler->chunk, (uint8_t) pos);
+                emit_byte_arg(compiler, OP_LDC, (uint8_t) pos);
             }
 
             break;
         }
         case TOKEN_MINUS: {
             primary(compiler);
-            write_chunk(compiler->chunk, OP_NEGATE);
+            emit_no_arg(compiler, OP_NEGATE);
             break;
         }
         case TOKEN_OPEN_PAREN: {
@@ -136,8 +148,7 @@ static void primary(Compiler *compiler) {
         }
         case TOKEN_IDENTIFIER: {
             Variable var = resolve_var(compiler, compiler->token.start, compiler->token.length);
-            write_chunk(compiler->chunk, OP_LOAD);
-            write_chunk(compiler->chunk, (uint8_t) var.index);
+            emit_byte_arg(compiler, OP_LOAD, (uint8_t) var.index);
             break;
         }
         default:
@@ -153,10 +164,10 @@ static void factor(Compiler *compiler) {
     while (match(TOKEN_STAR, compiler) || match(TOKEN_SLASH, compiler)) {
         if (compiler->previous.type == TOKEN_STAR) {
             primary(compiler);
-            write_chunk(compiler->chunk, OP_MUL);
+            emit_no_arg(compiler, OP_MUL);
         } else {
             primary(compiler);
-            write_chunk(compiler->chunk, OP_DIV);
+            emit_no_arg(compiler, OP_DIV);
         }
     }
 }
@@ -167,10 +178,10 @@ static void term(Compiler *compiler) {
     while (match(TOKEN_PLUS, compiler) || match(TOKEN_MINUS, compiler)) {
         if (compiler->previous.type == TOKEN_PLUS) {
             factor(compiler);
-            write_chunk(compiler->chunk, OP_ADD);
+            emit_no_arg(compiler, OP_ADD);
         } else {
             factor(compiler);
-            write_chunk(compiler->chunk, OP_SUB);
+            emit_no_arg(compiler, OP_SUB);
         }
     }
 }
@@ -189,8 +200,7 @@ static void var_decl(Compiler *compiler) {
     Variable variable = {identifier.start, identifier.length, (int) (compiler->variables.count)};
     uint32_t index = write_variable(&compiler->variables, variable);
 
-    write_chunk(compiler->chunk, OP_STORE);
-    write_chunk(compiler->chunk, (uint8_t) index);
+    emit_byte_arg(compiler, OP_STORE, (uint8_t)index);
 }
 
 static void assignment(Compiler *compiler) {
@@ -199,8 +209,7 @@ static void assignment(Compiler *compiler) {
     expr(compiler);
 
     Variable var = resolve_var(compiler, identifier.start, identifier.length);
-    write_chunk(compiler->chunk, OP_STORE);
-    write_chunk(compiler->chunk, (uint8_t) var.index);
+    emit_byte_arg(compiler, OP_STORE, (uint8_t)var.index);
 }
 
 static void expr_stmt(Compiler *compiler) {
@@ -210,7 +219,7 @@ static void expr_stmt(Compiler *compiler) {
 static void print_stmt(Compiler *compiler) {
     advance(compiler);
     expr(compiler);
-    write_chunk(compiler->chunk, OP_PRINT);
+    emit_no_arg(compiler, OP_PRINT);
 }
 
 static void simple_stmt(Compiler *compiler) {

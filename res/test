@@ -1,0 +1,10 @@
+var test = 10 + 2;
+var test2 = test + 2;
+test2 = 2;
+
+var test3 = 5;
+
+print test2;
+print test3;
+
+print test2 + test3;
