@@ -14,6 +14,10 @@ typedef enum {
 } InterpretResult;
 
 typedef struct {
+    uint8_t *ip;
+} StackFrame;
+
+typedef struct {
     Chunk *chunk;
     uint8_t *ip;
     

@@ -22,18 +22,6 @@ void free_vm(Vm *vm) {
     vm->ip = NULL;
 }
 
-inline void push(Vm *vm, Value value) {
-    *vm->sp++ = value;
-}
-
-inline Value pop(Vm *vm) {
-    return *(--vm->sp);
-}
-
-inline Value peek(Vm *vm) {
-    return *(vm->sp - 1);
-}
-
 InterpretResult interpret(Vm *vm, const char *source) {
     Chunk chunk;
     init_chunk(&chunk);
@@ -50,6 +38,7 @@ InterpretResult interpret(Vm *vm, const char *source) {
 
 static InterpretResult run(Vm *vm, register Chunk *chunk) {
     register uint8_t *ip = vm->ip;
+    register Value *sp = vm->sp;
     register Value *const_values = chunk->constants.values;
 
 // Return byte at ip and advance ip
@@ -57,17 +46,20 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
 #define READ_CONST() (const_values[READ_BYTE()])
 #define READ_CONST_W() (const_values[(READ_BYTE() << 8) | READ_BYTE()])
 #define READ_VAR() (chunk->variables.values[READ_BYTE()])
+#define POP() (*(--sp))
+#define PUSH(value) (*(sp++) = (value))
+#define PEEK() (*(sp - 1))
 #define BINARY_OP(op)                       \
     do {                                    \
-        double second = pop(vm);            \
-        double first = pop(vm);             \
-        push(vm, (first op second));        \
+        double second = POP();              \
+        double first = POP();               \
+        PUSH((first op second));            \
     } while (false)
 
 #define COND_JUMP(op)                       \
     do {                                    \
-        double second = pop(vm);            \
-        double first = pop(vm);             \
+        double second = POP();              \
+        double first = POP();               \
         if (first op second) {              \
             ip = chunk->code + READ_BYTE(); \
         } else {                            \
@@ -93,17 +85,21 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
             case OP_RETURN:
                 return INTERPRET_OK;
             case OP_LDC:
-                push(vm, READ_CONST());
+                // push(vm, READ_CONST());
+                PUSH(READ_CONST());
                 break;
             case OP_LDC_W: {
-                push(vm, READ_CONST_W());
+                // push(vm, READ_CONST_W());
+                PUSH(READ_CONST_W());
                 break;
             }
             case OP_LDC_0:
-                push(vm, 0);
+                // push(vm, 0);
+                PUSH(0.0);
                 break;
             case OP_LDC_1:
-                push(vm, 1);
+                // push(vm, 1);
+                PUSH(1.0);
                 break;
             case OP_ADD:
                 BINARY_OP(+);
@@ -118,24 +114,26 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
                 BINARY_OP(/);
                 break;
             case OP_NEGATE:
-                push(vm, -pop(vm));
+                //push(vm, -pop(vm));
+                PUSH(-POP());
                 break;
             case OP_LOAD:
-                push(vm, READ_VAR());
+                //push(vm, READ_VAR());
+                PUSH(READ_VAR());
                 break;
             case OP_STORE: {
                 uint8_t index = READ_BYTE();
-                write_at(&chunk->variables, index, pop(vm));
+                write_at(&chunk->variables, index, POP());
                 break;
             }
             case OP_POP:
-                pop(vm);
+                POP();
                 break;
             case OP_PRINT:
-                printf("%f\n", pop(vm));
+                printf("%f\n", POP());
                 break;
             case OP_DUP:
-                push(vm, peek(vm));
+                PUSH(PEEK());
                 break;
             case OP_JMP:
                 ip = chunk->code + READ_BYTE();
@@ -159,13 +157,13 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
                 COND_JUMP(>=);
                 break;
             case OP_INC:
-                push(vm, pop(vm) + READ_BYTE());
+                PUSH(POP() + READ_BYTE());
                 break;
             case OP_INC_1:
-                push(vm, pop(vm) + 1);
+                PUSH(POP() + 1);
                 break;
             case OP_DEC:
-                push(vm, pop(vm) - READ_BYTE());
+                PUSH(POP() - READ_BYTE());
                 break;
             case OP_NOP:
                 break;
@@ -177,6 +175,9 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
 
 #undef COND_JUMP
 #undef BINARY_OP
+#undef PEEK
+#undef PUSH
+#undef POP
 #undef READ_VAR
 #undef READ_CONST
 #undef READ_CONST_W
