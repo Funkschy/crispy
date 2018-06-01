@@ -55,22 +55,35 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
 #define POP() (*(--sp))
 #define PUSH(value) (*(sp++) = (value))
 #define PEEK() (*(sp - 1))
-#define BINARY_OP(op)                           \
-    do {                                        \
-        Value second = POP();                   \
-        Value first = POP();                    \
-        PUSH((first op second));                \
+#define BINARY_OP(op)                                           \
+    do {                                                        \
+        Value second = POP();                                   \
+        Value first = POP();                                    \
+        if (!CHECK_NUM(first) || !CHECK_NUM(second))            \
+            goto ERROR;                                         \
+        PUSH(create_number(first.d_value op second.d_value));   \
     } while (false)
 
-#define COND_JUMP(op)                           \
-    do {                                        \
-        Value second = POP();                   \
-        Value first = POP();                    \
-        if (first op second) {                  \
-            ip = chunk->code + READ_SHORT();    \
-        } else {                                \
-            READ_SHORT();                       \
-        }                                       \
+#define BOOL_OP(op)                                             \
+    do {                                                        \
+        Value second = POP();                                   \
+        Value first = POP();                                    \
+        if (!CHECK_NUM(first) || !CHECK_NUM(second))            \
+            goto ERROR;                                         \
+        PUSH(create_bool(first.d_value op second.d_value));     \
+    } while (false)
+
+#define COND_JUMP(op)                                   \
+    do {                                                \
+        Value second = POP();                           \
+        Value first = POP();                            \
+        if (!CHECK_BOOL(first) || !CHECK_BOOL(second))  \
+            goto ERROR;                                 \
+        if (first.p_value op second.p_value) {          \
+            ip = chunk->code + READ_SHORT();            \
+        } else {                                        \
+            READ_SHORT();                               \
+        }                                               \
     } while(false)
 
     while (true) {
@@ -80,32 +93,31 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
         printf("-----\n");
         long stack_size = sp - vm->stack;
         for (int i = 0; i < stack_size; ++i) {
-            printf("%f\n", vm->stack[i]);
+            print_value(vm->stack[i], false);
+            print_type(vm->stack[i]);
         }
         printf("sp: %li\n", stack_size);
         printf("ip: %li\n", ip - chunk->code);
         disassemble_instruction(chunk, ip - chunk->code);
 #endif
 
-        switch (instruction = READ_BYTE()) {
+        switch (instruction = (OP_CODE) READ_BYTE()) {
             case OP_RETURN:
                 return INTERPRET_OK;
             case OP_LDC:
-                // push(vm, READ_CONST());
                 PUSH(READ_CONST());
                 break;
             case OP_LDC_W: {
-                // push(vm, READ_CONST_W());
                 PUSH(READ_CONST_W());
                 break;
             }
             case OP_LDC_0: {
-                double zero = 0.0;
+                Value zero = create_number(0.0);
                 PUSH(zero);
                 break;
             }
             case OP_LDC_1: {
-                double one = 1.0;
+                Value one = create_number(1.0);
                 PUSH(one);
                 break;
             }
@@ -122,24 +134,23 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
                 BINARY_OP(/);
                 break;
             case OP_EQUAL:
-                BINARY_OP(==);
+                BOOL_OP(==);
                 break;
             case OP_NOT_EQUAL:
-                BINARY_OP(!=);
+                BOOL_OP(!=);
                 break;
             case OP_GREATER:
-                BINARY_OP(<=);
+                BOOL_OP(<=);
                 break;
             case OP_LESS:
-                BINARY_OP(>=);
+                BOOL_OP(>=);
                 break;
             case OP_NEGATE: {
-                Value val = -POP();
+                Value val = create_number(POP().d_value * -1);
                 PUSH(val);
                 break;
             }
             case OP_LOAD:
-                //push(vm, READ_VAR());
                 PUSH(READ_VAR());
                 break;
             case OP_STORE: {
@@ -151,7 +162,7 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
                 POP();
                 break;
             case OP_PRINT:
-                printf("%li\n", POP());
+                print_value(POP(), true);
                 break;
             case OP_DUP:
                 PUSH(PEEK());
@@ -161,7 +172,8 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
                 break;
             case OP_JMT: {
                 Value value = POP();
-                if (value == 1) {
+                if (!CHECK_BOOL(value)) goto ERROR;
+                if (BOOL_TRUE(value)) {
                     ip = chunk->code + READ_SHORT();
                 } else {
                     ip += 2;
@@ -170,7 +182,8 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
             }
             case OP_JMF: {
                 Value value = POP();
-                if (value == 0) {
+                if (!CHECK_BOOL(value)) goto ERROR;
+                if (!BOOL_TRUE(value)) {
                     ip = chunk->code + READ_SHORT();
                 } else {
                     ip += 2;
@@ -195,15 +208,24 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
             case OP_JGE:
                 COND_JUMP(>=);
                 break;
-            case OP_INC:
-                PUSH(POP() + READ_BYTE());
+            case OP_INC: {
+                Value value = POP();
+                if (!CHECK_NUM(value)) goto ERROR;
+                PUSH(create_number(value.d_value + READ_BYTE()));
                 break;
-            case OP_INC_1:
-                PUSH(POP() + 1);
+            }
+            case OP_INC_1: {
+                Value value = POP();
+                if (!CHECK_NUM(value)) goto ERROR;
+                PUSH(create_number(value.d_value + 1));
                 break;
-            case OP_DEC:
-                PUSH(POP() - READ_BYTE());
+            }
+            case OP_DEC: {
+                Value value = POP();
+                if (!CHECK_NUM(value)) goto ERROR;
+                PUSH(create_number(value.d_value - READ_BYTE()));
                 break;
+            }
             case OP_NOP:
                 break;
             default:
@@ -212,7 +234,11 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
         }
     }
 
+    ERROR:
+    return INTERPRET_RUNTIME_ERROR;
+
 #undef COND_JUMP
+#undef BOOL_OP
 #undef BINARY_OP
 #undef PEEK
 #undef PUSH

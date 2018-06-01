@@ -36,6 +36,45 @@ void write_at(ValueArray *value_array, uint8_t index, Value value) {
     }
 }
 
-void print_value(Value value) {
-    printf("%li", value);
+void print_value(Value value, bool new_line) {
+    const char *nl = (new_line) ? "\n" : "";
+    switch (value.type) {
+        case NUMBER:
+            printf("%f%s", value.d_value, nl);
+            break;
+        case BOOLEAN:
+            printf("%s%s", BOOL_STRING(value), nl);
+            break;
+        default:
+            printf("Invalid value%s", nl);
+            break;
+    }
+}
+
+Value create_number(double value) {
+    Value val;
+    val.type = NUMBER;
+    val.d_value = value;
+    return val;
+}
+
+Value create_bool(bool value) {
+    Value val;
+    val.type = BOOLEAN;
+    val.p_value = (value) ? 1 : 0;
+    return val;
+}
+
+void print_type(Value value) {
+    switch (value.type) {
+        case NUMBER:
+            printf(" : NUMBER\n");
+            break;
+        case BOOLEAN:
+            printf(" : BOOLEAN\n");
+            break;
+        case OBJECT:
+            printf(" : OBJECT\n");
+            break;
+    }
 }
