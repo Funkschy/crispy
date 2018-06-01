@@ -21,7 +21,7 @@ static int constant_instruction(const char *name, Chunk *chunk, int offset) {
     uint8_t constant_index = chunk->code[offset + 1];
 
     printf("%-16s %4d '", name, constant_index);
-    print_value(chunk->constants.values[constant_index]);
+    print_value(chunk->constants.values[constant_index], false);
     printf("'\n");
 
     return offset + 2;

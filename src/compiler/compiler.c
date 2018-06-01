@@ -151,7 +151,7 @@ static void primary(Compiler *compiler) {
             double res;
 
             res = strtod(str, &ptr);
-            uint16_t pos = (uint16_t) add_constant(compiler->chunk, res);
+            uint16_t pos = (uint16_t) add_constant(compiler->chunk, create_number(res));
 
             if (pos > 255) {
                 uint8_t index_1 = (uint8_t) (pos >> 8);
