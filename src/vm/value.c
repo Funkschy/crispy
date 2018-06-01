@@ -37,5 +37,5 @@ void write_at(ValueArray *value_array, uint8_t index, Value value) {
 }
 
 void print_value(Value value) {
-    printf("%g", value);
+    printf("%li", value);
 }

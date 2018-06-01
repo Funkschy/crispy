@@ -78,6 +78,10 @@ static void patch_jump_to(Compiler *compiler, uint32_t offset, uint32_t address)
     compiler->chunk->code[offset + 1] = (uint8_t) (address & 0xFF);
 }
 
+static void patch_jump(Compiler *compiler, uint32_t offset) {
+    patch_jump_to(compiler, offset, compiler->chunk->count);
+}
+
 void compile(const char *source, Chunk *chunk) {
     Scanner scanner;
     init_scanner(&scanner, source);
@@ -160,9 +164,10 @@ static void primary(Compiler *compiler) {
             break;
         }
         case TOKEN_MINUS: {
+            advance(compiler);
             primary(compiler);
             emit_no_arg(compiler, OP_NEGATE);
-            break;
+            return;
         }
         case TOKEN_OPEN_PAREN: {
             advance(compiler);
@@ -283,6 +288,27 @@ static void while_stmt(Compiler *compiler) {
     patch_jump_to(compiler, exit_jmp, compiler->chunk->count);
 }
 
+static void if_stmt(Compiler *compiler) {
+    advance(compiler);
+    expr(compiler);
+
+    uint32_t false_jump = emit_jump(compiler, OP_JMF);
+    block(compiler);
+
+    uint32_t exit_jump = emit_jump(compiler, OP_JMP);
+    patch_jump(compiler, false_jump);
+
+    if (compiler->token.type == TOKEN_ELSE) {
+        advance(compiler);
+        if (compiler->token.type == TOKEN_IF) {
+            if_stmt(compiler);
+        } else {
+            block(compiler);
+        }
+    }
+    patch_jump(compiler, exit_jump);
+}
+
 static void simple_stmt(Compiler *compiler) {
     switch (compiler->token.type) {
         case TOKEN_VAR:
@@ -309,6 +335,9 @@ static void stmt(Compiler *compiler) {
             break;
         case TOKEN_OPEN_BRACE:
             block(compiler);
+            break;
+        case TOKEN_IF:
+            if_stmt(compiler);
             break;
         default:
             simple_stmt(compiler);

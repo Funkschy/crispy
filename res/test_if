@@ -1,0 +1,9 @@
+var condition = -1 + 3;
+
+if condition == 3 {
+    print 3;
+} else if condition == 2 {
+    print 2;
+} else {
+     print -1;
+ }

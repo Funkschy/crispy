@@ -57,15 +57,15 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
 #define PEEK() (*(sp - 1))
 #define BINARY_OP(op)                           \
     do {                                        \
-        double second = POP();                  \
-        double first = POP();                   \
+        Value second = POP();                   \
+        Value first = POP();                    \
         PUSH((first op second));                \
     } while (false)
 
 #define COND_JUMP(op)                           \
     do {                                        \
-        double second = POP();                  \
-        double first = POP();                   \
+        Value second = POP();                   \
+        Value first = POP();                    \
         if (first op second) {                  \
             ip = chunk->code + READ_SHORT();    \
         } else {                                \
@@ -104,7 +104,7 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
                 PUSH(zero);
                 break;
             }
-            case OP_LDC_1:{
+            case OP_LDC_1: {
                 double one = 1.0;
                 PUSH(one);
                 break;
@@ -133,10 +133,11 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
             case OP_LESS:
                 BINARY_OP(>=);
                 break;
-            case OP_NEGATE:
-                //push(vm, -pop(vm));
-                PUSH(-POP());
+            case OP_NEGATE: {
+                Value val = -POP();
+                PUSH(val);
                 break;
+            }
             case OP_LOAD:
                 //push(vm, READ_VAR());
                 PUSH(READ_VAR());
@@ -150,7 +151,7 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
                 POP();
                 break;
             case OP_PRINT:
-                printf("%f\n", POP());
+                printf("%li\n", POP());
                 break;
             case OP_DUP:
                 PUSH(PEEK());

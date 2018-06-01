@@ -4,7 +4,7 @@
 #include "../cli/common.h"
 #include "memory.h"
 
-typedef double Value;
+typedef uint64_t Value;
 
 typedef struct {
     uint32_t cap;

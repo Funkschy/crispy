@@ -166,6 +166,10 @@ static TokenType identifier_type(Scanner *scanner) {
             return check_keyword(scanner, 1, 4, "rint", TOKEN_PRINT);
         case 'w':
             return check_keyword(scanner, 1, 4, "hile", TOKEN_WHILE);
+        case 'i':
+            return check_keyword(scanner, 1, 1, "f", TOKEN_IF);
+        case 'e':
+            return check_keyword(scanner, 1, 3, "lse", TOKEN_ELSE);
         default:
             return TOKEN_IDENTIFIER;
     }

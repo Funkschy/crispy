@@ -25,6 +25,8 @@ typedef enum {
     TOKEN_BANG,
     TOKEN_OPEN_BRACE,
     TOKEN_CLOSE_BRACE,
+    TOKEN_IF,
+    TOKEN_ELSE,
 
     TOKEN_ERROR,
     TOKEN_EOF,
