@@ -3,8 +3,8 @@
 
 #define DEBUG_TRACE_GC 1
 
-#define DEBUG_TRACE_EXECUTION 0
-#define DEBUG_SHOW_DISASSEMBLY 0
+#define DEBUG_TRACE_EXECUTION 1
+#define DEBUG_SHOW_DISASSEMBLY 1
 
 #define INITIAL_GC_THRESHOLD 32
 
@@ -26,6 +26,13 @@ struct s_vm {
     Value stack[STACK_MAX];
     Value *sp;
 
+    uint32_t instruction_cap;
+    uint32_t instruction_count;
+    uint8_t *code;
+
+    ValueArray variables;
+    ValueArray constants;
+
     size_t num_objects;
     size_t max_objects;
     Object *first_object;
@@ -34,6 +41,10 @@ struct s_vm {
 void init_vm(Vm *vm);
 
 void free_vm(Vm *vm);
+
+void write_code(Vm *vm, uint8_t instruction);
+
+uint32_t add_constant(Vm *vm, Value value);
 
 InterpretResult interpret(Vm *vm, const char *source);
 

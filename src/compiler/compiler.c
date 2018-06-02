@@ -6,13 +6,11 @@
 #include "scanner.h"
 #include "../vm/opcode.h"
 #include "variables.h"
-#include "../vm/chunk.h"
 
 typedef struct {
     Token token;
     Token previous;
     Vm *vm;
-    Chunk *chunk;
     Scanner scanner;
 
     VariableArray variables;
@@ -51,23 +49,23 @@ static Token consume(Compiler *compiler, TokenType type, const char *err_message
 }
 
 static void emit_no_arg(Compiler *compiler, OP_CODE op_code) {
-    write_chunk(compiler->chunk, op_code);
+    write_code(compiler->vm, op_code);
 }
 
 static void emit_byte_arg(Compiler *compiler, OP_CODE op_code, uint8_t arg) {
-    write_chunk(compiler->chunk, op_code);
-    write_chunk(compiler->chunk, arg);
+    write_code(compiler->vm, op_code);
+    write_code(compiler->vm, arg);
 }
 
 static void emit_short_arg(Compiler *compiler, OP_CODE op_code, uint8_t first, uint8_t second) {
-    write_chunk(compiler->chunk, op_code);
-    write_chunk(compiler->chunk, first);
-    write_chunk(compiler->chunk, second);
+    write_code(compiler->vm, op_code);
+    write_code(compiler->vm, first);
+    write_code(compiler->vm, second);
 }
 
 static uint32_t emit_jump(Compiler *compiler, OP_CODE op_code) {
     emit_short_arg(compiler, op_code, 0xFF, 0xFF);
-    return compiler->chunk->count - 2;
+    return compiler->vm->instruction_count - 2;
 }
 
 static void patch_jump_to(Compiler *compiler, uint32_t offset, uint32_t address) {
@@ -75,21 +73,20 @@ static void patch_jump_to(Compiler *compiler, uint32_t offset, uint32_t address)
         error("Jump too big");
     }
 
-    compiler->chunk->code[offset] = (uint8_t) ((address >> 8) & 0xFF);
-    compiler->chunk->code[offset + 1] = (uint8_t) (address & 0xFF);
+    compiler->vm->code[offset] = (uint8_t) ((address >> 8) & 0xFF);
+    compiler->vm->code[offset + 1] = (uint8_t) (address & 0xFF);
 }
 
 static void patch_jump(Compiler *compiler, uint32_t offset) {
-    patch_jump_to(compiler, offset, compiler->chunk->count);
+    patch_jump_to(compiler, offset, compiler->vm->instruction_count);
 }
 
-void compile(const char *source, Vm *vm, Chunk *chunk) {
+void compile(const char *source, Vm *vm) {
     Scanner scanner;
     init_scanner(&scanner, source);
 
     Compiler compiler;
     compiler.vm = vm;
-    compiler.chunk = chunk;
     compiler.scanner = scanner;
     compiler.token = scan_token(&compiler.scanner);
 
@@ -104,7 +101,6 @@ void compile(const char *source, Vm *vm, Chunk *chunk) {
     emit_no_arg(&compiler, OP_RETURN);
 
     free_variable_array(&compiler.variables);
-    compiler.chunk = NULL;
 }
 
 static int resolve_name(Compiler *compiler, const char *name, size_t length) {
@@ -153,7 +149,7 @@ static void primary(Compiler *compiler) {
             double res;
 
             res = strtod(str, &ptr);
-            uint16_t pos = (uint16_t) add_constant(compiler->chunk, create_number(res));
+            uint16_t pos = (uint16_t) add_constant(compiler->vm, create_number(res));
 
             if (pos > 255) {
                 uint8_t index_1 = (uint8_t) (pos >> 8);
@@ -186,7 +182,7 @@ static void primary(Compiler *compiler) {
         }
         case TOKEN_STRING: {
             ObjString *string = new_string(compiler->vm, compiler->token.start + 1, compiler->token.length - 2);
-            uint16_t pos = (uint16_t)add_constant(compiler->chunk, create_object((Object *)string));
+            uint16_t pos = (uint16_t)add_constant(compiler->vm, create_object((Object *)string));
 
             if (pos > 255) {
                 uint8_t index_1 = (uint8_t) (pos >> 8);
@@ -293,7 +289,7 @@ static void block(Compiler *compiler) {
 
 static void while_stmt(Compiler *compiler) {
     advance(compiler);
-    uint32_t start_instruction = compiler->chunk->count;
+    uint32_t start_instruction = compiler->vm->instruction_count;
     expr(compiler);
 
     uint32_t exit_jmp = emit_jump(compiler, OP_JMF);
@@ -301,7 +297,7 @@ static void while_stmt(Compiler *compiler) {
 
     uint32_t to_start = emit_jump(compiler, OP_JMP);
     patch_jump_to(compiler, to_start, start_instruction);
-    patch_jump_to(compiler, exit_jmp, compiler->chunk->count);
+    patch_jump_to(compiler, exit_jmp, compiler->vm->instruction_count);
 }
 
 static void if_stmt(Compiler *compiler) {

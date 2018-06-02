@@ -2,7 +2,6 @@
 #define MEMORY_H
 
 #include <stdlib.h>
-#include "chunk.h"
 #include "object.h"
 
 #define GROW_CAP(old_cap) (old_cap) < 8 ? 8 : ((old_cap) * 2)

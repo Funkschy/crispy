@@ -1,4 +1,3 @@
-var i = 0;
 var test = "Hello World";
 test = "a";
 test = "aa";

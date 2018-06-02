@@ -4,52 +4,76 @@
 #include "vm.h"
 #include "opcode.h"
 #include "../compiler/compiler.h"
+#include "memory.h"
 
-static InterpretResult run(Vm *vm, Chunk *chunk);
+static InterpretResult run(Vm *vm);
 
 void init_vm(Vm *vm) {
     vm->sp = vm->stack;
     vm->first_object = NULL;
     vm->num_objects = 0;
     vm->max_objects = INITIAL_GC_THRESHOLD;
+    vm->instruction_cap = 0;
+    vm->instruction_count = 0;
+    vm->code = NULL;
+
+    init_value_array(&vm->constants);
+    init_value_array(&vm->variables);
 }
 
 void free_vm(Vm *vm) {
-    vm->sp = vm->stack;
     gc(vm);
 
     vm->sp = NULL;
     vm->ip = NULL;
+    vm->first_object = NULL;
+    vm->num_objects = 0;
+    vm->max_objects = 0;
+
+    free_value_array(&vm->constants);
+    free_value_array(&vm->variables);
+
+    free(vm->code);
+}
+
+void write_code(Vm *vm, uint8_t instruction) {
+    if (vm->instruction_count >= vm->instruction_cap) {
+        vm->instruction_cap = GROW_CAP(vm->instruction_cap);
+        vm->code = GROW_ARR(vm->code, uint8_t, vm->instruction_cap);
+    }
+
+    vm->code[vm->instruction_count++] = instruction;
+}
+
+uint32_t add_constant(Vm *vm, Value value) {
+    write_value(&vm->constants, value);
+    return vm->constants.count - 1;
 }
 
 InterpretResult interpret(Vm *vm, const char *source) {
-    Chunk chunk;
-    init_chunk(&chunk);
-    compile(source, vm, &chunk);
+    compile(source, vm);
 
 #if DEBUG_SHOW_DISASSEMBLY
-    disassemble_chunk(&chunk, "program");
+    disassemble_vm(vm, "program");
 #endif
 
-    vm->ip = chunk.code;
-    InterpretResult result = run(vm, &chunk);
-
-    free_chunk(&chunk);
+    vm->ip = vm->code;
+    InterpretResult result = run(vm);
 
     return result;
 }
 
-static InterpretResult run(Vm *vm, register Chunk *chunk) {
+static InterpretResult run(Vm *vm) {
     register uint8_t *ip = vm->ip;
     register Value *sp = vm->sp;
-    register Value *const_values = chunk->constants.values;
+    register Value *const_values = vm->constants.values;
 
 // Return byte at ip and advance ip
 #define READ_BYTE() (*ip++)
 #define READ_SHORT() (ip += 2, (uint16_t)((ip[-2] << 8) | ip[-1]))
 #define READ_CONST() (const_values[READ_BYTE()])
 #define READ_CONST_W() (const_values[(READ_BYTE() << 8) | READ_BYTE()])
-#define READ_VAR() (chunk->variables.values[READ_BYTE()])
+#define READ_VAR() (vm->variables.values[READ_BYTE()])
 #define POP() (*(--sp))
 #define PUSH(value) (*(sp++) = (value))
 #define PEEK() (*(sp - 1))
@@ -76,7 +100,7 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
         if (!CHECK_BOOL(first) || !CHECK_BOOL(second))  \
             goto ERROR;                                 \
         if (first.p_value op second.p_value) {          \
-            ip = chunk->code + READ_SHORT();            \
+            ip = vm->code + READ_SHORT();               \
         } else {                                        \
             READ_SHORT();                               \
         }                                               \
@@ -93,8 +117,8 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
             print_type(vm->stack[i]);
         }
         printf("sp: %li\n", stack_size);
-        printf("ip: %li\n", ip - chunk->code);
-        disassemble_instruction(chunk, ip - chunk->code);
+        printf("ip: %li\n", ip - vm->code);
+        disassemble_instruction(vm, ip - vm->code);
 #endif
 
         switch (instruction = (OP_CODE) READ_BYTE()) {
@@ -151,7 +175,7 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
                 break;
             case OP_STORE: {
                 uint8_t index = READ_BYTE();
-                write_at(&chunk->variables, index, POP());
+                write_at(&vm->variables, index, POP());
                 break;
             }
             case OP_POP:
@@ -164,13 +188,13 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
                 PUSH(PEEK());
                 break;
             case OP_JMP:
-                ip = chunk->code + READ_SHORT();
+                ip = vm->code + READ_SHORT();
                 break;
             case OP_JMT: {
                 Value value = POP();
                 if (!CHECK_BOOL(value)) goto ERROR;
                 if (BOOL_TRUE(value)) {
-                    ip = chunk->code + READ_SHORT();
+                    ip = vm->code + READ_SHORT();
                 } else {
                     ip += 2;
                 }
@@ -180,7 +204,7 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
                 Value value = POP();
                 if (!CHECK_BOOL(value)) goto ERROR;
                 if (!BOOL_TRUE(value)) {
-                    ip = chunk->code + READ_SHORT();
+                    ip = vm->code + READ_SHORT();
                 } else {
                     ip += 2;
                 }
