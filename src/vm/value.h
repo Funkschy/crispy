@@ -2,7 +2,10 @@
 #define VALUE_H
 
 #include "../cli/common.h"
-#include "memory.h"
+
+typedef struct s_vm Vm;
+typedef struct s_object Object;
+typedef struct s_obj_string ObjString;
 
 #define CHECK_TYPE(val, check_type) ((val).type == (check_type))
 
@@ -21,7 +24,7 @@ typedef struct {
     union {
         double d_value;     // number
         uint64_t p_value;   // primitive value (e.g. boolean)
-        char *o_value;      // object pointer
+        Object *o_value;    // object pointer
     };
 } Value;
 
@@ -32,13 +35,21 @@ typedef struct {
 } ValueArray;
 
 Value create_number(double value);
+
 Value create_bool(bool value);
 
+Value create_object(Object *object);
+
 void init_value_array(ValueArray *value_array);
+
 void free_value_array(ValueArray *value_array);
+
 void write_value(ValueArray *value_array, Value value);
+
 void write_at(ValueArray *value_array, uint8_t index, Value value);
+
 void print_value(Value value, bool new_line);
+
 void print_type(Value value);
 
 #endif

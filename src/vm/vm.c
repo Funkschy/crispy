@@ -1,24 +1,23 @@
 #include <stdio.h>
 
 #include "debug.h"
-#include "value.h"
 #include "vm.h"
 #include "opcode.h"
-#include "chunk.h"
 #include "../compiler/compiler.h"
-
-#define DEBUG_TRACE_EXECUTION 0
-#define DEBUG_SHOW_DISASSEMBLY 0
 
 static InterpretResult run(Vm *vm, Chunk *chunk);
 
 void init_vm(Vm *vm) {
     vm->sp = vm->stack;
-    vm->chunk = NULL;
+    vm->first_object = NULL;
+    vm->num_objects = 0;
+    vm->max_objects = INITIAL_GC_THRESHOLD;
 }
 
 void free_vm(Vm *vm) {
-    vm->chunk = NULL;
+    vm->sp = vm->stack;
+    gc(vm);
+
     vm->sp = NULL;
     vm->ip = NULL;
 }
@@ -26,7 +25,7 @@ void free_vm(Vm *vm) {
 InterpretResult interpret(Vm *vm, const char *source) {
     Chunk chunk;
     init_chunk(&chunk);
-    compile(source, &chunk);
+    compile(source, vm, &chunk);
 
 #if DEBUG_SHOW_DISASSEMBLY
     disassemble_chunk(&chunk, "program");
@@ -34,7 +33,6 @@ InterpretResult interpret(Vm *vm, const char *source) {
 
     vm->ip = chunk.code;
     InterpretResult result = run(vm, &chunk);
-    vm->chunk = NULL;
 
     free_chunk(&chunk);
 
@@ -68,8 +66,6 @@ static InterpretResult run(Vm *vm, register Chunk *chunk) {
     do {                                                        \
         Value second = POP();                                   \
         Value first = POP();                                    \
-        if (!CHECK_NUM(first) || !CHECK_NUM(second))            \
-            goto ERROR;                                         \
         PUSH(create_bool(first.d_value op second.d_value));     \
     } while (false)
 

@@ -1,6 +1,8 @@
 #include <stdio.h>
 
 #include "value.h"
+#include "object.h"
+#include "memory.h"
 
 void init_value_array(ValueArray *value_array) {
     value_array->cap = 0;
@@ -36,6 +38,18 @@ void write_at(ValueArray *value_array, uint8_t index, Value value) {
     }
 }
 
+static void print_object(Object *object, const char *new_line) {
+    switch (object->type) {
+        case OBJ_STRING: {
+            ObjString *string = (ObjString *)object;
+            printf("%.*s%s", (int) string->length, string->start, new_line);
+            break;
+        }
+        default:
+            printf("Invalid object%s", new_line);
+    }
+}
+
 void print_value(Value value, bool new_line) {
     const char *nl = (new_line) ? "\n" : "";
     switch (value.type) {
@@ -44,6 +58,9 @@ void print_value(Value value, bool new_line) {
             break;
         case BOOLEAN:
             printf("%s%s", BOOL_STRING(value), nl);
+            break;
+        case OBJECT:
+            print_object(value.o_value, nl);
             break;
         default:
             printf("Invalid value%s", nl);
@@ -62,6 +79,13 @@ Value create_bool(bool value) {
     Value val;
     val.type = BOOLEAN;
     val.p_value = (value) ? 1 : 0;
+    return val;
+}
+
+Value create_object(Object *object) {
+    Value val;
+    val.type = OBJECT;
+    val.o_value = object;
     return val;
 }
 

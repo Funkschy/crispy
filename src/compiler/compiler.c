@@ -11,6 +11,7 @@
 typedef struct {
     Token token;
     Token previous;
+    Vm *vm;
     Chunk *chunk;
     Scanner scanner;
 
@@ -82,11 +83,12 @@ static void patch_jump(Compiler *compiler, uint32_t offset) {
     patch_jump_to(compiler, offset, compiler->chunk->count);
 }
 
-void compile(const char *source, Chunk *chunk) {
+void compile(const char *source, Vm *vm, Chunk *chunk) {
     Scanner scanner;
     init_scanner(&scanner, source);
 
     Compiler compiler;
+    compiler.vm = vm;
     compiler.chunk = chunk;
     compiler.scanner = scanner;
     compiler.token = scan_token(&compiler.scanner);
@@ -180,6 +182,20 @@ static void primary(Compiler *compiler) {
         case TOKEN_IDENTIFIER: {
             Variable var = resolve_var(compiler, compiler->token.start, compiler->token.length);
             emit_byte_arg(compiler, OP_LOAD, (uint8_t) var.index);
+            break;
+        }
+        case TOKEN_STRING: {
+            ObjString *string = new_string(compiler->vm, compiler->token.start + 1, compiler->token.length - 2);
+            uint16_t pos = (uint16_t)add_constant(compiler->chunk, create_object((Object *)string));
+
+            if (pos > 255) {
+                uint8_t index_1 = (uint8_t) (pos >> 8);
+                uint8_t index_2 = (uint8_t) (pos & 0xFF);
+                emit_short_arg(compiler, OP_LDC_W, index_1, index_2);
+            } else {
+                emit_byte_arg(compiler, OP_LDC, (uint8_t) pos);
+            }
+
             break;
         }
         default:
