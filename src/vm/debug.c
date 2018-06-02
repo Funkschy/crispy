@@ -2,13 +2,13 @@
 
 #include "debug.h"
 #include "opcode.h"
-#include "chunk.h"
+#include "vm.h"
 
-void disassemble_chunk(Chunk *chunk, const char *name) {
+void disassemble_vm(Vm *vm, const char *name) {
     printf("======== %s ========\n", name);
 
-    for (int i = 0; i < chunk->count;) {
-        i = disassemble_instruction(chunk, i);
+    for (int i = 0; i < vm->instruction_count;) {
+        i = disassemble_instruction(vm, i);
     }
 }
 
@@ -17,36 +17,36 @@ static int simple_instruction(const char *name, int offset) {
     return offset + 1;
 }
 
-static int constant_instruction(const char *name, Chunk *chunk, int offset) {
-    uint8_t constant_index = chunk->code[offset + 1];
+static int constant_instruction(const char *name, Vm *vm, int offset) {
+    uint8_t constant_index = vm->code[offset + 1];
 
     printf("%-16s %4d '", name, constant_index);
-    print_value(chunk->constants.values[constant_index], false);
+    print_value(vm->constants.values[constant_index], false);
     printf("'\n");
 
     return offset + 2;
 }
 
-static int var_instruction(const char *name, Chunk *chunk, int offset) {
-    uint8_t var_index = chunk->code[offset + 1];
+static int var_instruction(const char *name, Vm *vm, int offset) {
+    uint8_t var_index = vm->code[offset + 1];
 
     printf("%-16s %4d\n", name, var_index);
 
     return offset + 2;
 }
 
-static int jump_instruction(const char *name, Chunk *chunk, int offset) {
-    uint16_t jmp_address = (chunk->code[offset + 1] << 8) | chunk->code[offset + 2];
+static int jump_instruction(const char *name, Vm *vm, int offset) {
+    uint16_t jmp_address = (vm->code[offset + 1] << 8) | vm->code[offset + 2];
 
     printf("%-16s   -> %04d\n", name, jmp_address);
 
     return offset + 3;
 }
 
-int disassemble_instruction(Chunk *chunk, int offset) {
+int disassemble_instruction(Vm *vm, int offset) {
     printf("%04d ", offset);
 
-    uint8_t instruction = chunk->code[offset];
+    uint8_t instruction = vm->code[offset];
     switch (instruction) {
         case OP_NOP:
             return simple_instruction("OP_NOP", offset);
@@ -67,15 +67,15 @@ int disassemble_instruction(Chunk *chunk, int offset) {
         case OP_DIV:
             return simple_instruction("OP_DIV", offset);
         case OP_LDC:
-            return constant_instruction("OP_LDC", chunk, offset);
+            return constant_instruction("OP_LDC", vm, offset);
         case OP_LDC_W:
-            return constant_instruction("OP_LDC_W", chunk, offset);
+            return constant_instruction("OP_LDC_W", vm, offset);
         case OP_NEGATE:
             return simple_instruction("OP_NEGATE", offset);
         case OP_STORE:
-            return var_instruction("OP_STORE", chunk, offset);
+            return var_instruction("OP_STORE", vm, offset);
         case OP_LOAD:
-            return var_instruction("OP_LOAD", chunk, offset);
+            return var_instruction("OP_LOAD", vm, offset);
         case OP_DUP:
             return simple_instruction("OP_DUP", offset);
         case OP_POP:
@@ -85,29 +85,29 @@ int disassemble_instruction(Chunk *chunk, int offset) {
         case OP_RETURN:
             return simple_instruction("OP_RETURN", offset);
         case OP_JMP:
-            return jump_instruction("OP_JMP", chunk, offset);
+            return jump_instruction("OP_JMP", vm, offset);
         case OP_JEQ:
-            return jump_instruction("OP_JEQ", chunk, offset);
+            return jump_instruction("OP_JEQ", vm, offset);
         case OP_JMT:
-            return jump_instruction("OP_JMT", chunk, offset);
+            return jump_instruction("OP_JMT", vm, offset);
         case OP_JMF:
-            return jump_instruction("OP_JMF", chunk, offset);
+            return jump_instruction("OP_JMF", vm, offset);
         case OP_JNE:
-            return jump_instruction("OP_JNE", chunk, offset);
+            return jump_instruction("OP_JNE", vm, offset);
         case OP_JLT:
-            return jump_instruction("OP_JLT", chunk, offset);
+            return jump_instruction("OP_JLT", vm, offset);
         case OP_JLE:
-            return jump_instruction("OP_JLE", chunk, offset);
+            return jump_instruction("OP_JLE", vm, offset);
         case OP_JGT:
-            return jump_instruction("OP_JGT", chunk, offset);
+            return jump_instruction("OP_JGT", vm, offset);
         case OP_JGE:
-            return jump_instruction("OP_JGE", chunk, offset);
+            return jump_instruction("OP_JGE", vm, offset);
         case OP_INC:
-            return var_instruction("OP_INC", chunk, offset);
+            return var_instruction("OP_INC", vm, offset);
         case OP_INC_1:
             return simple_instruction("OP_INC_1", offset);
         case OP_DEC:
-            return var_instruction("OP_DEC", chunk, offset);
+            return var_instruction("OP_DEC", vm, offset);
         case OP_LDC_0:
             return simple_instruction("LDC_0", offset);
         case OP_LDC_1:

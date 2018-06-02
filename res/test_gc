@@ -1,0 +1,16 @@
+var test = "Hello World";
+test = "a";
+test = "aa";
+test = "aaa";
+test = "aaaa";
+test = "aaaaa";
+test = "aaaaaa";
+test = "aaaaaaa";
+test = "aaaaaaaa";
+test = "aaaaaaaaa";
+test = "aaaaaaaaaa";
+test = "aaaaaaaaaaa";
+test = "aaaaaaaaaaaa";
+test = "aaaaaaaaaaaaa";
+test = "aaaaaaaaaaaaaa";
+test = "aaaaaaaaaaaaaaa";

@@ -10,6 +10,7 @@ typedef enum {
     TOKEN_OPEN_PAREN,
     TOKEN_CLOSE_PAREN,
     TOKEN_NUMBER,
+    TOKEN_STRING,
     TOKEN_PLUS,
     TOKEN_MINUS,
     TOKEN_STAR,
