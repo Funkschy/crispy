@@ -6,7 +6,11 @@ while 42 == 43 {
 
 var i = 0;
 
+print "before";
+
 while i != 10 {
     i = i + 1;
     print i;
 }
+
+print "after";

@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "scanner.h"
 #include "../cli/common.h"
+#include "scanner.h"
 
 void init_scanner(Scanner *scanner, const char *source) {
     scanner->start = source;
@@ -28,7 +28,7 @@ static inline char peek_next(Scanner *scanner) {
 }
 
 static bool is_alpha(char c) {
-    return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
 static bool is_digit(char c) {
