@@ -2,7 +2,7 @@
 
 #include "memory.h"
 #include "value.h"
-#include "object.h"
+#include "vm.h"
 
 void *reallocate(void *previous, size_t size) {
     if (size <= 0) {
@@ -20,7 +20,7 @@ static void mark(Object *object) {
 }
 
 static void mark_all(Vm *vm) {
-    // TODO
+    // TODO find idea for garbage collector implementation
 }
 
 static void sweep(Vm *vm) {

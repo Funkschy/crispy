@@ -41,7 +41,7 @@ typedef enum {
     OP_INC_1,       // increment by 1
     OP_DEC,         // decrement
 
-    OP_RETURN       // return from Chunk
+    OP_RETURN       // return from Scope
 } OP_CODE;
 
 #endif //CALC_OPCODE_H

@@ -2,7 +2,6 @@
 #define CALC_VARIABLES_H
 
 #include "../cli/common.h"
-#include "../vm/memory.h"
 
 typedef struct {
     const char *name;

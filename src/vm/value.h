@@ -3,10 +3,6 @@
 
 #include "../cli/common.h"
 
-typedef struct s_vm Vm;
-typedef struct s_object Object;
-typedef struct s_obj_string ObjString;
-
 #define CHECK_TYPE(val, check_type) ((val).type == (check_type))
 
 #define CHECK_NUM(num) (CHECK_TYPE((num), NUMBER))
@@ -14,6 +10,29 @@ typedef struct s_obj_string ObjString;
 
 #define BOOL_TRUE(bool_val) ((bool_val).p_value == 1)
 #define BOOL_STRING(bool_val) (((bool_val).p_value == 1) ? "true" : "false")
+
+typedef struct s_object Object;
+typedef struct s_obj_string ObjString;
+
+typedef enum {
+    OBJ_STRING,
+    OBJ_LAMBDA,
+    OBJ_MAP,
+    OBJ_LIST
+} ObjectType;
+
+struct s_object {
+    uint8_t marked;
+    ObjectType type;
+
+    struct s_object *next;
+};
+
+struct s_obj_string {
+    Object object;
+    size_t length;
+    const char *start;
+};
 
 typedef enum {
     NUMBER, OBJECT, BOOLEAN

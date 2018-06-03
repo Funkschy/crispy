@@ -1,4 +1,5 @@
 #include "variables.h"
+#include "../vm/memory.h"
 
 void init_variable_array(VariableArray *variable_array) {
     variable_array->cap = 0;
