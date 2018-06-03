@@ -93,17 +93,15 @@ static InterpretResult run(Vm *vm) {
         PUSH(create_bool(first.d_value op second.d_value));     \
     } while (false)
 
-#define COND_JUMP(op)                                   \
-    do {                                                \
-        Value second = POP();                           \
-        Value first = POP();                            \
-        if (!CHECK_BOOL(first) || !CHECK_BOOL(second))  \
-            goto ERROR;                                 \
-        if (first.p_value op second.p_value) {          \
-            ip = vm->code + READ_SHORT();               \
-        } else {                                        \
-            READ_SHORT();                               \
-        }                                               \
+#define COND_JUMP(op)                                           \
+    do {                                                        \
+        Value second = POP();                                   \
+        Value first = POP();                                    \
+        if (first.p_value op second.p_value) {                  \
+            ip = vm->code + READ_SHORT();                       \
+        } else {                                                \
+            READ_SHORT();                                       \
+        }                                                       \
     } while(false)
 
     while (true) {
