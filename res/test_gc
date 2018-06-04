@@ -1,19 +1,16 @@
-var test = "Hello World";
-test = "a";
-test = "aa";
-test = "aaa";
-test = "aaaa";
-test = "aaaaa";
-test = "aaaaaa";
-test = "aaaaaaa";
-test = "aaaaaaaa";
-test = "aaaaaaaaa";
-test = "aaaaaaaaaa";
-test = "aaaaaaaaaaa";
-test = "aaaaaaaaaaaa";
-test = "aaaaaaaaaaaaa";
-test = "aaaaaaaaaaaaaa";
-test = "aaaaaaaaaaaaaaa";
+var i = 0;
+var test = "a";
 
+while i != 100000 {
+    i = i + 1;
+    test = test + "a";
+}
+
+{
+    var test2 = test + "b";
+    test2 = test2 + "b";
+    test2 = test2 + "b";
+    print test2;
+}
 
 print test;

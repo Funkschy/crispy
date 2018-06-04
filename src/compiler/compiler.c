@@ -23,10 +23,15 @@ static void advance(Vm *vm) {
 
 static inline void open_scope(Vm *vm) {
     ++vm->compiler.scope_depth;
+    init_variable_array(&vm->compiler.scope[vm->compiler.scope_depth]);
 }
 
-static inline void close_scope(Vm *vm) {
-    --vm->compiler.scope_depth;
+static void close_scope(Vm *vm) {
+    Compiler *compiler = &vm->compiler;
+
+    compiler->vars_in_scope -= compiler->scope[compiler->scope_depth].count;
+    free_variable_array(&compiler->scope[compiler->scope_depth]);
+    --compiler->scope_depth;
 }
 
 static bool match(TokenType type, Vm *vm) {
@@ -97,8 +102,8 @@ static int resolve_name(Vm *vm, const char *name, size_t length) {
     Compiler *compiler = &vm->compiler;
 
     for(int i = compiler->scope_depth; i >= 0; --i) {
-        for (int j = compiler->variables[i].count - 1; j >= 0; --j) {
-            Variable var = vm->compiler.variables[i].variables[j];
+        for (int j = compiler->scope[i].count - 1; j >= 0; --j) {
+            Variable var = vm->compiler.scope[i].variables[j];
             if (var.length == length && memcmp(name, var.name, length) == 0) {
                 return var.index;
             }
@@ -253,8 +258,8 @@ static void var_decl(Vm *vm) {
 
     expr(vm);
 
-    Variable variable = {identifier.start, identifier.length, (int) (CURR_FRAME(vm).num_vars_reserved++)};
-    write_variable(&vm->compiler.variables[vm->compiler.scope_depth], variable);
+    Variable variable = {identifier.start, identifier.length, vm->compiler.vars_in_scope++};
+    write_variable(&vm->compiler.scope[vm->compiler.scope_depth], variable);
 
     emit_byte_arg(vm, OP_STORE, (uint8_t) variable.index);
 }

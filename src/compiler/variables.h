@@ -18,6 +18,5 @@ typedef struct {
 void init_variable_array(VariableArray *variable_array);
 void free_variable_array(VariableArray *variable_array);
 uint32_t  write_variable(VariableArray *variable_array, Variable variable);
-void write_variable_at(VariableArray *variable_array, uint8_t index, Variable variable);
 
 #endif //CALC_VARIABLES_H

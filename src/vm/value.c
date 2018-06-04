@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "value.h"
 #include "vm.h"
@@ -16,32 +17,31 @@ void free_value_array(ValueArray *value_array) {
 }
 
 void write_value(ValueArray *value_array, Value value) {
-    if(value_array->count >= value_array->cap) {
+    if (value_array->count >= value_array->cap) {
         value_array->cap = GROW_CAP(value_array->cap);
         value_array->values = GROW_ARR(value_array->values, Value, value_array->cap);
     }
-    
+
     value_array->values[value_array->count++] = value;
 }
 
 void write_at(ValueArray *value_array, uint8_t index, Value value) {
-    while(true) {
-        if(index < value_array->cap) {
-            value_array->values[index] = value;
-            if(index > value_array->count) value_array->count = index;
-            return;
-        }
-        
-        
+    while (index >= value_array->cap) {
         value_array->cap = GROW_CAP(value_array->cap);
         value_array->values = GROW_ARR(value_array->values, Value, value_array->cap);
     }
+
+    if (index >= value_array->count) {
+        ++value_array->count;
+    }
+
+    value_array->values[index] = value;
 }
 
 static void print_object(Object *object, const char *new_line) {
     switch (object->type) {
         case OBJ_STRING: {
-            ObjString *string = (ObjString *)object;
+            ObjString *string = (ObjString *) object;
             printf("%.*s%s", (int) string->length, string->start, new_line);
             break;
         }
@@ -107,7 +107,8 @@ void print_type(Value value) {
 #define ALLOC_OBJ(vm, type, object_type) ((type *)allocate_object((vm), sizeof(type), (object_type)))
 
 static Object *allocate_object(Vm *vm, size_t size, ObjectType type) {
-    // if(vm->num_objects >= vm->max_objects) gc(vm);
+    // TODO don't gc while compiling
+    if (vm->num_objects >= vm->max_objects) gc(vm);
 
     Object *object = malloc(size);
     object->type = type;
@@ -127,7 +128,19 @@ static Object *allocate_object(Vm *vm, size_t size, ObjectType type) {
 ObjString *new_string(Vm *vm, const char *start, size_t length) {
     ObjString *string = ALLOC_OBJ(vm, ObjString, OBJ_STRING);
     string->length = length;
-    string->start = start;
 
+    char *value = malloc(length * sizeof(char));
+    memcpy(value, start, length);
+
+    string->start = value;
+    return string;
+}
+
+ObjString *new_empty_string(Vm *vm, size_t length) {
+    ObjString *string = ALLOC_OBJ(vm, ObjString, OBJ_STRING);
+    string->length = length;
+
+    char *value = malloc(length * sizeof(char));
+    string->start = value;
     return string;
 }
