@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "vm.h"
 #include "memory.h"
@@ -30,7 +31,6 @@ void free_code_buffer(CodeBuffer *code_buffer) {
 
 static void init_call_frame(CallFrame *call_frame) {
     call_frame->ip = NULL;
-    call_frame->num_vars_reserved = 0;
     init_code_buffer(&call_frame->code_buffer);
 }
 
@@ -55,8 +55,27 @@ void init_vm(Vm *vm) {
     push_call_frame(vm);
 }
 
+void free_object(Object *object) {
+    switch (object->type) {
+        case OBJ_STRING: {
+            ObjString *string = (ObjString *) object;
+            free((void *) string->start);
+            free(object);
+            break;
+        }
+        default:
+            break;
+    }
+}
+
 void free_vm(Vm *vm) {
-    // gc(vm);
+    Object **obj = &vm->first_object;
+
+    while (*obj) {
+        Object *to_del = *obj;
+        *obj = to_del->next;
+        free_object(to_del);
+    }
 
     vm->sp = NULL;
     vm->first_object = NULL;
@@ -93,15 +112,13 @@ static void init_compiler(Compiler *compiler, const char *source) {
 
     VariableArray variables;
     init_variable_array(&variables);
-    compiler->variables[0] = variables;
+    compiler->scope[0] = variables;
     compiler->scope_depth = 0;
+    compiler->vars_in_scope = 0;
 }
 
 static void free_compiler(Compiler *compiler) {
-    while (compiler->scope_depth > 0) {
-        free_variable_array(&compiler->variables[compiler->scope_depth]);
-        --(compiler->scope_depth);
-    }
+    free_variable_array(&compiler->scope[0]);
 }
 
 InterpretResult interpret(Vm *vm, const char *source) {
@@ -203,9 +220,32 @@ static InterpretResult run(Vm *vm) {
                 PUSH(one);
                 break;
             }
-            case OP_ADD:
-                BINARY_OP(+);
+            case OP_ADD: {
+                // BINARY_OP(+);
+                Value second = POP();
+                Value first = POP();
+
+                if (first.type == NUMBER && second.type == NUMBER) {
+                    PUSH(create_number(first.d_value + second.d_value));
+                    break;
+                }
+
+                // TODO handle non string objects
+                if (first.type == OBJECT && second.type == OBJECT) {
+                    ObjString *first_str = (ObjString *) first.o_value;
+                    ObjString *second_str = (ObjString *) second.o_value;
+
+                    ObjString *dest = new_empty_string(vm, (first_str->length + second_str->length));
+                    memcpy((char *) dest->start, first_str->start, first_str->length);
+                    memcpy((char *) (dest->start + first_str->length), second_str->start, second_str->length);
+
+                    PUSH(create_object((Object *) dest));
+                } else {
+                    goto ERROR;
+                }
+
                 break;
+            }
             case OP_SUB:
                 BINARY_OP(-);
                 break;

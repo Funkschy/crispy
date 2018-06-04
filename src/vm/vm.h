@@ -27,7 +27,6 @@ typedef struct s_call_frame{
     uint8_t *ip;
 
     CodeBuffer code_buffer;
-    size_t num_vars_reserved;
 } CallFrame;
 
 typedef struct {
@@ -44,11 +43,15 @@ typedef struct {
     Object *first_object;
 } Vm;
 
+void gc(Vm *vm);
+
 void init_vm(Vm *vm);
 
 void free_vm(Vm *vm);
 
 void compile(Vm *vm);
+
+void free_object(Object *object);
 
 void pop_call_frame(Vm *vm);
 
@@ -57,6 +60,8 @@ void push_call_frame(Vm *vm);
 void write_code_buffer(CodeBuffer *code_buffer, uint8_t instruction);
 
 uint32_t add_constant(CodeBuffer *code_buffer, Value value);
+
+ObjString *new_empty_string(Vm *vm, size_t length);
 
 ObjString *new_string(Vm *vm, const char *start, size_t length);
 
