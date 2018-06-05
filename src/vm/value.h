@@ -12,27 +12,6 @@
 #define BOOL_STRING(bool_val) (((bool_val).p_value == 1) ? "true" : "false")
 
 typedef struct s_object Object;
-typedef struct s_obj_string ObjString;
-
-typedef enum {
-    OBJ_STRING,
-    OBJ_LAMBDA,
-    OBJ_MAP,
-    OBJ_LIST
-} ObjectType;
-
-struct s_object {
-    uint8_t marked;
-    ObjectType type;
-
-    struct s_object *next;
-};
-
-struct s_obj_string {
-    Object object;
-    size_t length;
-    const char *start;
-};
 
 typedef enum {
     NUMBER, OBJECT, BOOLEAN
@@ -53,11 +32,56 @@ typedef struct {
     Value *values;
 } ValueArray;
 
-Value create_number(double value);
+typedef struct {
+    uint32_t cap;
+    uint32_t count;
+    uint8_t *code;
+
+    ValueArray variables;
+    ValueArray constants;
+} CodeBuffer;
+
+typedef struct s_call_frame{
+    uint8_t *ip;
+
+    CodeBuffer code_buffer;
+} CallFrame;
+
+typedef enum {
+    OBJ_STRING,
+    OBJ_LAMBDA,
+    OBJ_MAP,
+    OBJ_LIST
+} ObjectType;
+
+struct s_object {
+    uint8_t marked;
+    ObjectType type;
+
+    struct s_object *next;
+};
+
+typedef struct {
+    Object object;
+
+    size_t length;
+    const char *start;
+} ObjString;
+
+typedef struct {
+    Object object;
+
+    size_t num_params;
+    CallFrame call_frame;
+} ObjLambda;
 
 Value create_bool(bool value);
 
+Value create_number(double value);
+
 Value create_object(Object *object);
+
+void init_call_frame(CallFrame *call_frame);
 
 void init_value_array(ValueArray *value_array);
 

@@ -10,15 +10,6 @@
 
 static InterpretResult run(Vm *vm);
 
-void init_code_buffer(CodeBuffer *code_buffer) {
-    code_buffer->cap = 0;
-    code_buffer->count = 0;
-    code_buffer->code = NULL;
-
-    init_value_array(&code_buffer->constants);
-    init_value_array(&code_buffer->variables);
-}
-
 void free_code_buffer(CodeBuffer *code_buffer) {
     FREE_ARR(code_buffer->code);
     code_buffer->cap = 0;
@@ -27,11 +18,6 @@ void free_code_buffer(CodeBuffer *code_buffer) {
 
     free_value_array(&code_buffer->constants);
     free_value_array(&code_buffer->variables);
-}
-
-static void init_call_frame(CallFrame *call_frame) {
-    call_frame->ip = NULL;
-    init_code_buffer(&call_frame->code_buffer);
 }
 
 void push_call_frame(Vm *vm) {

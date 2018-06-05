@@ -102,6 +102,8 @@ static TokenType identifier_type(Scanner *scanner) {
             return check_keyword(scanner, 1, 1, "f", TOKEN_IF);
         case 'e':
             return check_keyword(scanner, 1, 3, "lse", TOKEN_ELSE);
+        case 'f':
+            return check_keyword(scanner, 1, 2, "un", TOKEN_FUN);
         default:
             return TOKEN_IDENTIFIER;
     }
@@ -143,7 +145,12 @@ Token scan_token(Scanner *scanner) {
         case '+':
             return make_token(scanner, TOKEN_PLUS);
         case '-':
-            return make_token(scanner, TOKEN_MINUS);
+            if (peek(scanner) == '>') {
+                advance(scanner);
+                return make_token(scanner, TOKEN_ARROW);
+            } else {
+                return make_token(scanner, TOKEN_MINUS);
+            }
         case '*':
             return make_token(scanner, TOKEN_STAR);
         case '/':
@@ -152,6 +159,8 @@ Token scan_token(Scanner *scanner) {
             return make_token(scanner, TOKEN_OPEN_BRACE);
         case '}':
             return make_token(scanner, TOKEN_CLOSE_BRACE);
+        case ',':
+            return make_token(scanner, TOKEN_COMMA);
         case '=':
             if (peek(scanner) == '=') {
                 advance(scanner);

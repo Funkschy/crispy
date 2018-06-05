@@ -5,26 +5,26 @@
 
 #include "../vm/vm.h"
 
-static void run_repl(Vm *vm);
+static void run_repl();
 
-static void run_file(Vm *vm, const char *file_name);
+static void run_file(const char *file_name);
 
 int main(int argc, char **argv) {
-    Vm vm;
-    init_vm(&vm);
     if (argc == 1) {
-        run_repl(&vm);
+        run_repl();
     } else if (argc == 2) {
-        run_file(&vm ,argv[1]);
+        run_file(argv[1]);
     } else {
         fprintf(stderr, "Usage: calc");
     }
 
-    free_vm(&vm);
     return 0;
 }
 
-static void run_repl(Vm *vm) {
+static void run_repl() {
+    Vm vm;
+    init_vm(&vm);
+
     char line[1024];
     while (true) {
         printf(">>> ");
@@ -34,8 +34,10 @@ static void run_repl(Vm *vm) {
             break;
         }
 
-        interpret(vm, line);
+        interpret(&vm, line);
     }
+
+    free_vm(&vm);
 }
 
 static char *read_file(const char *path) {
@@ -57,9 +59,14 @@ static char *read_file(const char *path) {
     return buffer;
 }
 
-static void run_file(Vm *vm, const char *file_name) {
+static void run_file(const char *file_name) {
+    Vm vm;
+    init_vm(&vm);
+
     char *source = read_file(file_name);
-    InterpretResult result = interpret(vm, source);
+    InterpretResult result = interpret(&vm, source);
+
+    free_vm(&vm);
     free(source);
 
     if(result == INTERPRET_RUNTIME_ERROR) exit(42);
