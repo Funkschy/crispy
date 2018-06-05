@@ -6,6 +6,7 @@
 #include "../vm/opcode.h"
 #include "scanner.h"
 #include "../vm/debug.h"
+#include "../vm/value.h"
 
 static void expr(Vm *vm);
 
@@ -34,8 +35,12 @@ static void close_scope(Vm *vm) {
     --compiler->scope_depth;
 }
 
-static bool match(TokenType type, Vm *vm) {
-    if (vm->compiler.token.type == type) {
+static bool check(Vm *vm, TokenType type) {
+    return vm->compiler.token.type == type;
+}
+
+static bool match(Vm *vm, TokenType type) {
+    if (check(vm, type)) {
         advance(vm);
         return true;
     }
@@ -90,6 +95,12 @@ static void patch_jump(Vm *vm, uint32_t offset) {
     patch_jump_to(vm, offset, CURR_FRAME(vm).code_buffer.count);
 }
 
+static void declare_var(Vm *vm, Token var_decl) {
+    Variable variable = {var_decl.start, var_decl.length, vm->compiler.vars_in_scope++};
+    write_variable(&vm->compiler.scope[vm->compiler.scope_depth], variable);
+    emit_byte_arg(vm, OP_STORE, (uint8_t) variable.index);
+}
+
 void compile(Vm *vm) {
     do {
         stmt(vm);
@@ -101,7 +112,7 @@ void compile(Vm *vm) {
 static int resolve_name(Vm *vm, const char *name, size_t length) {
     Compiler *compiler = &vm->compiler;
 
-    for(int i = compiler->scope_depth; i >= 0; --i) {
+    for (int i = compiler->scope_depth; i >= 0; --i) {
         for (int j = compiler->scope[i].count - 1; j >= 0; --j) {
             Variable var = vm->compiler.scope[i].variables[j];
             if (var.length == length && memcmp(name, var.name, length) == 0) {
@@ -208,7 +219,7 @@ static void primary(Vm *vm) {
 static void factor(Vm *vm) {
     primary(vm);
 
-    while (match(TOKEN_STAR, vm) || match(TOKEN_SLASH, vm)) {
+    while (match(vm, TOKEN_STAR) || match(vm, TOKEN_SLASH)) {
         if (vm->compiler.previous.type == TOKEN_STAR) {
             primary(vm);
             emit_no_arg(vm, OP_MUL);
@@ -222,7 +233,7 @@ static void factor(Vm *vm) {
 static void term(Vm *vm) {
     factor(vm);
 
-    while (match(TOKEN_PLUS, vm) || match(TOKEN_MINUS, vm)) {
+    while (match(vm, TOKEN_PLUS) || match(vm, TOKEN_MINUS)) {
         if (vm->compiler.previous.type == TOKEN_PLUS) {
             factor(vm);
             emit_no_arg(vm, OP_ADD);
@@ -236,7 +247,7 @@ static void term(Vm *vm) {
 static void equality(Vm *vm) {
     term(vm);
 
-    while (match(TOKEN_EQUALS_EQUALS, vm) || match(TOKEN_BANG_EQUALS, vm)) {
+    while (match(vm, TOKEN_EQUALS_EQUALS) || match(vm, TOKEN_BANG_EQUALS)) {
         if (vm->compiler.previous.type == TOKEN_EQUALS_EQUALS) {
             term(vm);
             emit_no_arg(vm, OP_EQUAL);
@@ -247,8 +258,62 @@ static void equality(Vm *vm) {
     }
 }
 
+static void lambda(Vm *vm) {
+    advance(vm);
+
+    open_scope(vm);
+
+    CallFrame lambda_frame;
+    init_call_frame(&lambda_frame);
+    PUSH_FRAME(vm, lambda_frame);
+
+    size_t num_params = 0;
+
+    if (!check(vm, TOKEN_ARROW)) {
+        do {
+            Token param = consume(vm, TOKEN_IDENTIFIER, "Expected parameter name");
+            declare_var(vm, param);
+            ++num_params;
+        } while(match(vm, TOKEN_COMMA));
+    }
+
+    consume(vm, TOKEN_ARROW, "Expected '->' after parameter list");
+
+    expr(vm);
+    emit_no_arg(vm, OP_RETURN);
+
+#if DEBUG_SHOW_DISASSEMBLY
+    disassemble_vm(vm, "lamda");
+#endif
+
+    lambda_frame = POP_FRAME(vm);
+
+    ObjLambda *lambda = new_lambda(vm, num_params);
+    lambda->call_frame = lambda_frame;
+
+    uint16_t pos = (uint16_t) add_constant(&CURR_FRAME(vm).code_buffer, create_object((Object *) lambda));
+
+    if (pos > UINT8_MAX) {
+        uint8_t index_1 = (uint8_t) (pos >> 8);
+        uint8_t index_2 = (uint8_t) (pos & 0xFF);
+        emit_short_arg(vm, OP_LDC_W, index_1, index_2);
+    } else {
+        emit_byte_arg(vm, OP_LDC, (uint8_t) pos);
+    }
+
+    close_scope(vm);
+
+}
+
 static void expr(Vm *vm) {
-    equality(vm);
+    switch (vm->compiler.token.type) {
+        case TOKEN_FUN:
+            lambda(vm);
+            break;
+        default:
+            equality(vm);
+            break;
+    }
 }
 
 static void var_decl(Vm *vm) {
@@ -257,11 +322,7 @@ static void var_decl(Vm *vm) {
     consume(vm, TOKEN_EQUALS, "Expected '=' after variable name");
 
     expr(vm);
-
-    Variable variable = {identifier.start, identifier.length, vm->compiler.vars_in_scope++};
-    write_variable(&vm->compiler.scope[vm->compiler.scope_depth], variable);
-
-    emit_byte_arg(vm, OP_STORE, (uint8_t) variable.index);
+    declare_var(vm, identifier);
 }
 
 static void assignment(Vm *vm) {
@@ -286,7 +347,7 @@ static void print_stmt(Vm *vm) {
 static void block(Vm *vm) {
     advance(vm);
     open_scope(vm);
-    while (vm->compiler.token.type != TOKEN_CLOSE_BRACE && vm->compiler.token.type != TOKEN_EOF) {
+    while (!check(vm, TOKEN_CLOSE_BRACE) && !check(vm, TOKEN_EOF)) {
         stmt(vm);
     }
     close_scope(vm);

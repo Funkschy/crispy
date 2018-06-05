@@ -1,7 +1,9 @@
 #ifndef VM_H
 #define VM_H
 
-#define CURR_FRAME(vm_ptr) ((vm_ptr)->frames[(vm_ptr)->frame_count - 1])
+#define CURR_FRAME(vm_ptr)          ((vm_ptr)->frames[(vm_ptr)->frame_count - 1])
+#define PUSH_FRAME(vm_ptr, frame)   ((vm_ptr)->frames[(vm_ptr)->frame_count++] = (frame))
+#define POP_FRAME(vm_ptr)           ((vm_ptr)->frames[--vm->frame_count])
 
 #include "../cli/common.h"
 #include "value.h"
@@ -13,21 +15,6 @@ typedef enum {
     INTERPRET_RUNTIME_ERROR,
     INTERPRET_COMPILE_ERROR
 } InterpretResult;
-
-typedef struct {
-    uint32_t cap;
-    uint32_t count;
-    uint8_t *code;
-
-    ValueArray variables;
-    ValueArray constants;
-} CodeBuffer;
-
-typedef struct s_call_frame{
-    uint8_t *ip;
-
-    CodeBuffer code_buffer;
-} CallFrame;
 
 typedef struct {
     Value stack[STACK_MAX];
@@ -60,6 +47,8 @@ void push_call_frame(Vm *vm);
 void write_code_buffer(CodeBuffer *code_buffer, uint8_t instruction);
 
 uint32_t add_constant(CodeBuffer *code_buffer, Value value);
+
+ObjLambda *new_lambda(Vm *vm, size_t num_params);
 
 ObjString *new_empty_string(Vm *vm, size_t length);
 

@@ -45,6 +45,11 @@ static void print_object(Object *object, const char *new_line) {
             printf("%.*s%s", (int) string->length, string->start, new_line);
             break;
         }
+        case OBJ_LAMBDA: {
+            ObjLambda *lambda = (ObjLambda *) object;
+            printf("<function of arity %ld>%s", lambda->num_params, new_line);
+            break;
+        }
         default:
             printf("Invalid object%s", new_line);
     }
@@ -103,6 +108,19 @@ void print_type(Value value) {
     }
 }
 
+static void init_code_buffer(CodeBuffer *code_buffer) {
+    code_buffer->cap = 0;
+    code_buffer->count = 0;
+    code_buffer->code = NULL;
+
+    init_value_array(&code_buffer->constants);
+    init_value_array(&code_buffer->variables);
+}
+
+void init_call_frame(CallFrame *call_frame) {
+    call_frame->ip = NULL;
+    init_code_buffer(&call_frame->code_buffer);
+}
 
 #define ALLOC_OBJ(vm, type, object_type) ((type *)allocate_object((vm), sizeof(type), (object_type)))
 
@@ -143,4 +161,15 @@ ObjString *new_empty_string(Vm *vm, size_t length) {
     char *value = malloc(length * sizeof(char));
     string->start = value;
     return string;
+}
+
+ObjLambda *new_lambda(Vm *vm, size_t num_params) {
+    ObjLambda *lambda = ALLOC_OBJ(vm, ObjLambda, OBJ_LAMBDA);
+    lambda->num_params = num_params;
+
+    CallFrame call_frame;
+    init_call_frame(&call_frame);
+    lambda->call_frame = call_frame;
+
+    return lambda;
 }
