@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(calc)
+project(crispy)
 
 set(CMAKE_C_STANDARD 11)
 
