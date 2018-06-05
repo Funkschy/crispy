@@ -70,10 +70,14 @@ static void sweep(Vm *vm) {
 }
 
 void gc(Vm *vm) {
+#if DEBUG_TRACE_GC
     size_t objects_before = vm->num_objects;
+#endif
 
     mark_all(vm);
     sweep(vm);
+
+    vm->max_objects = vm->num_objects * 2;
 
 #if DEBUG_TRACE_GC
     printf("Collected %ld objects, %ld remaining.\n", objects_before - vm->num_objects, vm->num_objects);
