@@ -73,6 +73,13 @@ void print_value(Value value, bool new_line) {
     }
 }
 
+Value create_nil() {
+    Value val;
+    val.type = NIL;
+    val.p_value = 0;
+    return val;
+}
+
 Value create_number(double value) {
     Value val;
     val.type = NUMBER;
@@ -94,6 +101,22 @@ Value create_object(Object *object) {
     return val;
 }
 
+void print_object_type(Value value) {
+    Object *object = value.o_value;
+
+    switch (object->type) {
+        case OBJ_STRING:
+            printf(" : STRING\n");
+            break;
+        case OBJ_LAMBDA:
+            printf(" : LAMBDA\n");
+            break;
+        default:
+            printf(" : OBJECT\n");
+            break;
+    }
+}
+
 void print_type(Value value) {
     switch (value.type) {
         case NUMBER:
@@ -103,7 +126,7 @@ void print_type(Value value) {
             printf(" : BOOLEAN\n");
             break;
         case OBJECT:
-            printf(" : OBJECT\n");
+            print_object_type(value);
             break;
     }
 }
@@ -117,9 +140,20 @@ static void init_code_buffer(CodeBuffer *code_buffer) {
     init_value_array(&code_buffer->variables);
 }
 
+static void free_code_buffer(CodeBuffer *code_buffer) {
+    free(code_buffer->code);
+
+    free_value_array(&code_buffer->constants);
+    free_value_array(&code_buffer->variables);
+}
+
 void init_call_frame(CallFrame *call_frame) {
     call_frame->ip = NULL;
     init_code_buffer(&call_frame->code_buffer);
+}
+
+void free_call_frame(CallFrame *call_frame) {
+    free_code_buffer(&call_frame->code_buffer);
 }
 
 #define ALLOC_OBJ(vm, type, object_type) ((type *)allocate_object((vm), sizeof(type), (object_type)))

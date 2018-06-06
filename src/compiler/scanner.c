@@ -28,7 +28,7 @@ static inline char peek_next(Scanner *scanner) {
 }
 
 static bool is_alpha(char c) {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c == '_');
 }
 
 static bool is_digit(char c) {
@@ -65,6 +65,13 @@ static void skip_whitespace(Scanner *scanner) {
             case '\t':
             case '\n':
                 advance(scanner);
+                break;
+            case '/':
+                if(peek_next(scanner) == '/') {
+                    while (!at_end(scanner) && peek(scanner) != '\n') {
+                        advance(scanner);
+                    }
+                }
                 break;
             default:
                 return;
@@ -103,7 +110,18 @@ static TokenType identifier_type(Scanner *scanner) {
         case 'e':
             return check_keyword(scanner, 1, 3, "lse", TOKEN_ELSE);
         case 'f':
-            return check_keyword(scanner, 1, 2, "un", TOKEN_FUN);
+            if (scanner->current - scanner->start > 1) {
+                switch (scanner->start[1]) {
+                    case 'u':
+                        return check_keyword(scanner, 2, 1, "n", TOKEN_FUN);
+                    case 'a':
+                        return check_keyword(scanner, 2, 3, "lse", TOKEN_FALSE);
+                }
+            }
+        case 't':
+            return check_keyword(scanner, 1, 3, "rue", TOKEN_TRUE);
+        case 'r':
+            return check_keyword(scanner, 1, 5, "eturn", TOKEN_RETURN);
         default:
             return TOKEN_IDENTIFIER;
     }
@@ -153,6 +171,8 @@ Token scan_token(Scanner *scanner) {
             }
         case '*':
             return make_token(scanner, TOKEN_STAR);
+        case '%':
+            return make_token(scanner, TOKEN_PERCENT);
         case '/':
             return make_token(scanner, TOKEN_SLASH);
         case '{':

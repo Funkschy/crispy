@@ -14,7 +14,7 @@
 typedef struct s_object Object;
 
 typedef enum {
-    NUMBER, OBJECT, BOOLEAN
+    NUMBER, OBJECT, BOOLEAN, NIL
 } ValueType;
 
 typedef struct {
@@ -75,6 +75,9 @@ typedef struct {
     CallFrame call_frame;
 } ObjLambda;
 
+
+Value create_nil();
+
 Value create_bool(bool value);
 
 Value create_number(double value);
@@ -82,6 +85,8 @@ Value create_number(double value);
 Value create_object(Object *object);
 
 void init_call_frame(CallFrame *call_frame);
+
+void free_call_frame(CallFrame *call_frame);
 
 void init_value_array(ValueArray *value_array);
 

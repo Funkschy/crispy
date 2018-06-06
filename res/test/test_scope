@@ -23,3 +23,9 @@ var i = 0;
 var k = 4;
 
 print i;
+
+var test = {
+    "test";
+};
+
+print test;

@@ -49,6 +49,11 @@ void free_object(Object *object) {
             free(object);
             break;
         }
+        case OBJ_LAMBDA: {
+            ObjLambda *lambda = (ObjLambda *) object;
+            free_call_frame(&lambda->call_frame);
+            free(lambda);
+        }
         default:
             break;
     }
@@ -135,7 +140,6 @@ static InterpretResult run(Vm *vm) {
     Value *const_values = curr_frame->code_buffer.constants.values;
     ValueArray *variables = &curr_frame->code_buffer.variables;
 
-// Return byte at ip and advance ip
 #define READ_BYTE() (*ip++)
 #define READ_SHORT() (ip += 2, (uint16_t)((ip[-2] << 8) | ip[-1]))
 #define READ_CONST() (const_values[READ_BYTE()])
@@ -188,6 +192,7 @@ static InterpretResult run(Vm *vm) {
 
         switch (instruction = (OP_CODE) READ_BYTE()) {
             case OP_RETURN:
+                vm->sp = sp;
                 return INTERPRET_OK;
             case OP_LDC:
                 PUSH(READ_CONST());
@@ -206,8 +211,34 @@ static InterpretResult run(Vm *vm) {
                 PUSH(one);
                 break;
             }
+            case OP_CALL: {
+                uint8_t num_args = READ_BYTE();
+                Value *pos = (sp - num_args - 1);
+                size_t expected = ((ObjLambda *) pos->o_value)->num_params;
+                if (expected != num_args) {
+                    fprintf(stderr, "Invalid number of arguments. Expected %ld, but got %d\n", expected, num_args);
+                    goto ERROR;
+                }
+
+                ObjLambda *lambda = ((ObjLambda *) pos->o_value);
+                Value args[num_args];
+                for (int i = 0; i < num_args; ++i) {
+                    args[i] = POP();
+                }
+                PUSH_FRAME(vm, lambda->call_frame);
+                Value *before_sp = sp;
+                for (int i = 0; i < num_args; ++i) {
+                    PUSH(args[i]);
+                }
+                vm->sp = sp;
+                run(vm);
+                lambda->call_frame = POP_FRAME(vm);
+                Value return_value = *(vm->sp - 1);
+                sp = before_sp;
+                sp[-1] = return_value;
+                break;
+            }
             case OP_ADD: {
-                // BINARY_OP(+);
                 Value second = POP();
                 Value first = POP();
 
@@ -238,6 +269,21 @@ static InterpretResult run(Vm *vm) {
             case OP_MUL:
                 BINARY_OP(*);
                 break;
+            case OP_MOD: {
+                Value second = POP();
+                Value first = POP();
+
+                if (first.type != NUMBER || second.type != NUMBER) {
+                    fprintf(stderr, "Modulo operator (%%) only works on numbers");
+                    goto ERROR;
+                }
+
+                int64_t first_int = (int64_t)first.d_value;
+                int64_t second_int = (int64_t)second.d_value;
+
+                PUSH(create_number(first_int % second_int));
+                break;
+            }
             case OP_DIV:
                 BINARY_OP(/);
                 break;
@@ -334,7 +380,17 @@ static InterpretResult run(Vm *vm) {
                 PUSH(create_number(value.d_value - READ_BYTE()));
                 break;
             }
+            case OP_TRUE:
+                PUSH(create_bool(true));
+                break;
+            case OP_FALSE:
+                PUSH(create_bool(false));
+                break;
             case OP_NOP:
+                PUSH(create_bool(false));
+                break;
+            case OP_NIL:
+                PUSH(create_nil());
                 break;
             default:
                 printf("Unknown instruction %d\n", instruction);

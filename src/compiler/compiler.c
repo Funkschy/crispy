@@ -143,7 +143,7 @@ static Variable resolve_var(Vm *vm, const char *name, size_t length) {
 static void primary(Vm *vm) {
     Compiler *compiler = &vm->compiler;
 
-    switch (vm->compiler.token.type) {
+    switch (compiler->token.type) {
         case TOKEN_NUMBER: {
             Token token = compiler->token;
             if (token.length == 1) {
@@ -176,12 +176,6 @@ static void primary(Vm *vm) {
 
             break;
         }
-        case TOKEN_MINUS: {
-            advance(vm);
-            primary(vm);
-            emit_no_arg(vm, OP_NEGATE);
-            return;
-        }
         case TOKEN_OPEN_PAREN: {
             advance(vm);
             expr(vm);
@@ -209,50 +203,96 @@ static void primary(Vm *vm) {
 
             break;
         }
+        case TOKEN_FALSE:
+            emit_no_arg(vm, OP_FALSE);
+            break;
+        case TOKEN_TRUE:
+            emit_no_arg(vm, OP_TRUE);
+            break;
         default:
+            printf("%.*s\n", (int) compiler->token.length, compiler->token.start);
             error("Unexpected Token in primary");
     }
 
     advance(vm);
 }
 
-static void factor(Vm *vm) {
+static void primary_expr(Vm *vm) {
     primary(vm);
 
-    while (match(vm, TOKEN_STAR) || match(vm, TOKEN_SLASH)) {
-        if (vm->compiler.previous.type == TOKEN_STAR) {
-            primary(vm);
-            emit_no_arg(vm, OP_MUL);
-        } else {
-            primary(vm);
-            emit_no_arg(vm, OP_DIV);
+    if (!check(vm, TOKEN_OPEN_PAREN)) return;
+
+    size_t num_args = 0;
+
+    // Call
+    while (match(vm, TOKEN_OPEN_PAREN)) {
+        if (!check(vm, TOKEN_CLOSE_PAREN)) {
+            do {
+                expr(vm);
+                ++num_args;
+            } while (match(vm, TOKEN_COMMA));
         }
+    }
+
+    consume(vm, TOKEN_CLOSE_PAREN, "Expected ')' after argument list");
+    emit_byte_arg(vm, OP_CALL, (uint8_t) num_args);
+}
+
+static void factor(Vm *vm) {
+    switch (vm->compiler.token.type) {
+        case TOKEN_BANG: // TODO implement 'not'
+        case TOKEN_MINUS:
+            advance(vm);
+            primary_expr(vm);
+            emit_no_arg(vm, OP_NEGATE);
+            break;
+        default:
+            primary_expr(vm);
+            break;
     }
 }
 
 static void term(Vm *vm) {
     factor(vm);
 
-    while (match(vm, TOKEN_PLUS) || match(vm, TOKEN_MINUS)) {
-        if (vm->compiler.previous.type == TOKEN_PLUS) {
+    while (match(vm, TOKEN_STAR) || match(vm, TOKEN_SLASH) || match(vm, TOKEN_PERCENT)) {
+        if (vm->compiler.previous.type == TOKEN_STAR) {
             factor(vm);
-            emit_no_arg(vm, OP_ADD);
+            emit_no_arg(vm, OP_MUL);
+        } else if (vm->compiler.previous.type == TOKEN_PERCENT) {
+            factor(vm);
+            emit_no_arg(vm, OP_MOD);
         } else {
             factor(vm);
+            emit_no_arg(vm, OP_DIV);
+        }
+    }
+
+}
+
+static void arith_expr(Vm *vm) {
+    term(vm);
+
+    while (match(vm, TOKEN_PLUS) || match(vm, TOKEN_MINUS)) {
+        if (vm->compiler.previous.type == TOKEN_PLUS) {
+            term(vm);
+            emit_no_arg(vm, OP_ADD);
+        } else {
+            term(vm);
             emit_no_arg(vm, OP_SUB);
         }
     }
 }
 
 static void equality(Vm *vm) {
-    term(vm);
+    arith_expr(vm);
 
     while (match(vm, TOKEN_EQUALS_EQUALS) || match(vm, TOKEN_BANG_EQUALS)) {
         if (vm->compiler.previous.type == TOKEN_EQUALS_EQUALS) {
-            term(vm);
+            arith_expr(vm);
             emit_no_arg(vm, OP_EQUAL);
         } else {
-            term(vm);
+            arith_expr(vm);
             emit_no_arg(vm, OP_NOT_EQUAL);
         }
     }
@@ -274,10 +314,13 @@ static void lambda(Vm *vm) {
             Token param = consume(vm, TOKEN_IDENTIFIER, "Expected parameter name");
             declare_var(vm, param);
             ++num_params;
-        } while(match(vm, TOKEN_COMMA));
+        } while (match(vm, TOKEN_COMMA));
     }
 
     consume(vm, TOKEN_ARROW, "Expected '->' after parameter list");
+
+    // lambda object itself
+    emit_no_arg(vm, OP_POP);
 
     expr(vm);
     emit_no_arg(vm, OP_RETURN);
@@ -290,6 +333,7 @@ static void lambda(Vm *vm) {
 
     ObjLambda *lambda = new_lambda(vm, num_params);
     lambda->call_frame = lambda_frame;
+    lambda->call_frame.ip = lambda->call_frame.code_buffer.code;
 
     uint16_t pos = (uint16_t) add_constant(&CURR_FRAME(vm).code_buffer, create_object((Object *) lambda));
 
@@ -305,10 +349,47 @@ static void lambda(Vm *vm) {
 
 }
 
+static void block_expr(Vm *vm) {
+    advance(vm);
+    open_scope(vm);
+    while (!check(vm, TOKEN_CLOSE_BRACE) && !check(vm, TOKEN_EOF)) {
+        stmt(vm);
+    }
+    close_scope(vm);
+    advance(vm);
+}
+
+static void if_expr(Vm *vm) {
+    advance(vm);
+    expr(vm);
+
+    uint32_t false_jump = emit_jump(vm, OP_JMF);
+    block_expr(vm);
+
+    uint32_t exit_jump = emit_jump(vm, OP_JMP);
+    patch_jump(vm, false_jump);
+
+    if (vm->compiler.token.type == TOKEN_ELSE) {
+        advance(vm);
+        if (vm->compiler.token.type == TOKEN_IF) {
+            if_expr(vm);
+        } else {
+            block_expr(vm);
+        }
+    }
+    patch_jump(vm, exit_jump);
+}
+
 static void expr(Vm *vm) {
     switch (vm->compiler.token.type) {
         case TOKEN_FUN:
             lambda(vm);
+            break;
+        case TOKEN_OPEN_BRACE:
+            block_expr(vm);
+            break;
+        case TOKEN_IF:
+            if_expr(vm);
             break;
         default:
             equality(vm);
@@ -322,6 +403,8 @@ static void var_decl(Vm *vm) {
     consume(vm, TOKEN_EQUALS, "Expected '=' after variable name");
 
     expr(vm);
+    consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
+
     declare_var(vm, identifier);
 }
 
@@ -329,6 +412,7 @@ static void assignment(Vm *vm) {
     Token identifier = consume(vm, TOKEN_IDENTIFIER, "Expected identifier");
     consume(vm, TOKEN_EQUALS, "Expected '=' after variable name");
     expr(vm);
+    consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
 
     Variable var = resolve_var(vm, identifier.start, identifier.length);
     emit_byte_arg(vm, OP_STORE, (uint8_t) var.index);
@@ -336,15 +420,17 @@ static void assignment(Vm *vm) {
 
 static void expr_stmt(Vm *vm) {
     expr(vm);
+    consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
 }
 
 static void print_stmt(Vm *vm) {
     advance(vm);
     expr(vm);
+    consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
     emit_no_arg(vm, OP_PRINT);
 }
 
-static void block(Vm *vm) {
+static void block_stmt(Vm *vm) {
     advance(vm);
     open_scope(vm);
     while (!check(vm, TOKEN_CLOSE_BRACE) && !check(vm, TOKEN_EOF)) {
@@ -360,7 +446,7 @@ static void while_stmt(Vm *vm) {
     expr(vm);
 
     uint32_t exit_jmp = emit_jump(vm, OP_JMF);
-    block(vm);
+    block_stmt(vm);
 
     uint32_t to_start = emit_jump(vm, OP_JMP);
     patch_jump_to(vm, to_start, start_instruction);
@@ -372,7 +458,7 @@ static void if_stmt(Vm *vm) {
     expr(vm);
 
     uint32_t false_jump = emit_jump(vm, OP_JMF);
-    block(vm);
+    block_stmt(vm);
 
     uint32_t exit_jump = emit_jump(vm, OP_JMP);
     patch_jump(vm, false_jump);
@@ -382,7 +468,7 @@ static void if_stmt(Vm *vm) {
         if (vm->compiler.token.type == TOKEN_IF) {
             if_stmt(vm);
         } else {
-            block(vm);
+            block_stmt(vm);
         }
     }
     patch_jump(vm, exit_jump);
@@ -403,8 +489,6 @@ static void simple_stmt(Vm *vm) {
             expr_stmt(vm);
             break;
     }
-
-    consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
 }
 
 static void stmt(Vm *vm) {
@@ -413,10 +497,22 @@ static void stmt(Vm *vm) {
             while_stmt(vm);
             break;
         case TOKEN_OPEN_BRACE:
-            block(vm);
+            block_stmt(vm);
             break;
         case TOKEN_IF:
             if_stmt(vm);
+            break;
+        case TOKEN_RETURN:
+            advance(vm);
+
+            if (!check(vm, TOKEN_SEMICOLON)) {
+                expr(vm);
+                consume(vm, TOKEN_SEMICOLON, "Expected ';' after return value");
+            } else {
+                emit_no_arg(vm, OP_NIL);
+            }
+
+            emit_no_arg(vm, OP_RETURN);
             break;
         default:
             simple_stmt(vm);
