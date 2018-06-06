@@ -114,6 +114,14 @@ int disassemble_instruction(Vm *vm, int offset) {
             return simple_instruction("OP_LDC_1", offset);
         case OP_CALL:
             return var_instruction("OP_CALL", vm, offset);
+        case OP_MOD:
+            return simple_instruction("OP_MOD", offset);
+        case OP_TRUE:
+            return simple_instruction("OP_TRUE", offset);
+        case OP_FALSE:
+            return simple_instruction("OP_FALSE", offset);
+        case OP_NIL:
+            return simple_instruction("OP_NIL", offset);
         default:
             printf("Unknown instruction %d\n", instruction);
             return offset + 1;

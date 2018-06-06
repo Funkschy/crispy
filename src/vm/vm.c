@@ -140,8 +140,6 @@ static InterpretResult run(Vm *vm) {
     Value *const_values = curr_frame->code_buffer.constants.values;
     ValueArray *variables = &curr_frame->code_buffer.variables;
 
-    Value *start_sp = sp;
-
 #define READ_BYTE() (*ip++)
 #define READ_SHORT() (ip += 2, (uint16_t)((ip[-2] << 8) | ip[-1]))
 #define READ_CONST() (const_values[READ_BYTE()])
@@ -194,7 +192,7 @@ static InterpretResult run(Vm *vm) {
 
         switch (instruction = (OP_CODE) READ_BYTE()) {
             case OP_RETURN:
-                *start_sp = POP();
+                vm->sp = sp;
                 return INTERPRET_OK;
             case OP_LDC:
                 PUSH(READ_CONST());
@@ -235,7 +233,9 @@ static InterpretResult run(Vm *vm) {
                 vm->sp = sp;
                 run(vm);
                 lambda->call_frame = POP_FRAME(vm);
+                Value return_value = *(vm->sp - 1);
                 sp = before_sp;
+                sp[-1] = return_value;
                 break;
             }
             case OP_ADD: {
@@ -269,6 +269,21 @@ static InterpretResult run(Vm *vm) {
             case OP_MUL:
                 BINARY_OP(*);
                 break;
+            case OP_MOD: {
+                Value second = POP();
+                Value first = POP();
+
+                if (first.type != NUMBER || second.type != NUMBER) {
+                    fprintf(stderr, "Modulo operator (%%) only works on numbers");
+                    goto ERROR;
+                }
+
+                int64_t first_int = (int64_t)first.d_value;
+                int64_t second_int = (int64_t)second.d_value;
+
+                PUSH(create_number(first_int % second_int));
+                break;
+            }
             case OP_DIV:
                 BINARY_OP(/);
                 break;
@@ -365,7 +380,17 @@ static InterpretResult run(Vm *vm) {
                 PUSH(create_number(value.d_value - READ_BYTE()));
                 break;
             }
+            case OP_TRUE:
+                PUSH(create_bool(true));
+                break;
+            case OP_FALSE:
+                PUSH(create_bool(false));
+                break;
             case OP_NOP:
+                PUSH(create_bool(false));
+                break;
+            case OP_NIL:
+                PUSH(create_nil());
                 break;
             default:
                 printf("Unknown instruction %d\n", instruction);

@@ -143,7 +143,7 @@ static Variable resolve_var(Vm *vm, const char *name, size_t length) {
 static void primary(Vm *vm) {
     Compiler *compiler = &vm->compiler;
 
-    switch (vm->compiler.token.type) {
+    switch (compiler->token.type) {
         case TOKEN_NUMBER: {
             Token token = compiler->token;
             if (token.length == 1) {
@@ -203,7 +203,14 @@ static void primary(Vm *vm) {
 
             break;
         }
+        case TOKEN_FALSE:
+            emit_no_arg(vm, OP_FALSE);
+            break;
+        case TOKEN_TRUE:
+            emit_no_arg(vm, OP_TRUE);
+            break;
         default:
+            printf("%.*s\n", (int) compiler->token.length, compiler->token.start);
             error("Unexpected Token in primary");
     }
 
@@ -248,15 +255,19 @@ static void factor(Vm *vm) {
 static void term(Vm *vm) {
     factor(vm);
 
-    while (match(vm, TOKEN_STAR) || match(vm, TOKEN_SLASH)) {
+    while (match(vm, TOKEN_STAR) || match(vm, TOKEN_SLASH) || match(vm, TOKEN_PERCENT)) {
         if (vm->compiler.previous.type == TOKEN_STAR) {
             factor(vm);
             emit_no_arg(vm, OP_MUL);
+        } else if (vm->compiler.previous.type == TOKEN_PERCENT) {
+            factor(vm);
+            emit_no_arg(vm, OP_MOD);
         } else {
             factor(vm);
             emit_no_arg(vm, OP_DIV);
         }
     }
+
 }
 
 static void arith_expr(Vm *vm) {
@@ -490,6 +501,18 @@ static void stmt(Vm *vm) {
             break;
         case TOKEN_IF:
             if_stmt(vm);
+            break;
+        case TOKEN_RETURN:
+            advance(vm);
+
+            if (!check(vm, TOKEN_SEMICOLON)) {
+                expr(vm);
+                consume(vm, TOKEN_SEMICOLON, "Expected ';' after return value");
+            } else {
+                emit_no_arg(vm, OP_NIL);
+            }
+
+            emit_no_arg(vm, OP_RETURN);
             break;
         default:
             simple_stmt(vm);

@@ -4,10 +4,15 @@
 typedef enum {
     OP_NOP,
 
+    OP_TRUE,
+    OP_FALSE,
+    OP_NIL,
+
     OP_ADD,         // add two numbers
     OP_SUB,         // subtract two numbers
     OP_MUL,         // multiply two numbers
     OP_DIV,         // divide two numbers
+    OP_MOD,         // modulo operator
 
     OP_EQUAL,
     OP_NOT_EQUAL,

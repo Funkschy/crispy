@@ -31,6 +31,10 @@ typedef enum {
     TOKEN_FUN,
     TOKEN_ARROW,
     TOKEN_COMMA,
+    TOKEN_PERCENT,
+    TOKEN_TRUE,
+    TOKEN_FALSE,
+    TOKEN_RETURN,
 
     TOKEN_ERROR,
     TOKEN_EOF,
