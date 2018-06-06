@@ -154,7 +154,11 @@ Token scan_token(Scanner *scanner) {
         case '*':
             return make_token(scanner, TOKEN_STAR);
         case '/':
-            return make_token(scanner, TOKEN_SLASH);
+            if (peek(scanner) == '/') {
+                while(!at_end(scanner) && peek(scanner) != '\n') advance(scanner);
+            } else {
+                return make_token(scanner, TOKEN_SLASH);
+            }
         case '{':
             return make_token(scanner, TOKEN_OPEN_BRACE);
         case '}':

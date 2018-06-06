@@ -142,7 +142,6 @@ static InterpretResult run(Vm *vm) {
 
     Value *start_sp = sp;
 
-// Return byte at ip and advance ip
 #define READ_BYTE() (*ip++)
 #define READ_SHORT() (ip += 2, (uint16_t)((ip[-2] << 8) | ip[-1]))
 #define READ_CONST() (const_values[READ_BYTE()])
@@ -216,14 +215,21 @@ static InterpretResult run(Vm *vm) {
             }
             case OP_CALL: {
                 uint8_t num_args = READ_BYTE();
-                ObjLambda *lambda = ((ObjLambda *) (sp - num_args - 1)->o_value);
+                Value *pos = (sp - num_args - 1);
+                size_t expected = ((ObjLambda *) pos->o_value)->num_params;
+                if (expected != num_args) {
+                    fprintf(stderr, "Invalid number of arguments. Expected %ld, but got %d\n", expected, num_args);
+                    goto ERROR;
+                }
+
+                ObjLambda *lambda = ((ObjLambda *) pos->o_value);
                 Value args[num_args];
                 for (int i = 0; i < num_args; ++i) {
                     args[i] = POP();
                 }
                 PUSH_FRAME(vm, lambda->call_frame);
                 Value *before_sp = sp;
-                for (int i = num_args - 1; i >= 0; --i) {
+                for (int i = 0; i < num_args; ++i) {
                     PUSH(args[i]);
                 }
                 vm->sp = sp;

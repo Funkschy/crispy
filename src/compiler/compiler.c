@@ -338,10 +338,47 @@ static void lambda(Vm *vm) {
 
 }
 
+static void block_expr(Vm *vm) {
+    advance(vm);
+    open_scope(vm);
+    while (!check(vm, TOKEN_CLOSE_BRACE) && !check(vm, TOKEN_EOF)) {
+        stmt(vm);
+    }
+    close_scope(vm);
+    advance(vm);
+}
+
+static void if_expr(Vm *vm) {
+    advance(vm);
+    expr(vm);
+
+    uint32_t false_jump = emit_jump(vm, OP_JMF);
+    block_expr(vm);
+
+    uint32_t exit_jump = emit_jump(vm, OP_JMP);
+    patch_jump(vm, false_jump);
+
+    if (vm->compiler.token.type == TOKEN_ELSE) {
+        advance(vm);
+        if (vm->compiler.token.type == TOKEN_IF) {
+            if_expr(vm);
+        } else {
+            block_expr(vm);
+        }
+    }
+    patch_jump(vm, exit_jump);
+}
+
 static void expr(Vm *vm) {
     switch (vm->compiler.token.type) {
         case TOKEN_FUN:
             lambda(vm);
+            break;
+        case TOKEN_OPEN_BRACE:
+            block_expr(vm);
+            break;
+        case TOKEN_IF:
+            if_expr(vm);
             break;
         default:
             equality(vm);
@@ -355,6 +392,8 @@ static void var_decl(Vm *vm) {
     consume(vm, TOKEN_EQUALS, "Expected '=' after variable name");
 
     expr(vm);
+    consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
+
     declare_var(vm, identifier);
 }
 
@@ -362,6 +401,7 @@ static void assignment(Vm *vm) {
     Token identifier = consume(vm, TOKEN_IDENTIFIER, "Expected identifier");
     consume(vm, TOKEN_EQUALS, "Expected '=' after variable name");
     expr(vm);
+    consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
 
     Variable var = resolve_var(vm, identifier.start, identifier.length);
     emit_byte_arg(vm, OP_STORE, (uint8_t) var.index);
@@ -369,15 +409,17 @@ static void assignment(Vm *vm) {
 
 static void expr_stmt(Vm *vm) {
     expr(vm);
+    consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
 }
 
 static void print_stmt(Vm *vm) {
     advance(vm);
     expr(vm);
+    consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
     emit_no_arg(vm, OP_PRINT);
 }
 
-static void block(Vm *vm) {
+static void block_stmt(Vm *vm) {
     advance(vm);
     open_scope(vm);
     while (!check(vm, TOKEN_CLOSE_BRACE) && !check(vm, TOKEN_EOF)) {
@@ -393,7 +435,7 @@ static void while_stmt(Vm *vm) {
     expr(vm);
 
     uint32_t exit_jmp = emit_jump(vm, OP_JMF);
-    block(vm);
+    block_stmt(vm);
 
     uint32_t to_start = emit_jump(vm, OP_JMP);
     patch_jump_to(vm, to_start, start_instruction);
@@ -405,7 +447,7 @@ static void if_stmt(Vm *vm) {
     expr(vm);
 
     uint32_t false_jump = emit_jump(vm, OP_JMF);
-    block(vm);
+    block_stmt(vm);
 
     uint32_t exit_jump = emit_jump(vm, OP_JMP);
     patch_jump(vm, false_jump);
@@ -415,7 +457,7 @@ static void if_stmt(Vm *vm) {
         if (vm->compiler.token.type == TOKEN_IF) {
             if_stmt(vm);
         } else {
-            block(vm);
+            block_stmt(vm);
         }
     }
     patch_jump(vm, exit_jump);
@@ -436,8 +478,6 @@ static void simple_stmt(Vm *vm) {
             expr_stmt(vm);
             break;
     }
-
-    consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
 }
 
 static void stmt(Vm *vm) {
@@ -446,7 +486,7 @@ static void stmt(Vm *vm) {
             while_stmt(vm);
             break;
         case TOKEN_OPEN_BRACE:
-            block(vm);
+            block_stmt(vm);
             break;
         case TOKEN_IF:
             if_stmt(vm);
