@@ -176,12 +176,6 @@ static void primary(Vm *vm) {
 
             break;
         }
-        case TOKEN_MINUS: {
-            advance(vm);
-            primary(vm);
-            emit_no_arg(vm, OP_NEGATE);
-            return;
-        }
         case TOKEN_OPEN_PAREN: {
             advance(vm);
             expr(vm);
@@ -216,43 +210,78 @@ static void primary(Vm *vm) {
     advance(vm);
 }
 
-static void factor(Vm *vm) {
+static void primary_expr(Vm *vm) {
     primary(vm);
 
-    while (match(vm, TOKEN_STAR) || match(vm, TOKEN_SLASH)) {
-        if (vm->compiler.previous.type == TOKEN_STAR) {
-            primary(vm);
-            emit_no_arg(vm, OP_MUL);
-        } else {
-            primary(vm);
-            emit_no_arg(vm, OP_DIV);
+    if (!check(vm, TOKEN_OPEN_PAREN)) return;
+
+    size_t num_args = 0;
+
+    // Call
+    while (match(vm, TOKEN_OPEN_PAREN)) {
+        if (!check(vm, TOKEN_CLOSE_PAREN)) {
+            do {
+                expr(vm);
+                ++num_args;
+            } while (match(vm, TOKEN_COMMA));
         }
+    }
+
+    consume(vm, TOKEN_CLOSE_PAREN, "Expected ')' after argument list");
+    emit_byte_arg(vm, OP_CALL, (uint8_t) num_args);
+}
+
+static void factor(Vm *vm) {
+    switch (vm->compiler.token.type) {
+        case TOKEN_BANG: // TODO implement 'not'
+        case TOKEN_MINUS:
+            advance(vm);
+            primary_expr(vm);
+            emit_no_arg(vm, OP_NEGATE);
+            break;
+        default:
+            primary_expr(vm);
+            break;
     }
 }
 
 static void term(Vm *vm) {
     factor(vm);
 
-    while (match(vm, TOKEN_PLUS) || match(vm, TOKEN_MINUS)) {
-        if (vm->compiler.previous.type == TOKEN_PLUS) {
+    while (match(vm, TOKEN_STAR) || match(vm, TOKEN_SLASH)) {
+        if (vm->compiler.previous.type == TOKEN_STAR) {
             factor(vm);
-            emit_no_arg(vm, OP_ADD);
+            emit_no_arg(vm, OP_MUL);
         } else {
             factor(vm);
+            emit_no_arg(vm, OP_DIV);
+        }
+    }
+}
+
+static void arith_expr(Vm *vm) {
+    term(vm);
+
+    while (match(vm, TOKEN_PLUS) || match(vm, TOKEN_MINUS)) {
+        if (vm->compiler.previous.type == TOKEN_PLUS) {
+            term(vm);
+            emit_no_arg(vm, OP_ADD);
+        } else {
+            term(vm);
             emit_no_arg(vm, OP_SUB);
         }
     }
 }
 
 static void equality(Vm *vm) {
-    term(vm);
+    arith_expr(vm);
 
     while (match(vm, TOKEN_EQUALS_EQUALS) || match(vm, TOKEN_BANG_EQUALS)) {
         if (vm->compiler.previous.type == TOKEN_EQUALS_EQUALS) {
-            term(vm);
+            arith_expr(vm);
             emit_no_arg(vm, OP_EQUAL);
         } else {
-            term(vm);
+            arith_expr(vm);
             emit_no_arg(vm, OP_NOT_EQUAL);
         }
     }
@@ -274,10 +303,13 @@ static void lambda(Vm *vm) {
             Token param = consume(vm, TOKEN_IDENTIFIER, "Expected parameter name");
             declare_var(vm, param);
             ++num_params;
-        } while(match(vm, TOKEN_COMMA));
+        } while (match(vm, TOKEN_COMMA));
     }
 
     consume(vm, TOKEN_ARROW, "Expected '->' after parameter list");
+
+    // lambda object itself
+    emit_no_arg(vm, OP_POP);
 
     expr(vm);
     emit_no_arg(vm, OP_RETURN);
@@ -290,6 +322,7 @@ static void lambda(Vm *vm) {
 
     ObjLambda *lambda = new_lambda(vm, num_params);
     lambda->call_frame = lambda_frame;
+    lambda->call_frame.ip = lambda->call_frame.code_buffer.code;
 
     uint16_t pos = (uint16_t) add_constant(&CURR_FRAME(vm).code_buffer, create_object((Object *) lambda));
 

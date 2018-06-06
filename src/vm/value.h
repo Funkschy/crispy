@@ -83,6 +83,8 @@ Value create_object(Object *object);
 
 void init_call_frame(CallFrame *call_frame);
 
+void free_call_frame(CallFrame *call_frame);
+
 void init_value_array(ValueArray *value_array);
 
 void free_value_array(ValueArray *value_array);

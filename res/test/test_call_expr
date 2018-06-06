@@ -1,0 +1,5 @@
+var add = fun a, b -> a + b;
+
+print add(1, 2);
+print add(3, 2);
+print add(add(1,2), add(-1, -3));

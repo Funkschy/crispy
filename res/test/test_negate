@@ -1,0 +1,5 @@
+var five = 5;
+var min_five = -five;
+
+print min_five == -5;
+print (min_five + 5) == 0;

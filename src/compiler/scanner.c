@@ -28,7 +28,7 @@ static inline char peek_next(Scanner *scanner) {
 }
 
 static bool is_alpha(char c) {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c == '_');
 }
 
 static bool is_digit(char c) {

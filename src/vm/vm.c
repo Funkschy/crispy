@@ -49,6 +49,11 @@ void free_object(Object *object) {
             free(object);
             break;
         }
+        case OBJ_LAMBDA: {
+            ObjLambda *lambda = (ObjLambda *) object;
+            free_call_frame(&lambda->call_frame);
+            free(lambda);
+        }
         default:
             break;
     }
@@ -135,6 +140,8 @@ static InterpretResult run(Vm *vm) {
     Value *const_values = curr_frame->code_buffer.constants.values;
     ValueArray *variables = &curr_frame->code_buffer.variables;
 
+    Value *start_sp = sp;
+
 // Return byte at ip and advance ip
 #define READ_BYTE() (*ip++)
 #define READ_SHORT() (ip += 2, (uint16_t)((ip[-2] << 8) | ip[-1]))
@@ -188,6 +195,7 @@ static InterpretResult run(Vm *vm) {
 
         switch (instruction = (OP_CODE) READ_BYTE()) {
             case OP_RETURN:
+                *start_sp = POP();
                 return INTERPRET_OK;
             case OP_LDC:
                 PUSH(READ_CONST());
@@ -206,8 +214,25 @@ static InterpretResult run(Vm *vm) {
                 PUSH(one);
                 break;
             }
+            case OP_CALL: {
+                uint8_t num_args = READ_BYTE();
+                ObjLambda *lambda = ((ObjLambda *) (sp - num_args - 1)->o_value);
+                Value args[num_args];
+                for (int i = 0; i < num_args; ++i) {
+                    args[i] = POP();
+                }
+                PUSH_FRAME(vm, lambda->call_frame);
+                Value *before_sp = sp;
+                for (int i = num_args - 1; i >= 0; --i) {
+                    PUSH(args[i]);
+                }
+                vm->sp = sp;
+                run(vm);
+                lambda->call_frame = POP_FRAME(vm);
+                sp = before_sp;
+                break;
+            }
             case OP_ADD: {
-                // BINARY_OP(+);
                 Value second = POP();
                 Value first = POP();
 
