@@ -247,10 +247,17 @@ static InterpretResult run(Vm *vm) {
                     break;
                 }
 
-                // TODO handle non string objects
+                // TODO handle lists
                 if (first.type == OBJECT && second.type == OBJECT) {
-                    ObjString *first_str = (ObjString *) first.o_value;
-                    ObjString *second_str = (ObjString *) second.o_value;
+                    Object *first_obj = first.o_value;
+                    Object *second_obj = second.o_value;
+
+                    if (first_obj->type != OBJ_STRING || second_obj->type != OBJ_STRING) {
+                        goto ERROR;
+                    }
+
+                    ObjString *first_str = (ObjString *) first_obj;
+                    ObjString *second_str = (ObjString *) second_obj;
 
                     ObjString *dest = new_empty_string(vm, (first_str->length + second_str->length));
                     memcpy((char *) dest->start, first_str->start, first_str->length);
