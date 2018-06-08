@@ -4,12 +4,168 @@
 #include <stdbool.h>
 
 #include "../vm/vm.h"
+#include "../vm/hashtable.h"
 
 static void run_repl();
 
 static void run_file(const char *file_name);
 
 int main(int argc, char **argv) {
+    Vm vm;
+    init_vm(&vm);
+
+    HashTable ht;
+    ht_init(&ht, HT_KEY_CSTRING, 16, 0.75);
+
+    ObjString *hello = new_string(&vm, "Hello World", 11);
+    Value s = create_object((Object *) hello);
+
+    HTItemKey key;
+    key.key_c_string = "hello";
+
+    ht_put(&ht, key, s);
+
+    hello = new_string(&vm, "Servus", 6);
+    s = create_object((Object *) hello);
+
+    ht_put(&ht, key, s);
+
+    print_value(ht_get(&ht, key), true);
+
+    key.key_c_string = "dU0gnjLbCe1oXf";
+    hello = new_string(&vm, "first", 5);
+    s = create_object((Object *) hello);
+
+    ht_put(&ht, key, s);
+
+    key.key_c_string = "eu8TmqwgNLIICs1hEBV";
+    hello = new_string(&vm, "second", 6);
+    s = create_object((Object *) hello);
+
+    ht_put(&ht, key, s);
+
+    key.key_c_string = "F6NnYeb4p";
+    hello = new_string(&vm, "third", 5);
+    s = create_object((Object *) hello);
+
+    ht_put(&ht, key, s);
+
+    HTItemKey access;
+    access.key_c_string = "dU0gnjLbCe1oXf";
+    print_value(ht_get(&ht, access), true);
+
+    access.key_c_string = "eu8TmqwgNLIICs1hEBV";
+    print_value(ht_get(&ht, access), true);
+
+    access.key_c_string = "F6NnYeb4p";
+    print_value(ht_get(&ht, access), true);
+
+    access.key_c_string = "test";
+    print_value(ht_get(&ht, access), true);
+
+    key.key_c_string = "uCS";
+    hello = new_string(&vm, "test", 4);
+    s = create_object((Object *) hello);
+
+    ht_put(&ht, key, s);
+
+    key.key_c_string = "OrMtN3Z";
+    hello = new_string(&vm, "test", 4);
+    s = create_object((Object *) hello);
+
+    ht_put(&ht, key, s);
+
+    key.key_c_string = "a";
+    hello = new_string(&vm, "test", 4);
+    s = create_object((Object *) hello);
+
+    ht_put(&ht, key, s);
+
+    key.key_c_string = "RrMA";
+    hello = new_string(&vm, "test", 4);
+    s = create_object((Object *) hello);
+
+    ht_put(&ht, key, s);
+
+    key.key_c_string = "NOGE";
+    hello = new_string(&vm, "test", 4);
+    s = create_object((Object *) hello);
+
+    ht_put(&ht, key, s);
+
+    key.key_c_string = "SCh";
+    hello = new_string(&vm, "test", 4);
+    s = create_object((Object *) hello);
+
+    ht_put(&ht, key, s);
+
+    key.key_c_string = "gWPf";
+    hello = new_string(&vm, "test", 4);
+    s = create_object((Object *) hello);
+
+    ht_put(&ht, key, s);
+
+    key.key_c_string = "YaSkNWPfY";
+    hello = new_string(&vm, "test", 4);
+    s = create_object((Object *) hello);
+
+    ht_put(&ht, key, s);
+
+    key.key_c_string = "FlZr00sD";
+    hello = new_string(&vm, "test", 4);
+    s = create_object((Object *) hello);
+
+    ht_put(&ht, key, s);
+
+    key.key_c_string = "WN";
+    hello = new_string(&vm, "test", 4);
+    s = create_object((Object *) hello);
+
+    ht_put(&ht, key, s);
+
+    key.key_c_string = "BOMt";
+    hello = new_string(&vm, "test", 4);
+    s = create_object((Object *) hello);
+
+    ht_put(&ht, key, s);
+
+    key.key_c_string = "Of";
+    hello = new_string(&vm, "test", 4);
+    s = create_object((Object *) hello);
+
+    ht_put(&ht, key, s);
+
+    key.key_c_string = "XDKGpa";
+    hello = new_string(&vm, "test", 4);
+    s = create_object((Object *) hello);
+
+    ht_put(&ht, key, s);
+
+    key.key_c_string = "a8";
+    hello = new_string(&vm, "test", 4);
+    s = create_object((Object *) hello);
+
+    ht_put(&ht, key, s);
+
+    key.key_c_string = "f4qc";
+    hello = new_string(&vm, "test", 4);
+    s = create_object((Object *) hello);
+
+    ht_put(&ht, key, s);
+
+    key.key_c_string = "VH2Y";
+    hello = new_string(&vm, "test", 4);
+    s = create_object((Object *) hello);
+
+    ht_put(&ht, key, s);
+
+    access.key_c_string = "hello";
+    print_value(ht_get(&ht, access), true);
+
+    ht_free(&ht);
+    free_vm(&vm);
+    return 0;
+
     if (argc == 1) {
         run_repl();
     } else if (argc == 2) {
@@ -42,7 +198,7 @@ static void run_repl() {
 
 static char *read_file(const char *path) {
     FILE *file = fopen(path, "rb");
-    if(file == NULL) {
+    if (file == NULL) {
         fprintf(stderr, "Couldn't open file '%s'\n", path);
         exit(-1);
     }
@@ -69,6 +225,6 @@ static void run_file(const char *file_name) {
     free_vm(&vm);
     free(source);
 
-    if(result == INTERPRET_RUNTIME_ERROR) exit(42);
-    if(result == INTERPRET_COMPILE_ERROR) exit(43);
+    if (result == INTERPRET_RUNTIME_ERROR) { exit(42); }
+    if (result == INTERPRET_COMPILE_ERROR) { exit(43); }
 }

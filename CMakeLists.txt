@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.5.1)
 project(crispy)
 
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 99)
 
 AUX_SOURCE_DIRECTORY(src/cli CLI_SOURCE_FILES)
 AUX_SOURCE_DIRECTORY(src/vm VM_SOURCE_FILES)

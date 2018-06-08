@@ -114,6 +114,8 @@ int disassemble_instruction(Vm *vm, int offset) {
             return simple_instruction("OP_LDC_1", offset);
         case OP_CALL:
             return var_instruction("OP_CALL", vm, offset);
+        case OP_CALL_NATIVE:
+            return var_instruction("OP_CALL_NATIVE", vm, offset);
         case OP_MOD:
             return simple_instruction("OP_MOD", offset);
         case OP_TRUE:
