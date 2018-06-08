@@ -67,6 +67,9 @@ void print_value(Value value, bool new_line) {
         case OBJECT:
             print_object(value.o_value, nl);
             break;
+        case NIL:
+            printf("nil%s", nl);
+            break;
         default:
             printf("Invalid value%s", nl);
             break;
@@ -158,9 +161,18 @@ void free_call_frame(CallFrame *call_frame) {
 
 #define ALLOC_OBJ(vm, type, object_type) ((type *)allocate_object((vm), sizeof(type), (object_type)))
 
+/**
+ * Allocates a new Object on the heap.
+ * Also adds it to the linked list of objects inside the VM and performs garbage collection,
+ * if the threshold of allocated objects is surpassed.
+ * @param vm the current VM.
+ * @param size the size, that needs to be allocated in bytes.
+ * @param type the type of the object.
+ * @return a pointer to the created object.
+ */
 static Object *allocate_object(Vm *vm, size_t size, ObjectType type) {
     // TODO don't gc while compiling
-    if (vm->num_objects >= vm->max_objects) gc(vm);
+    if (vm->num_objects >= vm->max_objects) { gc(vm); }
 
     Object *object = malloc(size);
     object->type = type;
@@ -180,6 +192,7 @@ static Object *allocate_object(Vm *vm, size_t size, ObjectType type) {
 ObjString *new_string(Vm *vm, const char *start, size_t length) {
     ObjString *string = ALLOC_OBJ(vm, ObjString, OBJ_STRING);
     string->length = length;
+    string->hashed = false;
 
     char *value = malloc(length * sizeof(char));
     memcpy(value, start, length);
@@ -191,6 +204,7 @@ ObjString *new_string(Vm *vm, const char *start, size_t length) {
 ObjString *new_empty_string(Vm *vm, size_t length) {
     ObjString *string = ALLOC_OBJ(vm, ObjString, OBJ_STRING);
     string->length = length;
+    string->hashed = false;
 
     char *value = malloc(length * sizeof(char));
     string->start = value;
@@ -206,4 +220,41 @@ ObjLambda *new_lambda(Vm *vm, size_t num_params) {
     lambda->call_frame = call_frame;
 
     return lambda;
+}
+
+uint32_t hash_string(const char *string, size_t length) {
+    //
+    uint32_t hash = 5381;
+
+    for (uint32_t i = 0; i < length; ++i) {
+        char c = string[i];
+        hash = hash * 33 ^ c;
+    }
+
+    return hash;
+}
+
+uint32_t hash_string_obj(ObjString *string) {
+    if (string->hashed) {
+        return string->hash;
+    }
+
+    uint32_t hash = hash_string(string->start, string->length);
+
+    string->hash = hash;
+    string->hashed = true;
+
+    return hash;
+}
+
+uint32_t hash_uint32_t(uint32_t x) {
+    x = ((x >> 16) ^ x) * 0x45d9f3b;
+    x = ((x >> 16) ^ x) * 0x45d9f3b;
+    x = (x >> 16) ^ x;
+    return x;
+}
+
+int comp_string(ObjString *first, ObjString *second) {
+    size_t smaller_length = (first->length < second->length) ? first->length : second->length;
+    return memcmp(first->start, second->start, smaller_length);
 }

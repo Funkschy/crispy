@@ -238,6 +238,10 @@ static InterpretResult run(Vm *vm) {
                 sp[-1] = return_value;
                 break;
             }
+            case OP_CALL_NATIVE: {
+                // TODO implement
+                break;
+            }
             case OP_ADD: {
                 Value second = POP();
                 Value first = POP();

@@ -11,4 +11,6 @@
 #define FRAMES_MAX 64
 #define SCOPES_MAX 256
 
+#define NATIVE_COUNT 1
+
 #endif //CALC_PARAMETERS_H

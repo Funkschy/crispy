@@ -7,6 +7,7 @@
 #include "scanner.h"
 #include "../vm/debug.h"
 #include "../vm/value.h"
+#include "native.h"
 
 static void expr(Vm *vm);
 
@@ -17,7 +18,7 @@ static void error(const char *err_message) {
     exit(44);
 }
 
-static void advance(Vm *vm) {
+static inline void advance(Vm *vm) {
     vm->compiler.previous = vm->compiler.token;
     vm->compiler.token = scan_token(&vm->compiler.scanner);
 }
@@ -35,7 +36,7 @@ static void close_scope(Vm *vm) {
     --compiler->scope_depth;
 }
 
-static bool check(Vm *vm, TokenType type) {
+static inline bool check(Vm *vm, TokenType type) {
     return vm->compiler.token.type == type;
 }
 
@@ -62,22 +63,22 @@ static Token consume(Vm *vm, TokenType type, const char *err_message) {
     return token;
 }
 
-static void emit_no_arg(Vm *vm, OP_CODE op_code) {
+static inline void emit_no_arg(Vm *vm, OP_CODE op_code) {
     write_code_buffer(&CURR_FRAME(vm).code_buffer, op_code);
 }
 
-static void emit_byte_arg(Vm *vm, OP_CODE op_code, uint8_t arg) {
+static inline void emit_byte_arg(Vm *vm, OP_CODE op_code, uint8_t arg) {
     write_code_buffer(&CURR_FRAME(vm).code_buffer, op_code);
     write_code_buffer(&CURR_FRAME(vm).code_buffer, arg);
 }
 
-static void emit_short_arg(Vm *vm, OP_CODE op_code, uint8_t first, uint8_t second) {
+static inline void emit_short_arg(Vm *vm, OP_CODE op_code, uint8_t first, uint8_t second) {
     write_code_buffer(&CURR_FRAME(vm).code_buffer, op_code);
     write_code_buffer(&CURR_FRAME(vm).code_buffer, first);
     write_code_buffer(&CURR_FRAME(vm).code_buffer, second);
 }
 
-static uint32_t emit_jump(Vm *vm, OP_CODE op_code) {
+static inline uint32_t emit_jump(Vm *vm, OP_CODE op_code) {
     emit_short_arg(vm, op_code, 0xFF, 0xFF);
     return CURR_FRAME(vm).code_buffer.count - 2;
 }
@@ -91,7 +92,7 @@ static void patch_jump_to(Vm *vm, uint32_t offset, uint32_t address) {
     CURR_FRAME(vm).code_buffer.code[offset + 1] = (uint8_t) (address & 0xFF);
 }
 
-static void patch_jump(Vm *vm, uint32_t offset) {
+static inline void patch_jump(Vm *vm, uint32_t offset) {
     patch_jump_to(vm, offset, CURR_FRAME(vm).code_buffer.count);
 }
 

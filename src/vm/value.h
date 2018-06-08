@@ -11,7 +11,7 @@
 #define BOOL_TRUE(bool_val) ((bool_val).p_value == 1)
 #define BOOL_STRING(bool_val) (((bool_val).p_value == 1) ? "true" : "false")
 
-typedef struct s_object Object;
+typedef struct object_t Object;
 
 typedef enum {
     NUMBER, OBJECT, BOOLEAN, NIL
@@ -54,11 +54,11 @@ typedef enum {
     OBJ_LIST
 } ObjectType;
 
-struct s_object {
+struct object_t {
     uint8_t marked;
     ObjectType type;
 
-    struct s_object *next;
+    struct object_t *next;
 };
 
 typedef struct {
@@ -66,6 +66,9 @@ typedef struct {
 
     size_t length;
     const char *start;
+
+    bool hashed;
+    uint32_t hash;
 } ObjString;
 
 typedef struct {
@@ -84,6 +87,7 @@ Value create_number(double value);
 
 Value create_object(Object *object);
 
+// TODO rename to type_init etc
 void init_call_frame(CallFrame *call_frame);
 
 void free_call_frame(CallFrame *call_frame);
@@ -99,5 +103,30 @@ void write_at(ValueArray *value_array, uint8_t index, Value value);
 void print_value(Value value, bool new_line);
 
 void print_type(Value value);
+
+int comp_string(ObjString *first, ObjString *second);
+
+/**
+ * Computes the hash value for an unsigned 4 byte integer.
+ * See https://stackoverflow.com/questions/664014/what-integer-hash-function-are-good-that-accepts-an-integer-hash-key/12996028#12996028.
+ * @param x the integer that should be hashed.
+ * @return the hash.
+ */
+uint32_t hash_uint32_t(uint32_t x);
+
+/**
+ * Computes the hash value for the given string und cashes it in the string object.
+ * @param string the string object.
+ * @return the hash.
+ */
+uint32_t hash_string_obj(ObjString *string);
+
+/**
+ * Uses the djb2 hash algorithm by Dan Bernstein to hash a string.
+ * @param string the string to be hashed (does not need to be null terminated).
+ * @param length the length of the supplied string.
+ * @return the computed hash.
+ */
+uint32_t hash_string(const char *string, size_t length);
 
 #endif

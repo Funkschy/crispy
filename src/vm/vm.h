@@ -20,6 +20,7 @@ typedef struct {
     Value stack[STACK_MAX];
     Value *sp;
 
+    // TODO move to heap
     CallFrame frames[FRAMES_MAX];
     size_t frame_count;
 
@@ -48,12 +49,36 @@ void write_code_buffer(CodeBuffer *code_buffer, uint8_t instruction);
 
 uint32_t add_constant(CodeBuffer *code_buffer, Value value);
 
+/**
+ * Allocate a new lambda Object.
+ * @param vm the current VM.
+ * @param num_params the number of arguments, the lambda expects.
+ * @return a pointer to the created lambda.
+ */
 ObjLambda *new_lambda(Vm *vm, size_t num_params);
 
+/**
+ * Creates an empty string.
+ * @param vm the current VM.
+ * @param length the length of the new string.
+ * @return a pointer to the created string.
+ */
 ObjString *new_empty_string(Vm *vm, size_t length);
 
+/**
+ * Creates a string and copies the values from start until (start + length) into it.
+ * @param vm the current VM.
+ * @param length the length of the new string.
+ * @return a pointer to the created string.
+ */
 ObjString *new_string(Vm *vm, const char *start, size_t length);
 
+/**
+ * Compiles and executes the source code.
+ * @param vm the VM to use for execution.
+ * @param source the crispy source code.
+ * @return the result of running the program (either ok, runtime error or compilation error).
+ */
 InterpretResult interpret(Vm *vm, const char *source);
 
 #endif
