@@ -368,9 +368,6 @@ static InterpretResult run(Vm *vm) {
             case OP_POP:
                 POP();
                 break;
-            case OP_PRINT:
-                print_value(POP(), true);
-                break;
             case OP_DUP:
                 PUSH(PEEK());
                 break;

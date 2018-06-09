@@ -454,13 +454,6 @@ static void expr_stmt(Vm *vm) {
     consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
 }
 
-static void print_stmt(Vm *vm) {
-    advance(vm);
-    expr(vm);
-    consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
-    emit_no_arg(vm, OP_PRINT);
-}
-
 static void block_stmt(Vm *vm) {
     advance(vm);
     open_scope(vm);
@@ -512,9 +505,6 @@ static void simple_stmt(Vm *vm) {
             break;
         case TOKEN_IDENTIFIER:
             assignment(vm);
-            break;
-        case TOKEN_PRINT:
-            print_stmt(vm);
             break;
         default:
             expr_stmt(vm);

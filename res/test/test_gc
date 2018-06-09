@@ -10,7 +10,7 @@ while i != 100000 {
     var test2 = test + "b";
     test2 = test2 + "b";
     test2 = test2 + "b";
-    print test2;
+    println(test2);
 }
 
-print test;
+println(test);

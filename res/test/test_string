@@ -1,5 +1,5 @@
 var s = "Hello World";
 var u = "Hällo Wörld";
 
-print s;
-print u;
+println(s);
+println(u);

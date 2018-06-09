@@ -2,6 +2,6 @@ var one = fun -> 5;
 var two = fun a -> a;
 var three = fun a, b -> a + b;
 
-print one;
-print two;
-print three;
+println(one);
+println(two);
+println(three);

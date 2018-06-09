@@ -1,16 +1,16 @@
-print 42 + 4;
+println(42 + 4);
 
 while 42 == 43 {
-    print 1;
+    println(1);
 }
 
 var i = 0;
 
-print "before";
+println("before");
 
 while i != 10 {
     i = i + 1;
-    print i;
+    println(i);
 }
 
-print "after";
+println("after");
