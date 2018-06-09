@@ -107,8 +107,6 @@ static TokenType identifier_type(Scanner *scanner) {
     switch (*scanner->start) {
         case 'v':
             return check_keyword(scanner, 1, 2, "ar", TOKEN_VAR);
-        case 'p':
-            return check_keyword(scanner, 1, 4, "rint", TOKEN_PRINT);
         case 'w':
             return check_keyword(scanner, 1, 4, "hile", TOKEN_WHILE);
         case 'i':

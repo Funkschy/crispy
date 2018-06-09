@@ -4,9 +4,9 @@ test2 = 2;
 
 var test3 = 5;
 
-print test2;
-print test3;
+println(test2);
+println(test3);
 
 var res = test2 + test3;
-print res;
-print res == 7;
+println(res);
+println(res == 7);
