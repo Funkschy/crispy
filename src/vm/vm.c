@@ -53,8 +53,18 @@ void free_object(Object *object) {
             ObjLambda *lambda = (ObjLambda *) object;
             free_call_frame(&lambda->call_frame);
             free(lambda);
+            break;
         }
-        default:
+        case OBJ_NATIVE_FUNC: {
+            ObjNativeFunc *n_fn = (ObjNativeFunc *) object;
+            free(n_fn);
+            break;
+        }
+        case OBJ_LIST:
+            printf("Lists can't be freed yet\n");
+            break;
+        case OBJ_MAP:
+            printf("Maps can't be freed yet\n");
             break;
     }
 }
@@ -106,10 +116,15 @@ static void init_compiler(Compiler *compiler, const char *source) {
     compiler->scope[0] = variables;
     compiler->scope_depth = 0;
     compiler->vars_in_scope = 0;
+
+    HashTable ht;
+    ht_init(&ht, HT_KEY_CSTRING, 16, 0.75);
+    compiler->natives = ht;
 }
 
 static void free_compiler(Compiler *compiler) {
     free_variable_array(&compiler->scope[0]);
+    ht_free(&compiler->natives);
 }
 
 InterpretResult interpret(Vm *vm, const char *source) {

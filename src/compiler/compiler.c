@@ -7,7 +7,7 @@
 #include "scanner.h"
 #include "../vm/debug.h"
 #include "../vm/value.h"
-#include "native.h"
+#include "../native/stdlib.h"
 
 static void expr(Vm *vm);
 
@@ -96,6 +96,17 @@ static inline void patch_jump(Vm *vm, uint32_t offset) {
     patch_jump_to(vm, offset, CURR_FRAME(vm).code_buffer.count);
 }
 
+static void declare_natives(Vm *vm) {
+    void (*fn)(Value) = &println;
+    ObjNativeFunc *println = new_native_func(vm, fn, 1);
+    Value value = create_object((Object *) println);
+
+    HTItemKey key;
+    key.key_c_string = "println";
+
+    ht_put(&vm->compiler.natives, key, value);
+}
+
 static void declare_var(Vm *vm, Token var_decl) {
     Variable variable = {var_decl.start, var_decl.length, vm->compiler.vars_in_scope++};
     write_variable(&vm->compiler.scope[vm->compiler.scope_depth], variable);
@@ -103,6 +114,8 @@ static void declare_var(Vm *vm, Token var_decl) {
 }
 
 void compile(Vm *vm) {
+    declare_natives(vm);
+
     do {
         stmt(vm);
     } while (vm->compiler.token.type != TOKEN_EOF);
@@ -131,7 +144,7 @@ static Variable resolve_var(Vm *vm, const char *name, size_t length) {
     variable.name = name;
     variable.length = length;
 
-    if (variable.index != -1) return variable;
+    if (variable.index != -1) { return variable; }
 
     char message[34 + length];
     sprintf(message, "Could not find variable with name %.*s", (int) length, name);
@@ -186,6 +199,19 @@ static void primary(Vm *vm) {
             break;
         }
         case TOKEN_IDENTIFIER: {
+            HTItemKey key;
+            char *c_str = malloc(compiler->token.length * sizeof(char) + 1);
+            memcpy(c_str, compiler->token.start, compiler->token.length);
+            key.key_c_string = c_str;
+
+            Value value = ht_get(&vm->compiler.natives, key);
+            free(c_str);
+
+            if (value.type != NIL) {
+                // TODO get value on stack
+                break;
+            }
+
             Variable var = resolve_var(vm, compiler->token.start, compiler->token.length);
             emit_byte_arg(vm, OP_LOAD, (uint8_t) var.index);
             break;
@@ -211,8 +237,7 @@ static void primary(Vm *vm) {
             emit_no_arg(vm, OP_TRUE);
             break;
         default:
-            printf("%.*s\n", (int) compiler->token.length, compiler->token.start);
-            error("Unexpected Token in primary");
+            break;
     }
 
     advance(vm);
@@ -221,7 +246,7 @@ static void primary(Vm *vm) {
 static void primary_expr(Vm *vm) {
     primary(vm);
 
-    if (!check(vm, TOKEN_OPEN_PAREN)) return;
+    if (!check(vm, TOKEN_OPEN_PAREN)) { return; }
 
     size_t num_args = 0;
 
@@ -410,13 +435,17 @@ static void var_decl(Vm *vm) {
 }
 
 static void assignment(Vm *vm) {
-    Token identifier = consume(vm, TOKEN_IDENTIFIER, "Expected identifier");
-    consume(vm, TOKEN_EQUALS, "Expected '=' after variable name");
     expr(vm);
-    consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
+    Token identifier = vm->compiler.previous;
 
-    Variable var = resolve_var(vm, identifier.start, identifier.length);
-    emit_byte_arg(vm, OP_STORE, (uint8_t) var.index);
+    if (check(vm, TOKEN_EQUALS)) {
+        consume(vm, TOKEN_EQUALS, "Expected '=' after variable name");
+        expr(vm);
+        Variable var = resolve_var(vm, identifier.start, identifier.length);
+        emit_byte_arg(vm, OP_STORE, (uint8_t) var.index);
+    }
+
+    consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
 }
 
 static void expr_stmt(Vm *vm) {
@@ -514,6 +543,8 @@ static void stmt(Vm *vm) {
             }
 
             emit_no_arg(vm, OP_RETURN);
+            break;
+        case TOKEN_EOF:
             break;
         default:
             simple_stmt(vm);

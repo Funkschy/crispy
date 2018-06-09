@@ -74,6 +74,14 @@ ObjString *new_empty_string(Vm *vm, size_t length);
 ObjString *new_string(Vm *vm, const char *start, size_t length);
 
 /**
+ * Allocate a new native function Object.
+ * @param vm the current VM.
+ * @param num_params the number of arguments, the function expects.
+ * @return a pointer to the created function wrapper.
+ */
+ObjNativeFunc *new_native_func(Vm *vm, void *func_ptr, size_t num_params);
+
+/**
  * Compiles and executes the source code.
  * @param vm the VM to use for execution.
  * @param source the crispy source code.

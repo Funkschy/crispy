@@ -50,6 +50,11 @@ static void print_object(Object *object, const char *new_line) {
             printf("<function of arity %ld>%s", lambda->num_params, new_line);
             break;
         }
+        case OBJ_NATIVE_FUNC: {
+            ObjNativeFunc *n_fn = (ObjNativeFunc *) object;
+            printf("<native function of arity %ld>%s", n_fn->num_params, new_line);
+            break;
+        }
         default:
             printf("Invalid object%s", new_line);
     }
@@ -130,6 +135,9 @@ void print_type(Value value) {
             break;
         case OBJECT:
             print_object_type(value);
+            break;
+        case NIL:
+            printf(" : NIL\n");
             break;
     }
 }
@@ -220,6 +228,14 @@ ObjLambda *new_lambda(Vm *vm, size_t num_params) {
     lambda->call_frame = call_frame;
 
     return lambda;
+}
+
+ObjNativeFunc *new_native_func(Vm *vm, void *func_ptr, size_t num_params) {
+    ObjNativeFunc *n_fn = ALLOC_OBJ(vm, ObjNativeFunc, OBJ_NATIVE_FUNC);
+    n_fn->num_params = num_params;
+    n_fn->func_ptr = func_ptr;
+
+    return n_fn;
 }
 
 uint32_t hash_string(const char *string, size_t length) {
