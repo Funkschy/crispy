@@ -83,8 +83,7 @@ typedef struct {
 typedef struct {
     Object object;
 
-    size_t num_params;
-    void *func_ptr;
+    void (*func_ptr)(Value);
 } ObjNativeFunc;
 
 Value create_nil();

@@ -7,7 +7,7 @@
 #include "scanner.h"
 #include "../vm/debug.h"
 #include "../vm/value.h"
-#include "../native/stdlib.h"
+#include "native.h"
 
 static void expr(Vm *vm);
 
@@ -94,17 +94,6 @@ static void patch_jump_to(Vm *vm, uint32_t offset, uint32_t address) {
 
 static inline void patch_jump(Vm *vm, uint32_t offset) {
     patch_jump_to(vm, offset, CURR_FRAME(vm)->code_buffer.count);
-}
-
-static void declare_natives(Vm *vm) {
-    void (*fn)(Value) = &println;
-    ObjNativeFunc *println = new_native_func(vm, fn, 1);
-    Value value = create_object((Object *) println);
-
-    HTItemKey key;
-    key.key_c_string = "println";
-
-    ht_put(&vm->compiler.natives, key, value);
 }
 
 static void declare_var(Vm *vm, Token var_decl) {
@@ -199,20 +188,22 @@ static void primary(Vm *vm) {
             break;
         }
         case TOKEN_IDENTIFIER: {
-            /*
             HTItemKey key;
             char *c_str = malloc(compiler->token.length * sizeof(char) + 1);
             memcpy(c_str, compiler->token.start, compiler->token.length);
+            c_str[compiler->token.length] = '\0';
             key.key_c_string = c_str;
 
             Value value = ht_get(&vm->compiler.natives, key);
             free(c_str);
 
             if (value.type != NIL) {
-                // TODO get value on stack
+                // TODO bigger numbers
+                uint32_t index = add_constant(vm, value);
+                emit_byte_arg(vm, OP_LDC, (uint8_t)index);
                 break;
             }
-            */
+
             Variable var = resolve_var(vm, compiler->token.start, compiler->token.length);
             if (var.frame_offset != vm->frame_count) {
                 // TODO bigger numbers

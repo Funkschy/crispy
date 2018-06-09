@@ -51,8 +51,7 @@ static void print_object(Object *object, const char *new_line) {
             break;
         }
         case OBJ_NATIVE_FUNC: {
-            ObjNativeFunc *n_fn = (ObjNativeFunc *) object;
-            printf("<native function of arity %ld>%s", n_fn->num_params, new_line);
+            printf("<native function of arity 1>%s", new_line);
             break;
         }
         default:
@@ -230,9 +229,8 @@ ObjLambda *new_lambda(Vm *vm, size_t num_params) {
     return lambda;
 }
 
-ObjNativeFunc *new_native_func(Vm *vm, void *func_ptr, size_t num_params) {
+ObjNativeFunc *new_native_func(Vm *vm, void *func_ptr) {
     ObjNativeFunc *n_fn = ALLOC_OBJ(vm, ObjNativeFunc, OBJ_NATIVE_FUNC);
-    n_fn->num_params = num_params;
     n_fn->func_ptr = func_ptr;
 
     return n_fn;

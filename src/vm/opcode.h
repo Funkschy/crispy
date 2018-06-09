@@ -31,7 +31,6 @@ typedef enum {
     OP_POP,         // pop from stack
 
     OP_CALL,        // pop a function from the stack and call it
-    OP_CALL_NATIVE, // call a c function from the crispy runtime
     OP_PRINT,       // pop and print the value on top of the stack
     OP_NEGATE,      // negate a number
 

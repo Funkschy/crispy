@@ -225,17 +225,41 @@ static InterpretResult run(Vm *vm) {
             case OP_CALL: {
                 uint8_t num_args = READ_BYTE();
                 Value *pos = (sp - num_args - 1);
+
+                Object *object = pos->o_value;
+
+                if (object->type == OBJ_NATIVE_FUNC) {
+                    if (num_args != 1) {
+                        fprintf(stderr, "Native functions may only receive one argument");
+                        goto ERROR;
+                    }
+
+                    ObjNativeFunc *n_fn = (ObjNativeFunc *) object;
+                    Value arg = POP();
+                    n_fn->func_ptr(arg);
+                    break;
+                }
+
                 size_t expected = ((ObjLambda *) pos->o_value)->num_params;
                 if (expected != num_args) {
                     fprintf(stderr, "Invalid number of arguments. Expected %ld, but got %d\n", expected, num_args);
                     goto ERROR;
                 }
 
-                ObjLambda *lambda = ((ObjLambda *) pos->o_value);
+
+                if (object->type != OBJ_LAMBDA) {
+                    fprintf(stderr, "Trying to call non callable Object\n");
+                    goto ERROR;
+                }
+
+                ObjLambda *lambda = ((ObjLambda *) object);
+
+                // Pop arguments from stack
                 Value args[num_args];
                 for (int i = 0; i < num_args; ++i) {
                     args[i] = POP();
                 }
+
                 PUSH_FRAME(vm, lambda->call_frame);
                 Value *before_sp = sp;
                 for (int i = 0; i < num_args; ++i) {
@@ -247,10 +271,6 @@ static InterpretResult run(Vm *vm) {
                 Value return_value = *(vm->sp - 1);
                 sp = before_sp;
                 sp[-1] = return_value;
-                break;
-            }
-            case OP_CALL_NATIVE: {
-                // TODO implement
                 break;
             }
             case OP_ADD: {
@@ -300,8 +320,8 @@ static InterpretResult run(Vm *vm) {
                     goto ERROR;
                 }
 
-                int64_t first_int = (int64_t)first.d_value;
-                int64_t second_int = (int64_t)second.d_value;
+                int64_t first_int = (int64_t) first.d_value;
+                int64_t second_int = (int64_t) second.d_value;
 
                 PUSH(create_number(first_int % second_int));
                 break;
@@ -359,7 +379,7 @@ static InterpretResult run(Vm *vm) {
                 break;
             case OP_JMT: {
                 Value value = POP();
-                if (!CHECK_BOOL(value)) goto ERROR;
+                if (!CHECK_BOOL(value)) { goto ERROR; }
                 if (BOOL_TRUE(value)) {
                     ip = code + READ_SHORT();
                 } else {
@@ -369,7 +389,7 @@ static InterpretResult run(Vm *vm) {
             }
             case OP_JMF: {
                 Value value = POP();
-                if (!CHECK_BOOL(value)) goto ERROR;
+                if (!CHECK_BOOL(value)) { goto ERROR; }
                 if (!BOOL_TRUE(value)) {
                     ip = code + READ_SHORT();
                 } else {
@@ -397,19 +417,19 @@ static InterpretResult run(Vm *vm) {
                 break;
             case OP_INC: {
                 Value value = POP();
-                if (!CHECK_NUM(value)) goto ERROR;
+                if (!CHECK_NUM(value)) { goto ERROR; }
                 PUSH(create_number(value.d_value + READ_BYTE()));
                 break;
             }
             case OP_INC_1: {
                 Value value = POP();
-                if (!CHECK_NUM(value)) goto ERROR;
+                if (!CHECK_NUM(value)) { goto ERROR; }
                 PUSH(create_number(value.d_value + 1));
                 break;
             }
             case OP_DEC: {
                 Value value = POP();
-                if (!CHECK_NUM(value)) goto ERROR;
+                if (!CHECK_NUM(value)) { goto ERROR; }
                 PUSH(create_number(value.d_value - READ_BYTE()));
                 break;
             }
