@@ -37,14 +37,15 @@ typedef struct {
     uint32_t count;
     uint8_t *code;
 
-    ValueArray variables;
-    ValueArray constants;
 } CodeBuffer;
 
 typedef struct s_call_frame {
     uint8_t *ip;
 
     CodeBuffer code_buffer;
+
+    ValueArray variables;
+    ValueArray constants;
 } CallFrame;
 
 typedef enum {

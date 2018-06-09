@@ -178,7 +178,7 @@ static void primary(Vm *vm) {
             double res;
 
             res = strtod(str, &ptr);
-            uint16_t pos = (uint16_t) add_constant(&CURR_FRAME(vm).code_buffer, create_number(res));
+            uint16_t pos = (uint16_t) add_constant(vm, create_number(res));
 
             if (pos > 255) {
                 uint8_t index_1 = (uint8_t) (pos >> 8);
@@ -218,7 +218,7 @@ static void primary(Vm *vm) {
         }
         case TOKEN_STRING: {
             ObjString *string = new_string(vm, compiler->token.start + 1, compiler->token.length - 2);
-            uint16_t pos = (uint16_t) add_constant(&CURR_FRAME(vm).code_buffer, create_object((Object *) string));
+            uint16_t pos = (uint16_t) add_constant(vm, create_object((Object *) string));
 
             if (pos > UINT8_MAX) {
                 uint8_t index_1 = (uint8_t) (pos >> 8);
@@ -361,7 +361,7 @@ static void lambda(Vm *vm) {
     lambda->call_frame = lambda_frame;
     lambda->call_frame.ip = lambda->call_frame.code_buffer.code;
 
-    uint16_t pos = (uint16_t) add_constant(&CURR_FRAME(vm).code_buffer, create_object((Object *) lambda));
+    uint16_t pos = (uint16_t) add_constant(vm, create_object((Object *) lambda));
 
     if (pos > UINT8_MAX) {
         uint8_t index_1 = (uint8_t) (pos >> 8);

@@ -15,9 +15,6 @@ void free_code_buffer(CodeBuffer *code_buffer) {
     code_buffer->cap = 0;
     code_buffer->count = 0;
     code_buffer->code = NULL;
-
-    free_value_array(&code_buffer->constants);
-    free_value_array(&code_buffer->variables);
 }
 
 void push_call_frame(Vm *vm) {
@@ -99,9 +96,9 @@ void write_code_buffer(CodeBuffer *code_buffer, uint8_t instruction) {
     code_buffer->code[code_buffer->count++] = instruction;
 }
 
-uint32_t add_constant(CodeBuffer *code_buffer, Value value) {
-    write_value(&code_buffer->constants, value);
-    return code_buffer->constants.count - 1;
+uint32_t add_constant(Vm *vm, Value value) {
+    write_value(&CURR_FRAME(vm).constants, value);
+    return CURR_FRAME(vm).constants.count - 1;
 }
 
 static void init_compiler(Compiler *compiler, const char *source) {
@@ -152,8 +149,8 @@ static InterpretResult run(Vm *vm) {
     register Value *sp = vm->sp;
     register uint8_t *code = curr_frame->code_buffer.code;
 
-    Value *const_values = curr_frame->code_buffer.constants.values;
-    ValueArray *variables = &curr_frame->code_buffer.variables;
+    Value *const_values = curr_frame->constants.values;
+    ValueArray *variables = &curr_frame->variables;
 
 #define READ_BYTE() (*ip++)
 #define READ_SHORT() (ip += 2, (uint16_t)((ip[-2] << 8) | ip[-1]))

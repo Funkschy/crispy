@@ -20,11 +20,11 @@ static void mark(Object *object) {
 }
 
 static void mark_all(Vm *vm) {
-    CodeBuffer *curr_buffer = &CURR_FRAME(vm).code_buffer;
+    CallFrame *curr_frame = &CURR_FRAME(vm);
 
     // variables
-    for (int i = 0; i < curr_buffer->variables.count; ++i) {
-        Value *value = &curr_buffer->variables.values[i];
+    for (int i = 0; i < curr_frame->variables.count; ++i) {
+        Value *value = &curr_frame->variables.values[i];
 
         if (value->type == OBJECT) {
             mark(value->o_value);
@@ -32,8 +32,8 @@ static void mark_all(Vm *vm) {
     }
 
     // constants
-    for (int i = 0; i < curr_buffer->constants.count; ++i) {
-        Value *value = &curr_buffer->constants.values[i];
+    for (int i = 0; i < curr_frame->constants.count; ++i) {
+        Value *value = &curr_frame->constants.values[i];
 
         if (value->type == OBJECT) {
             mark(value->o_value);

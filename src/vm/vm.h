@@ -45,9 +45,9 @@ void pop_call_frame(Vm *vm);
 
 void push_call_frame(Vm *vm);
 
-void write_code_buffer(CodeBuffer *code_buffer, uint8_t instruction);
+uint32_t add_constant(Vm *vm, Value value);
 
-uint32_t add_constant(CodeBuffer *code_buffer, Value value);
+void write_code_buffer(CodeBuffer *code_buffer, uint8_t instruction);
 
 /**
  * Allocate a new lambda Object.
