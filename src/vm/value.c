@@ -50,6 +50,10 @@ static void print_object(Object *object, const char *new_line) {
             printf("<function of arity %ld>%s", lambda->num_params, new_line);
             break;
         }
+        case OBJ_NATIVE_FUNC: {
+            printf("<native function of arity 1>%s", new_line);
+            break;
+        }
         default:
             printf("Invalid object%s", new_line);
     }
@@ -131,6 +135,9 @@ void print_type(Value value) {
         case OBJECT:
             print_object_type(value);
             break;
+        case NIL:
+            printf(" : NIL\n");
+            break;
     }
 }
 
@@ -138,25 +145,25 @@ static void init_code_buffer(CodeBuffer *code_buffer) {
     code_buffer->cap = 0;
     code_buffer->count = 0;
     code_buffer->code = NULL;
-
-    init_value_array(&code_buffer->constants);
-    init_value_array(&code_buffer->variables);
 }
 
 static void free_code_buffer(CodeBuffer *code_buffer) {
     free(code_buffer->code);
-
-    free_value_array(&code_buffer->constants);
-    free_value_array(&code_buffer->variables);
 }
 
 void init_call_frame(CallFrame *call_frame) {
     call_frame->ip = NULL;
     init_code_buffer(&call_frame->code_buffer);
+
+    init_value_array(&call_frame->variables);
+    init_value_array(&call_frame->constants);
 }
 
 void free_call_frame(CallFrame *call_frame) {
     free_code_buffer(&call_frame->code_buffer);
+
+    free_value_array(&call_frame->variables);
+    free_value_array(&call_frame->constants);
 }
 
 #define ALLOC_OBJ(vm, type, object_type) ((type *)allocate_object((vm), sizeof(type), (object_type)))
@@ -220,6 +227,13 @@ ObjLambda *new_lambda(Vm *vm, size_t num_params) {
     lambda->call_frame = call_frame;
 
     return lambda;
+}
+
+ObjNativeFunc *new_native_func(Vm *vm, void *func_ptr) {
+    ObjNativeFunc *n_fn = ALLOC_OBJ(vm, ObjNativeFunc, OBJ_NATIVE_FUNC);
+    n_fn->func_ptr = func_ptr;
+
+    return n_fn;
 }
 
 uint32_t hash_string(const char *string, size_t length) {

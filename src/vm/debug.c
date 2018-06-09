@@ -3,11 +3,12 @@
 #include "debug.h"
 #include "opcode.h"
 #include "vm.h"
+#include "value.h"
 
 void disassemble_vm(Vm *vm, const char *name) {
     printf("======== %s ========\n", name);
 
-    for (int i = 0; i < CURR_FRAME(vm).code_buffer.count;) {
+    for (int i = 0; i < CURR_FRAME(vm)->code_buffer.count;) {
         i = disassemble_instruction(vm, i);
     }
 }
@@ -18,17 +19,17 @@ static int simple_instruction(const char *name, int offset) {
 }
 
 static int constant_instruction(const char *name, Vm *vm, int offset) {
-    uint8_t constant_index = CURR_FRAME(vm).code_buffer.code[offset + 1];
+    uint8_t constant_index = CURR_FRAME(vm)->code_buffer.code[offset + 1];
 
     printf("%-16s %4d '", name, constant_index);
-    print_value(CURR_FRAME(vm).code_buffer.constants.values[constant_index], false);
+    print_value(CURR_FRAME(vm)->constants.values[constant_index], false);
     printf("'\n");
 
     return offset + 2;
 }
 
 static int var_instruction(const char *name, Vm *vm, int offset) {
-    uint8_t var_index = CURR_FRAME(vm).code_buffer.code[offset + 1];
+    uint8_t var_index = CURR_FRAME(vm)->code_buffer.code[offset + 1];
 
     printf("%-16s %4d\n", name, var_index);
 
@@ -36,9 +37,18 @@ static int var_instruction(const char *name, Vm *vm, int offset) {
 }
 
 static int jump_instruction(const char *name, Vm *vm, int offset) {
-    uint16_t jmp_address = (CURR_FRAME(vm).code_buffer.code[offset + 1] << 8) | CURR_FRAME(vm).code_buffer.code[offset + 2];
+    uint16_t jmp_address = (CURR_FRAME(vm)->code_buffer.code[offset + 1] << 8) | CURR_FRAME(vm)->code_buffer.code[offset + 2];
 
     printf("%-16s   -> %04d\n", name, jmp_address);
+
+    return offset + 3;
+}
+
+static int double_instruction(const char *name, Vm *vm, int offset) {
+    uint8_t first = CURR_FRAME(vm)->code_buffer.code[offset + 1];
+    uint8_t second = CURR_FRAME(vm)->code_buffer.code[offset + 2];
+
+    printf("%-16s %4d %4d\n", name, first, second);
 
     return offset + 3;
 }
@@ -46,7 +56,7 @@ static int jump_instruction(const char *name, Vm *vm, int offset) {
 int disassemble_instruction(Vm *vm, int offset) {
     printf("%04d ", offset);
 
-    uint8_t instruction = CURR_FRAME(vm).code_buffer.code[offset];
+    uint8_t instruction = CURR_FRAME(vm)->code_buffer.code[offset];
     switch (instruction) {
         case OP_NOP:
             return simple_instruction("OP_NOP", offset);
@@ -76,6 +86,8 @@ int disassemble_instruction(Vm *vm, int offset) {
             return var_instruction("OP_STORE", vm, offset);
         case OP_LOAD:
             return var_instruction("OP_LOAD", vm, offset);
+        case OP_LOAD_SCOPE:
+            return double_instruction("OP_LOAD_SCOPE", vm, offset);
         case OP_DUP:
             return simple_instruction("OP_DUP", offset);
         case OP_POP:
@@ -114,8 +126,6 @@ int disassemble_instruction(Vm *vm, int offset) {
             return simple_instruction("OP_LDC_1", offset);
         case OP_CALL:
             return var_instruction("OP_CALL", vm, offset);
-        case OP_CALL_NATIVE:
-            return var_instruction("OP_CALL_NATIVE", vm, offset);
         case OP_MOD:
             return simple_instruction("OP_MOD", offset);
         case OP_TRUE:

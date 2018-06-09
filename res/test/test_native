@@ -1,0 +1,7 @@
+println("Hello World");
+
+var p = println;
+p(1 + 1);
+
+_print(4);
+_print(2);

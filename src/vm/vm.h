@@ -1,9 +1,10 @@
 #ifndef VM_H
 #define VM_H
 
-#define CURR_FRAME(vm_ptr)          ((vm_ptr)->frames[(vm_ptr)->frame_count - 1])
+#define CURR_FRAME(vm_ptr)          (&(vm_ptr)->frames[(vm_ptr)->frame_count - 1])
+#define FRAME_AT(vm_ptr, offset)    (&(vm_ptr)->frames[(vm_ptr)->frame_count - 1 - (offset)])
 #define PUSH_FRAME(vm_ptr, frame)   ((vm_ptr)->frames[(vm_ptr)->frame_count++] = (frame))
-#define POP_FRAME(vm_ptr)           ((vm_ptr)->frames[--vm->frame_count])
+#define POP_FRAME(vm_ptr)           (&(vm_ptr)->frames[--vm->frame_count])
 
 #include "../cli/common.h"
 #include "value.h"
@@ -41,13 +42,11 @@ void compile(Vm *vm);
 
 void free_object(Object *object);
 
-void pop_call_frame(Vm *vm);
-
 void push_call_frame(Vm *vm);
 
-void write_code_buffer(CodeBuffer *code_buffer, uint8_t instruction);
+uint32_t add_constant(Vm *vm, Value value);
 
-uint32_t add_constant(CodeBuffer *code_buffer, Value value);
+void write_code_buffer(CodeBuffer *code_buffer, uint8_t instruction);
 
 /**
  * Allocate a new lambda Object.
@@ -72,6 +71,13 @@ ObjString *new_empty_string(Vm *vm, size_t length);
  * @return a pointer to the created string.
  */
 ObjString *new_string(Vm *vm, const char *start, size_t length);
+
+/**
+ * Allocate a new native function Object.
+ * @param vm the current VM.
+ * @return a pointer to the created function wrapper.
+ */
+ObjNativeFunc *new_native_func(Vm *vm, void *func_ptr);
 
 /**
  * Compiles and executes the source code.

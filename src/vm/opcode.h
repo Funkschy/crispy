@@ -26,11 +26,11 @@ typedef enum {
 
     OP_STORE,       // store number as variable
     OP_LOAD,        // load variable to stack
+    OP_LOAD_SCOPE,  // load a variable from a different scope
     OP_DUP,         // duplicate
     OP_POP,         // pop from stack
 
     OP_CALL,        // pop a function from the stack and call it
-    OP_CALL_NATIVE, // call a c function from the crispy runtime
     OP_PRINT,       // pop and print the value on top of the stack
     OP_NEGATE,      // negate a number
 

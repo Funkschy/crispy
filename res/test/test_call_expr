@@ -11,12 +11,27 @@ print add("Hello ", "World");
 
 var even = fun n -> if n % 2 == 0 { 2 + 2; true; } else { return false; };
 
-print even(2);
-print even(3);
-print even(42);
+{
+    {
+        print even(2);
+    }
+    print even(3);
+    print even(42);
+}
 
 even = fun n -> n % 2 == 0;
 
 print even(2);
 print even(3);
 print even(42);
+
+var encapsulated = fun a, b -> add(a, b);
+print encapsulated(40, 2);
+
+var hello = fun -> "Hello";
+print hello();
+
+var fff = fun -> fun -> fun -> "Hello World";
+
+var res = fff()()();
+print res;

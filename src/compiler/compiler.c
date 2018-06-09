@@ -13,8 +13,8 @@ static void expr(Vm *vm);
 
 static void stmt(Vm *vm);
 
-static void error(const char *err_message) {
-    printf("%s\n", err_message);
+static void error(Compiler *compiler, const char *err_message) {
+    printf("[Line %d] %s\n", compiler->previous.line, err_message);
     exit(44);
 }
 
@@ -55,7 +55,7 @@ static Token consume(Vm *vm, TokenType type, const char *err_message) {
         return curr;
     }
 
-    error(err_message);
+    error(&vm->compiler, err_message);
 
     // not reachable
     Token token;
@@ -64,45 +64,47 @@ static Token consume(Vm *vm, TokenType type, const char *err_message) {
 }
 
 static inline void emit_no_arg(Vm *vm, OP_CODE op_code) {
-    write_code_buffer(&CURR_FRAME(vm).code_buffer, op_code);
+    write_code_buffer(&CURR_FRAME(vm)->code_buffer, op_code);
 }
 
 static inline void emit_byte_arg(Vm *vm, OP_CODE op_code, uint8_t arg) {
-    write_code_buffer(&CURR_FRAME(vm).code_buffer, op_code);
-    write_code_buffer(&CURR_FRAME(vm).code_buffer, arg);
+    write_code_buffer(&CURR_FRAME(vm)->code_buffer, op_code);
+    write_code_buffer(&CURR_FRAME(vm)->code_buffer, arg);
 }
 
 static inline void emit_short_arg(Vm *vm, OP_CODE op_code, uint8_t first, uint8_t second) {
-    write_code_buffer(&CURR_FRAME(vm).code_buffer, op_code);
-    write_code_buffer(&CURR_FRAME(vm).code_buffer, first);
-    write_code_buffer(&CURR_FRAME(vm).code_buffer, second);
+    write_code_buffer(&CURR_FRAME(vm)->code_buffer, op_code);
+    write_code_buffer(&CURR_FRAME(vm)->code_buffer, first);
+    write_code_buffer(&CURR_FRAME(vm)->code_buffer, second);
 }
 
 static inline uint32_t emit_jump(Vm *vm, OP_CODE op_code) {
     emit_short_arg(vm, op_code, 0xFF, 0xFF);
-    return CURR_FRAME(vm).code_buffer.count - 2;
+    return CURR_FRAME(vm)->code_buffer.count - 2;
 }
 
 static void patch_jump_to(Vm *vm, uint32_t offset, uint32_t address) {
     if (address > UINT16_MAX) {
-        error("Jump too big");
+        error(&vm->compiler, "Jump too big");
     }
 
-    CURR_FRAME(vm).code_buffer.code[offset] = (uint8_t) ((address >> 8) & 0xFF);
-    CURR_FRAME(vm).code_buffer.code[offset + 1] = (uint8_t) (address & 0xFF);
+    CURR_FRAME(vm)->code_buffer.code[offset] = (uint8_t) ((address >> 8) & 0xFF);
+    CURR_FRAME(vm)->code_buffer.code[offset + 1] = (uint8_t) (address & 0xFF);
 }
 
 static inline void patch_jump(Vm *vm, uint32_t offset) {
-    patch_jump_to(vm, offset, CURR_FRAME(vm).code_buffer.count);
+    patch_jump_to(vm, offset, CURR_FRAME(vm)->code_buffer.count);
 }
 
 static void declare_var(Vm *vm, Token var_decl) {
-    Variable variable = {var_decl.start, var_decl.length, vm->compiler.vars_in_scope++};
+    Variable variable = {var_decl.start, var_decl.length, vm->compiler.vars_in_scope++, (int) vm->frame_count};
     write_variable(&vm->compiler.scope[vm->compiler.scope_depth], variable);
     emit_byte_arg(vm, OP_STORE, (uint8_t) variable.index);
 }
 
 void compile(Vm *vm) {
+    declare_natives(vm);
+
     do {
         stmt(vm);
     } while (vm->compiler.token.type != TOKEN_EOF);
@@ -110,35 +112,35 @@ void compile(Vm *vm) {
     emit_no_arg(vm, OP_RETURN);
 }
 
-static int resolve_name(Vm *vm, const char *name, size_t length) {
+static Variable *resolve_name(Vm *vm, const char *name, size_t length) {
     Compiler *compiler = &vm->compiler;
 
     for (int i = compiler->scope_depth; i >= 0; --i) {
         for (int j = compiler->scope[i].count - 1; j >= 0; --j) {
-            Variable var = vm->compiler.scope[i].variables[j];
-            if (var.length == length && memcmp(name, var.name, length) == 0) {
-                return var.index;
+            Variable *var = &vm->compiler.scope[i].variables[j];
+            if (var->length == length && memcmp(name, var->name, length) == 0) {
+                return var;
             }
         }
     }
 
-    return -1;
+    return NULL;
 }
 
 static Variable resolve_var(Vm *vm, const char *name, size_t length) {
-    Variable variable;
-    variable.index = resolve_name(vm, name, length);
-    variable.name = name;
-    variable.length = length;
+    Variable *variable = resolve_name(vm, name, length);
 
-    if (variable.index != -1) return variable;
+    if (variable != NULL) { return *variable; }
 
     char message[34 + length];
     sprintf(message, "Could not find variable with name %.*s", (int) length, name);
-    error(message);
+    error(&vm->compiler, message);
 
-    // not reachable
-    return variable;
+    // not reachable, but clang warnings are annoying
+    Variable error;
+    error.index = -1;
+    error.frame_offset = -1;
+    return error;
 }
 
 static void primary(Vm *vm) {
@@ -165,7 +167,7 @@ static void primary(Vm *vm) {
             double res;
 
             res = strtod(str, &ptr);
-            uint16_t pos = (uint16_t) add_constant(&CURR_FRAME(vm).code_buffer, create_number(res));
+            uint16_t pos = (uint16_t) add_constant(vm, create_number(res));
 
             if (pos > 255) {
                 uint8_t index_1 = (uint8_t) (pos >> 8);
@@ -181,18 +183,40 @@ static void primary(Vm *vm) {
             advance(vm);
             expr(vm);
             if (vm->compiler.token.type != TOKEN_CLOSE_PAREN) {
-                error("Expected ')'");
+                error(&vm->compiler, "Expected ')'");
             }
             break;
         }
         case TOKEN_IDENTIFIER: {
+            HTItemKey key;
+            char *c_str = malloc(compiler->token.length * sizeof(char) + 1);
+            memcpy(c_str, compiler->token.start, compiler->token.length);
+            c_str[compiler->token.length] = '\0';
+            key.key_c_string = c_str;
+
+            Value value = ht_get(&vm->compiler.natives, key);
+            free(c_str);
+
+            if (value.type != NIL) {
+                // TODO bigger numbers
+                uint32_t index = add_constant(vm, value);
+                emit_byte_arg(vm, OP_LDC, (uint8_t)index);
+                break;
+            }
+
             Variable var = resolve_var(vm, compiler->token.start, compiler->token.length);
+            if (var.frame_offset != vm->frame_count) {
+                // TODO bigger numbers
+                uint8_t offset = (uint8_t) (vm->frame_count - var.frame_offset);
+                emit_short_arg(vm, OP_LOAD_SCOPE, offset, (uint8_t) var.index);
+                break;
+            }
             emit_byte_arg(vm, OP_LOAD, (uint8_t) var.index);
             break;
         }
         case TOKEN_STRING: {
             ObjString *string = new_string(vm, compiler->token.start + 1, compiler->token.length - 2);
-            uint16_t pos = (uint16_t) add_constant(&CURR_FRAME(vm).code_buffer, create_object((Object *) string));
+            uint16_t pos = (uint16_t) add_constant(vm, create_object((Object *) string));
 
             if (pos > UINT8_MAX) {
                 uint8_t index_1 = (uint8_t) (pos >> 8);
@@ -211,8 +235,7 @@ static void primary(Vm *vm) {
             emit_no_arg(vm, OP_TRUE);
             break;
         default:
-            printf("%.*s\n", (int) compiler->token.length, compiler->token.start);
-            error("Unexpected Token in primary");
+            break;
     }
 
     advance(vm);
@@ -221,22 +244,24 @@ static void primary(Vm *vm) {
 static void primary_expr(Vm *vm) {
     primary(vm);
 
-    if (!check(vm, TOKEN_OPEN_PAREN)) return;
+    if (!check(vm, TOKEN_OPEN_PAREN)) { return; }
 
     size_t num_args = 0;
 
     // Call
     while (match(vm, TOKEN_OPEN_PAREN)) {
-        if (!check(vm, TOKEN_CLOSE_PAREN)) {
+        if (!match(vm, TOKEN_CLOSE_PAREN)) {
             do {
                 expr(vm);
                 ++num_args;
             } while (match(vm, TOKEN_COMMA));
+
+            consume(vm, TOKEN_CLOSE_PAREN, "Expected ')' after argument list");
+            emit_byte_arg(vm, OP_CALL, (uint8_t) num_args);
+        } else {
+            emit_byte_arg(vm, OP_CALL, 0);
         }
     }
-
-    consume(vm, TOKEN_CLOSE_PAREN, "Expected ')' after argument list");
-    emit_byte_arg(vm, OP_CALL, (uint8_t) num_args);
 }
 
 static void factor(Vm *vm) {
@@ -330,13 +355,13 @@ static void lambda(Vm *vm) {
     disassemble_vm(vm, "lamda");
 #endif
 
-    lambda_frame = POP_FRAME(vm);
+    lambda_frame = *POP_FRAME(vm);
 
     ObjLambda *lambda = new_lambda(vm, num_params);
     lambda->call_frame = lambda_frame;
     lambda->call_frame.ip = lambda->call_frame.code_buffer.code;
 
-    uint16_t pos = (uint16_t) add_constant(&CURR_FRAME(vm).code_buffer, create_object((Object *) lambda));
+    uint16_t pos = (uint16_t) add_constant(vm, create_object((Object *) lambda));
 
     if (pos > UINT8_MAX) {
         uint8_t index_1 = (uint8_t) (pos >> 8);
@@ -410,13 +435,18 @@ static void var_decl(Vm *vm) {
 }
 
 static void assignment(Vm *vm) {
-    Token identifier = consume(vm, TOKEN_IDENTIFIER, "Expected identifier");
-    consume(vm, TOKEN_EQUALS, "Expected '=' after variable name");
     expr(vm);
-    consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
+    Token identifier = vm->compiler.previous;
 
-    Variable var = resolve_var(vm, identifier.start, identifier.length);
-    emit_byte_arg(vm, OP_STORE, (uint8_t) var.index);
+    if (check(vm, TOKEN_EQUALS)) {
+        emit_no_arg(vm, OP_POP);
+        consume(vm, TOKEN_EQUALS, "Expected '=' after variable name");
+        expr(vm);
+        Variable var = resolve_var(vm, identifier.start, identifier.length);
+        emit_byte_arg(vm, OP_STORE, (uint8_t) var.index);
+    }
+
+    consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
 }
 
 static void expr_stmt(Vm *vm) {
@@ -443,7 +473,7 @@ static void block_stmt(Vm *vm) {
 
 static void while_stmt(Vm *vm) {
     advance(vm);
-    uint32_t start_instruction = CURR_FRAME(vm).code_buffer.count;
+    uint32_t start_instruction = CURR_FRAME(vm)->code_buffer.count;
     expr(vm);
 
     uint32_t exit_jmp = emit_jump(vm, OP_JMF);
@@ -451,7 +481,7 @@ static void while_stmt(Vm *vm) {
 
     uint32_t to_start = emit_jump(vm, OP_JMP);
     patch_jump_to(vm, to_start, start_instruction);
-    patch_jump_to(vm, exit_jmp, CURR_FRAME(vm).code_buffer.count);
+    patch_jump_to(vm, exit_jmp, CURR_FRAME(vm)->code_buffer.count);
 }
 
 static void if_stmt(Vm *vm) {
@@ -514,6 +544,8 @@ static void stmt(Vm *vm) {
             }
 
             emit_no_arg(vm, OP_RETURN);
+            break;
+        case TOKEN_EOF:
             break;
         default:
             simple_stmt(vm);

@@ -15,9 +15,6 @@ void free_code_buffer(CodeBuffer *code_buffer) {
     code_buffer->cap = 0;
     code_buffer->count = 0;
     code_buffer->code = NULL;
-
-    free_value_array(&code_buffer->constants);
-    free_value_array(&code_buffer->variables);
 }
 
 void push_call_frame(Vm *vm) {
@@ -25,10 +22,6 @@ void push_call_frame(Vm *vm) {
     init_call_frame(&call_frame);
 
     vm->frames[vm->frame_count++] = call_frame;
-}
-
-void pop_call_frame(Vm *vm) {
-    --vm->frame_count;
 }
 
 void init_vm(Vm *vm) {
@@ -53,8 +46,18 @@ void free_object(Object *object) {
             ObjLambda *lambda = (ObjLambda *) object;
             free_call_frame(&lambda->call_frame);
             free(lambda);
+            break;
         }
-        default:
+        case OBJ_NATIVE_FUNC: {
+            ObjNativeFunc *n_fn = (ObjNativeFunc *) object;
+            free(n_fn);
+            break;
+        }
+        case OBJ_LIST:
+            printf("Lists can't be freed yet\n");
+            break;
+        case OBJ_MAP:
+            printf("Maps can't be freed yet\n");
             break;
     }
 }
@@ -73,10 +76,12 @@ void free_vm(Vm *vm) {
     vm->num_objects = 0;
     vm->max_objects = 0;
 
-    free_code_buffer(&CURR_FRAME(vm).code_buffer);
+    free_code_buffer(&CURR_FRAME(vm)->code_buffer);
 
     while (vm->frame_count > 0) {
-        pop_call_frame(vm);
+        CallFrame *frame = POP_FRAME(vm);
+        free_value_array(&frame->variables);
+        free_value_array(&frame->constants);
     }
 }
 
@@ -89,9 +94,9 @@ void write_code_buffer(CodeBuffer *code_buffer, uint8_t instruction) {
     code_buffer->code[code_buffer->count++] = instruction;
 }
 
-uint32_t add_constant(CodeBuffer *code_buffer, Value value) {
-    write_value(&code_buffer->constants, value);
-    return code_buffer->constants.count - 1;
+uint32_t add_constant(Vm *vm, Value value) {
+    write_value(&CURR_FRAME(vm)->constants, value);
+    return CURR_FRAME(vm)->constants.count - 1;
 }
 
 static void init_compiler(Compiler *compiler, const char *source) {
@@ -106,10 +111,15 @@ static void init_compiler(Compiler *compiler, const char *source) {
     compiler->scope[0] = variables;
     compiler->scope_depth = 0;
     compiler->vars_in_scope = 0;
+
+    HashTable ht;
+    ht_init(&ht, HT_KEY_CSTRING, 16, 0.75);
+    compiler->natives = ht;
 }
 
 static void free_compiler(Compiler *compiler) {
     free_variable_array(&compiler->scope[0]);
+    ht_free(&compiler->natives);
 }
 
 InterpretResult interpret(Vm *vm, const char *source) {
@@ -123,7 +133,7 @@ InterpretResult interpret(Vm *vm, const char *source) {
     disassemble_vm(vm, "Main Program");
 #endif
 
-    CURR_FRAME(vm).ip = CURR_FRAME(vm).code_buffer.code;
+    CURR_FRAME(vm)->ip = CURR_FRAME(vm)->code_buffer.code;
     InterpretResult result = run(vm);
     free_compiler(&vm->compiler);
 
@@ -131,14 +141,14 @@ InterpretResult interpret(Vm *vm, const char *source) {
 }
 
 static InterpretResult run(Vm *vm) {
-    CallFrame *curr_frame = &CURR_FRAME(vm);
+    CallFrame *curr_frame = CURR_FRAME(vm);
 
     register uint8_t *ip = curr_frame->ip;
     register Value *sp = vm->sp;
     register uint8_t *code = curr_frame->code_buffer.code;
 
-    Value *const_values = curr_frame->code_buffer.constants.values;
-    ValueArray *variables = &curr_frame->code_buffer.variables;
+    Value *const_values = curr_frame->constants.values;
+    ValueArray *variables = &curr_frame->variables;
 
 #define READ_BYTE() (*ip++)
 #define READ_SHORT() (ip += 2, (uint16_t)((ip[-2] << 8) | ip[-1]))
@@ -188,6 +198,7 @@ static InterpretResult run(Vm *vm) {
         printf("sp: %li\n", stack_size);
         printf("ip: %li\n", ip - code);
         disassemble_instruction(vm, (int) (ip - code));
+        printf("-----\n");
 #endif
 
         switch (instruction = (OP_CODE) READ_BYTE()) {
@@ -214,17 +225,41 @@ static InterpretResult run(Vm *vm) {
             case OP_CALL: {
                 uint8_t num_args = READ_BYTE();
                 Value *pos = (sp - num_args - 1);
+
+                Object *object = pos->o_value;
+
+                if (object->type == OBJ_NATIVE_FUNC) {
+                    if (num_args != 1) {
+                        fprintf(stderr, "Native functions may only receive one argument");
+                        goto ERROR;
+                    }
+
+                    ObjNativeFunc *n_fn = (ObjNativeFunc *) object;
+                    Value arg = POP();
+                    n_fn->func_ptr(arg);
+                    break;
+                }
+
                 size_t expected = ((ObjLambda *) pos->o_value)->num_params;
                 if (expected != num_args) {
                     fprintf(stderr, "Invalid number of arguments. Expected %ld, but got %d\n", expected, num_args);
                     goto ERROR;
                 }
 
-                ObjLambda *lambda = ((ObjLambda *) pos->o_value);
+
+                if (object->type != OBJ_LAMBDA) {
+                    fprintf(stderr, "Trying to call non callable Object\n");
+                    goto ERROR;
+                }
+
+                ObjLambda *lambda = ((ObjLambda *) object);
+
+                // Pop arguments from stack
                 Value args[num_args];
                 for (int i = 0; i < num_args; ++i) {
                     args[i] = POP();
                 }
+
                 PUSH_FRAME(vm, lambda->call_frame);
                 Value *before_sp = sp;
                 for (int i = 0; i < num_args; ++i) {
@@ -232,14 +267,10 @@ static InterpretResult run(Vm *vm) {
                 }
                 vm->sp = sp;
                 run(vm);
-                lambda->call_frame = POP_FRAME(vm);
+                lambda->call_frame = *POP_FRAME(vm);
                 Value return_value = *(vm->sp - 1);
                 sp = before_sp;
                 sp[-1] = return_value;
-                break;
-            }
-            case OP_CALL_NATIVE: {
-                // TODO implement
                 break;
             }
             case OP_ADD: {
@@ -289,8 +320,8 @@ static InterpretResult run(Vm *vm) {
                     goto ERROR;
                 }
 
-                int64_t first_int = (int64_t)first.d_value;
-                int64_t second_int = (int64_t)second.d_value;
+                int64_t first_int = (int64_t) first.d_value;
+                int64_t second_int = (int64_t) second.d_value;
 
                 PUSH(create_number(first_int % second_int));
                 break;
@@ -318,6 +349,17 @@ static InterpretResult run(Vm *vm) {
             case OP_LOAD:
                 PUSH(READ_VAR());
                 break;
+            case OP_LOAD_SCOPE: {
+                uint8_t scope = READ_BYTE();
+                uint8_t index = READ_BYTE();
+
+                CallFrame *frame = FRAME_AT(vm, scope);
+                Value val = frame->variables.values[index];
+
+                PUSH(val);
+
+                break;
+            }
             case OP_STORE: {
                 uint8_t index = READ_BYTE();
                 write_at(variables, index, POP());
@@ -337,7 +379,7 @@ static InterpretResult run(Vm *vm) {
                 break;
             case OP_JMT: {
                 Value value = POP();
-                if (!CHECK_BOOL(value)) goto ERROR;
+                if (!CHECK_BOOL(value)) { goto ERROR; }
                 if (BOOL_TRUE(value)) {
                     ip = code + READ_SHORT();
                 } else {
@@ -347,7 +389,7 @@ static InterpretResult run(Vm *vm) {
             }
             case OP_JMF: {
                 Value value = POP();
-                if (!CHECK_BOOL(value)) goto ERROR;
+                if (!CHECK_BOOL(value)) { goto ERROR; }
                 if (!BOOL_TRUE(value)) {
                     ip = code + READ_SHORT();
                 } else {
@@ -375,19 +417,19 @@ static InterpretResult run(Vm *vm) {
                 break;
             case OP_INC: {
                 Value value = POP();
-                if (!CHECK_NUM(value)) goto ERROR;
+                if (!CHECK_NUM(value)) { goto ERROR; }
                 PUSH(create_number(value.d_value + READ_BYTE()));
                 break;
             }
             case OP_INC_1: {
                 Value value = POP();
-                if (!CHECK_NUM(value)) goto ERROR;
+                if (!CHECK_NUM(value)) { goto ERROR; }
                 PUSH(create_number(value.d_value + 1));
                 break;
             }
             case OP_DEC: {
                 Value value = POP();
-                if (!CHECK_NUM(value)) goto ERROR;
+                if (!CHECK_NUM(value)) { goto ERROR; }
                 PUSH(create_number(value.d_value - READ_BYTE()));
                 break;
             }

@@ -3,4 +3,6 @@
 
 #include "../vm/vm.h"
 
+void declare_natives(Vm *vm);
+
 #endif //CRISPY_NATIVE_H

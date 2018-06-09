@@ -37,19 +37,21 @@ typedef struct {
     uint32_t count;
     uint8_t *code;
 
-    ValueArray variables;
-    ValueArray constants;
 } CodeBuffer;
 
-typedef struct s_call_frame{
+typedef struct s_call_frame {
     uint8_t *ip;
 
     CodeBuffer code_buffer;
+
+    ValueArray variables;
+    ValueArray constants;
 } CallFrame;
 
 typedef enum {
     OBJ_STRING,
     OBJ_LAMBDA,
+    OBJ_NATIVE_FUNC,
     OBJ_MAP,
     OBJ_LIST
 } ObjectType;
@@ -78,6 +80,11 @@ typedef struct {
     CallFrame call_frame;
 } ObjLambda;
 
+typedef struct {
+    Object object;
+
+    void (*func_ptr)(Value);
+} ObjNativeFunc;
 
 Value create_nil();
 
