@@ -14,5 +14,5 @@ static void make_native(Vm *vm, const char *name, void (*fn_ptr)(Value)) {
 
 void declare_natives(Vm *vm) {
     make_native(vm, "println", &println);
-    make_native(vm, "_print", &print);
+    make_native(vm, "print", &print);
 }
