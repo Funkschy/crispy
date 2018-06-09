@@ -1,9 +1,10 @@
 #ifndef VM_H
 #define VM_H
 
-#define CURR_FRAME(vm_ptr)          ((vm_ptr)->frames[(vm_ptr)->frame_count - 1])
+#define CURR_FRAME(vm_ptr)          (&(vm_ptr)->frames[(vm_ptr)->frame_count - 1])
+#define FRAME_AT(vm_ptr, offset)    (&(vm_ptr)->frames[(vm_ptr)->frame_count - 1 - (offset)])
 #define PUSH_FRAME(vm_ptr, frame)   ((vm_ptr)->frames[(vm_ptr)->frame_count++] = (frame))
-#define POP_FRAME(vm_ptr)           ((vm_ptr)->frames[--vm->frame_count])
+#define POP_FRAME(vm_ptr)           (&(vm_ptr)->frames[--vm->frame_count])
 
 #include "../cli/common.h"
 #include "value.h"
@@ -40,8 +41,6 @@ void free_vm(Vm *vm);
 void compile(Vm *vm);
 
 void free_object(Object *object);
-
-void pop_call_frame(Vm *vm);
 
 void push_call_frame(Vm *vm);
 

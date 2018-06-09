@@ -1,9 +1,13 @@
 #ifndef CALC_SCANNER_H
 #define CALC_SCANNER_H
 
+#include "../cli/common.h"
+
 typedef struct {
     const char *start;
     const char *current;
+
+    uint32_t line;
 } Scanner;
 
 typedef enum {
@@ -44,6 +48,7 @@ typedef struct {
     TokenType type;
     const char *start;
     size_t length;
+    uint32_t line;
 } Token;
 
 void init_scanner(Scanner *scanner, const char *source);

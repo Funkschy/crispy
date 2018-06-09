@@ -24,10 +24,6 @@ void push_call_frame(Vm *vm) {
     vm->frames[vm->frame_count++] = call_frame;
 }
 
-void pop_call_frame(Vm *vm) {
-    --vm->frame_count;
-}
-
 void init_vm(Vm *vm) {
     vm->sp = vm->stack;
     vm->first_object = NULL;
@@ -80,10 +76,12 @@ void free_vm(Vm *vm) {
     vm->num_objects = 0;
     vm->max_objects = 0;
 
-    free_code_buffer(&CURR_FRAME(vm).code_buffer);
+    free_code_buffer(&CURR_FRAME(vm)->code_buffer);
 
     while (vm->frame_count > 0) {
-        pop_call_frame(vm);
+        CallFrame *frame = POP_FRAME(vm);
+        free_value_array(&frame->variables);
+        free_value_array(&frame->constants);
     }
 }
 
@@ -97,8 +95,8 @@ void write_code_buffer(CodeBuffer *code_buffer, uint8_t instruction) {
 }
 
 uint32_t add_constant(Vm *vm, Value value) {
-    write_value(&CURR_FRAME(vm).constants, value);
-    return CURR_FRAME(vm).constants.count - 1;
+    write_value(&CURR_FRAME(vm)->constants, value);
+    return CURR_FRAME(vm)->constants.count - 1;
 }
 
 static void init_compiler(Compiler *compiler, const char *source) {
@@ -135,7 +133,7 @@ InterpretResult interpret(Vm *vm, const char *source) {
     disassemble_vm(vm, "Main Program");
 #endif
 
-    CURR_FRAME(vm).ip = CURR_FRAME(vm).code_buffer.code;
+    CURR_FRAME(vm)->ip = CURR_FRAME(vm)->code_buffer.code;
     InterpretResult result = run(vm);
     free_compiler(&vm->compiler);
 
@@ -143,7 +141,7 @@ InterpretResult interpret(Vm *vm, const char *source) {
 }
 
 static InterpretResult run(Vm *vm) {
-    CallFrame *curr_frame = &CURR_FRAME(vm);
+    CallFrame *curr_frame = CURR_FRAME(vm);
 
     register uint8_t *ip = curr_frame->ip;
     register Value *sp = vm->sp;
@@ -200,6 +198,7 @@ static InterpretResult run(Vm *vm) {
         printf("sp: %li\n", stack_size);
         printf("ip: %li\n", ip - code);
         disassemble_instruction(vm, (int) (ip - code));
+        printf("-----\n");
 #endif
 
         switch (instruction = (OP_CODE) READ_BYTE()) {
@@ -244,7 +243,7 @@ static InterpretResult run(Vm *vm) {
                 }
                 vm->sp = sp;
                 run(vm);
-                lambda->call_frame = POP_FRAME(vm);
+                lambda->call_frame = *POP_FRAME(vm);
                 Value return_value = *(vm->sp - 1);
                 sp = before_sp;
                 sp[-1] = return_value;
@@ -330,6 +329,17 @@ static InterpretResult run(Vm *vm) {
             case OP_LOAD:
                 PUSH(READ_VAR());
                 break;
+            case OP_LOAD_SCOPE: {
+                uint8_t scope = READ_BYTE();
+                uint8_t index = READ_BYTE();
+
+                CallFrame *frame = FRAME_AT(vm, scope);
+                Value val = frame->variables.values[index];
+
+                PUSH(val);
+
+                break;
+            }
             case OP_STORE: {
                 uint8_t index = READ_BYTE();
                 write_at(variables, index, POP());

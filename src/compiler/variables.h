@@ -7,6 +7,7 @@ typedef struct {
     const char *name;
     size_t length;
     int index;
+    int frame_offset;
 } Variable;
 
 typedef struct {

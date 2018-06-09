@@ -20,7 +20,7 @@ static void mark(Object *object) {
 }
 
 static void mark_all(Vm *vm) {
-    CallFrame *curr_frame = &CURR_FRAME(vm);
+    CallFrame *curr_frame = CURR_FRAME(vm);
 
     // variables
     for (int i = 0; i < curr_frame->variables.count; ++i) {

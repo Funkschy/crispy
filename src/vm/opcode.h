@@ -26,6 +26,7 @@ typedef enum {
 
     OP_STORE,       // store number as variable
     OP_LOAD,        // load variable to stack
+    OP_LOAD_SCOPE,  // load a variable from a different scope
     OP_DUP,         // duplicate
     OP_POP,         // pop from stack
 

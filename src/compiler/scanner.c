@@ -7,6 +7,7 @@
 void init_scanner(Scanner *scanner, const char *source) {
     scanner->start = source;
     scanner->current = source;
+    scanner->line = 1;
 }
 
 static bool at_end(Scanner *scanner) {
@@ -40,6 +41,7 @@ static Token make_token(Scanner *scanner, TokenType type) {
     token.type = type;
     token.start = scanner->start;
     token.length = (unsigned int) (scanner->current - scanner->start);
+    token.line = scanner->line;
 
     return token;
 }
@@ -63,7 +65,10 @@ static void skip_whitespace(Scanner *scanner) {
             case ' ':
             case '\r':
             case '\t':
+                advance(scanner);
+                break;
             case '\n':
+                ++scanner->line;
                 advance(scanner);
                 break;
             case '/':
@@ -79,11 +84,12 @@ static void skip_whitespace(Scanner *scanner) {
     }
 }
 
-static Token error_token(const char *message) {
+static Token error_token(Scanner *scanner, const char *message) {
     Token token;
     token.type = TOKEN_ERROR;
     token.start = message;
     token.length = (int) strlen(message);
+    token.line = scanner->line;
 
     return token;
 }
@@ -137,7 +143,7 @@ static Token string(Scanner *scanner) {
         advance(scanner);
 
     if (at_end(scanner))
-        return error_token("Unterminated String");
+        return error_token(scanner, "Unterminated String");
 
     advance(scanner);
     return make_token(scanner, TOKEN_STRING);
@@ -200,6 +206,6 @@ Token scan_token(Scanner *scanner) {
         case '"':
             return string(scanner);
         default:
-            return error_token("Unexpected Character");
+            return error_token(scanner, "Unexpected Character");
     }
 }
