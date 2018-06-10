@@ -23,10 +23,6 @@ static inline void advance(Vm *vm) {
     vm->compiler.token = scan_token(&vm->compiler.scanner);
 }
 
-static uint32_t vars_in_current_scope(Vm *vm) {
-    return vm->compiler.scope[vm->compiler.scope_depth].count;
-}
-
 static inline void open_scope(Vm *vm) {
     ++vm->compiler.scope_depth;
     init_variable_array(&vm->compiler.scope[vm->compiler.scope_depth]);
@@ -35,6 +31,7 @@ static inline void open_scope(Vm *vm) {
 static void close_scope(Vm *vm) {
     Compiler *compiler = &vm->compiler;
 
+    compiler->vars_in_scope -= compiler->scope[compiler->scope_depth].count;
     free_variable_array(&compiler->scope[compiler->scope_depth]);
     --compiler->scope_depth;
 }
@@ -145,7 +142,7 @@ static Variable resolve_var(Vm *vm, const char *name, size_t length) {
 }
 
 static void declare_var(Vm *vm, Token var_decl) {
-    Variable variable = {var_decl.start, var_decl.length, vars_in_current_scope(vm), (int) vm->frame_count};
+    Variable variable = {var_decl.start, var_decl.length, vm->compiler.vars_in_scope++, (int) vm->frame_count};
     write_variable(&vm->compiler.scope[vm->compiler.scope_depth], variable);
 }
 

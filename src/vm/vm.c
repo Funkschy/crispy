@@ -132,6 +132,7 @@ static void init_compiler(Compiler *compiler, const char *source) {
     init_variable_array(&variables);
     compiler->scope[0] = variables;
     compiler->scope_depth = 0;
+    compiler->vars_in_scope = 0;
 
     HashTable ht;
     ht_init(&ht, HT_KEY_CSTRING, 16, 0.75);
@@ -246,6 +247,11 @@ static InterpretResult run(Vm *vm) {
             case OP_CALL: {
                 uint8_t num_args = READ_BYTE();
                 Value *pos = (sp - num_args - 1);
+
+                if (pos->type != OBJECT) {
+                    fprintf(stderr, "Trying to call primitive Value\n");
+                    goto ERROR;
+                }
 
                 Object *object = pos->o_value;
 

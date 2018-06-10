@@ -18,6 +18,8 @@ var i = 0;
 
         i = 10;
     }
+
+    println(i);
 }
 
 var k = 4;

@@ -63,7 +63,7 @@ void print_value(Value value, bool new_line) {
     const char *nl = (new_line) ? "\n" : "";
     switch (value.type) {
         case NUMBER:
-            printf("%f%s", value.d_value, nl);
+            printf("%.15g%s", value.d_value, nl);
             break;
         case BOOLEAN:
             printf("%s%s", BOOL_STRING(value), nl);
