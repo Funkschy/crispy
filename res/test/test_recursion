@@ -4,4 +4,4 @@ var fib = fun n -> if n < 2 {
     fib(n - 2) + fib (n - 1);
 };
 
-println(fib(3));
+println(fib(37));

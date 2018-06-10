@@ -36,3 +36,8 @@ var fff = fun -> fun -> fun -> "Hello World";
 
 var res = fff()()();
 println(res);
+
+var i = 0;
+var rec = fun -> if i < 10 { i = i + 1; println(i); rec(); };
+
+rec();

@@ -10,3 +10,8 @@ println(test3);
 var res = test2 + test3;
 println(res);
 println(res == 7);
+
+var a = res = test = 5;
+println(res);
+println(test);
+println(a);

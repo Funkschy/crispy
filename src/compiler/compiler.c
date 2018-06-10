@@ -23,6 +23,10 @@ static inline void advance(Vm *vm) {
     vm->compiler.token = scan_token(&vm->compiler.scanner);
 }
 
+static uint32_t vars_in_current_scope(Vm *vm) {
+    return vm->compiler.scope[vm->compiler.scope_depth].count;
+}
+
 static inline void open_scope(Vm *vm) {
     ++vm->compiler.scope_depth;
     init_variable_array(&vm->compiler.scope[vm->compiler.scope_depth]);
@@ -31,7 +35,6 @@ static inline void open_scope(Vm *vm) {
 static void close_scope(Vm *vm) {
     Compiler *compiler = &vm->compiler;
 
-    compiler->vars_in_scope -= compiler->scope[compiler->scope_depth].count;
     free_variable_array(&compiler->scope[compiler->scope_depth]);
     --compiler->scope_depth;
 }
@@ -76,6 +79,10 @@ static inline void emit_short_arg(Vm *vm, OP_CODE op_code, uint8_t first, uint8_
     write_code_buffer(&CURR_FRAME(vm)->code_buffer, op_code);
     write_code_buffer(&CURR_FRAME(vm)->code_buffer, first);
     write_code_buffer(&CURR_FRAME(vm)->code_buffer, second);
+}
+
+static inline void remove_arg(Vm *vm) {
+    CURR_FRAME(vm)->code_buffer.count--;
 }
 
 static inline uint32_t emit_jump(Vm *vm, OP_CODE op_code) {
@@ -138,7 +145,7 @@ static Variable resolve_var(Vm *vm, const char *name, size_t length) {
 }
 
 static void declare_var(Vm *vm, Token var_decl) {
-    Variable variable = {var_decl.start, var_decl.length, vm->compiler.vars_in_scope++, (int) vm->frame_count};
+    Variable variable = {var_decl.start, var_decl.length, vars_in_current_scope(vm), (int) vm->frame_count};
     write_variable(&vm->compiler.scope[vm->compiler.scope_depth], variable);
 }
 
@@ -413,9 +420,7 @@ static void block_expr(Vm *vm) {
     while (!check(vm, TOKEN_CLOSE_BRACE) && !check(vm, TOKEN_EOF)) {
         stmt(vm);
     }
-    // since expr_stmt pops the value from the stack, duplicate it,
-    // to have the return value still on the stack
-    emit_no_arg(vm, OP_DUP);
+    remove_arg(vm);
     close_scope(vm);
     advance(vm);
 }
@@ -441,23 +446,6 @@ static void if_expr(Vm *vm) {
     patch_jump(vm, exit_jump);
 }
 
-static void expr(Vm *vm) {
-    switch (vm->compiler.token.type) {
-        case TOKEN_FUN:
-            lambda(vm);
-            break;
-        case TOKEN_OPEN_BRACE:
-            block_expr(vm);
-            break;
-        case TOKEN_IF:
-            if_expr(vm);
-            break;
-        default:
-            equality(vm);
-            break;
-    }
-}
-
 static void var_decl(Vm *vm) {
     advance(vm);
     Token identifier = consume(vm, TOKEN_IDENTIFIER, "Expected variable name after 'var'");
@@ -471,7 +459,7 @@ static void var_decl(Vm *vm) {
 }
 
 static void assignment(Vm *vm) {
-    expr(vm);
+    equality(vm);
     Token identifier = vm->compiler.previous;
 
     if (check(vm, TOKEN_EQUALS)) {
@@ -479,6 +467,8 @@ static void assignment(Vm *vm) {
         consume(vm, TOKEN_EQUALS, "Expected '=' after variable name");
         expr(vm);
         Variable var = resolve_var(vm, identifier.start, identifier.length);
+        emit_no_arg(vm, OP_DUP);
+
         if (var.frame_offset != vm->frame_count) {
             // TODO bigger numbers
             emit_short_arg(vm, OP_STORE_OFFSET, (uint8_t) var.frame_offset, (uint8_t) var.index);
@@ -486,8 +476,26 @@ static void assignment(Vm *vm) {
             emit_byte_arg(vm, OP_STORE, (uint8_t) var.index);
         }
     }
+}
 
-    consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
+static void expr(Vm *vm) {
+    switch (vm->compiler.token.type) {
+        case TOKEN_FUN:
+            lambda(vm);
+            break;
+        case TOKEN_OPEN_BRACE:
+            block_expr(vm);
+            break;
+        case TOKEN_IF:
+            if_expr(vm);
+            break;
+        case TOKEN_IDENTIFIER:
+            assignment(vm);
+            break;
+        default:
+            equality(vm);
+            break;
+    }
 }
 
 static void expr_stmt(Vm *vm) {
@@ -544,9 +552,6 @@ static void simple_stmt(Vm *vm) {
     switch (vm->compiler.token.type) {
         case TOKEN_VAR:
             var_decl(vm);
-            break;
-        case TOKEN_IDENTIFIER:
-            assignment(vm);
             break;
         default:
             expr_stmt(vm);

@@ -132,7 +132,6 @@ static void init_compiler(Compiler *compiler, const char *source) {
     init_variable_array(&variables);
     compiler->scope[0] = variables;
     compiler->scope_depth = 0;
-    compiler->vars_in_scope = 0;
 
     HashTable ht;
     ht_init(&ht, HT_KEY_CSTRING, 16, 0.75);
@@ -214,6 +213,7 @@ static InterpretResult run(Vm *vm) {
         printf("-----\n");
         long stack_size = sp - vm->stack;
         for (int i = 0; i < stack_size; ++i) {
+            printf("[%d] ", i);
             print_value(vm->stack[i], false);
             print_type(vm->stack[i]);
         }
@@ -281,7 +281,9 @@ static InterpretResult run(Vm *vm) {
                     args[i] = POP();
                 }
 
-                PUSH_FRAME(vm, lambda->call_frame);
+                CallFrame *call_frame = new_temp_call_frame(lambda->call_frame);
+
+                PUSH_FRAME(vm, call_frame);
                 Value *before_sp = sp;
                 for (int i = 0; i < num_args; ++i) {
                     PUSH(args[i]);
@@ -289,6 +291,9 @@ static InterpretResult run(Vm *vm) {
                 vm->sp = sp;
                 run(vm);
                 POP_FRAME(vm);
+
+                free_temp_call_frame(call_frame);
+
                 sp = before_sp;
                 break;
             }
@@ -371,9 +376,11 @@ static InterpretResult run(Vm *vm) {
                 PUSH(val);
                 break;
             }
-            case OP_LOAD:
-                PUSH(READ_VAR());
+            case OP_LOAD: {
+                Value val = READ_VAR();
+                PUSH(val);
                 break;
+            }
             case OP_LOAD_OFFSET: {
                 uint8_t scope = READ_BYTE();
                 uint8_t index = READ_BYTE();
@@ -397,15 +404,18 @@ static InterpretResult run(Vm *vm) {
             }
             case OP_STORE: {
                 uint8_t index = READ_BYTE();
-                write_at(variables, index, POP());
+                Value val = POP();
+                write_at(variables, index, val);
                 break;
             }
             case OP_POP:
                 POP();
                 break;
-            case OP_DUP:
-                PUSH(PEEK());
+            case OP_DUP: {
+                Value val = PEEK();
+                PUSH(val);
                 break;
+            }
             case OP_JMP:
                 ip = code + READ_SHORT();
                 break;

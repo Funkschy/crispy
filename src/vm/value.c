@@ -152,15 +152,40 @@ static void free_code_buffer(CodeBuffer *code_buffer) {
     init_code_buffer(code_buffer);
 }
 
+CallFrame *new_temp_call_frame(CallFrame *other) {
+    CallFrame *call_frame = malloc(sizeof(CallFrame));
+    call_frame->code_buffer = other->code_buffer;
+    call_frame->ip = other->ip;
+
+    ValueArray variables;
+    init_value_array(&variables);
+    call_frame->variables = variables;
+
+    call_frame->constants = other->constants;
+
+    return call_frame;
+}
+
+void free_temp_call_frame(CallFrame *call_frame) {
+    free_value_array(&call_frame->variables);
+    free(call_frame);
+}
+
 CallFrame *new_call_frame() {
     CallFrame *call_frame = malloc(sizeof(CallFrame));
     call_frame->ip = NULL;
+
     CodeBuffer code_buffer;
     init_code_buffer(&code_buffer);
     call_frame->code_buffer = code_buffer;
 
-    init_value_array(&call_frame->variables);
-    init_value_array(&call_frame->constants);
+    ValueArray variables;
+    init_value_array(&variables);
+    call_frame->variables = variables;
+
+    ValueArray constants;
+    init_value_array(&constants);
+    call_frame->constants = constants;
 
     return call_frame;
 }
