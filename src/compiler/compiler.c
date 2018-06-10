@@ -96,12 +96,6 @@ static inline void patch_jump(Vm *vm, uint32_t offset) {
     patch_jump_to(vm, offset, CURR_FRAME(vm)->code_buffer.count);
 }
 
-static void declare_var(Vm *vm, Token var_decl) {
-    Variable variable = {var_decl.start, var_decl.length, vm->compiler.vars_in_scope++, (int) vm->frame_count};
-    write_variable(&vm->compiler.scope[vm->compiler.scope_depth], variable);
-    emit_byte_arg(vm, OP_STORE, (uint8_t) variable.index);
-}
-
 void compile(Vm *vm) {
     declare_natives(vm);
 
@@ -141,6 +135,16 @@ static Variable resolve_var(Vm *vm, const char *name, size_t length) {
     error.index = -1;
     error.frame_offset = -1;
     return error;
+}
+
+static void declare_var(Vm *vm, Token var_decl) {
+    Variable variable = {var_decl.start, var_decl.length, vm->compiler.vars_in_scope++, (int) vm->frame_count};
+    write_variable(&vm->compiler.scope[vm->compiler.scope_depth], variable);
+}
+
+static void define_var(Vm *vm, Token identifier) {
+    Variable variable = resolve_var(vm, identifier.start, identifier.length);
+    emit_byte_arg(vm, OP_STORE, (uint8_t) variable.index);
 }
 
 static void primary(Vm *vm) {
@@ -199,16 +203,16 @@ static void primary(Vm *vm) {
 
             if (value.type != NIL) {
                 // TODO bigger numbers
+                // TODO don't load as constant every time (maybe constants as map?)
                 uint32_t index = add_constant(vm, value);
-                emit_byte_arg(vm, OP_LDC, (uint8_t)index);
+                emit_byte_arg(vm, OP_LDC, (uint8_t) index);
                 break;
             }
 
             Variable var = resolve_var(vm, compiler->token.start, compiler->token.length);
             if (var.frame_offset != vm->frame_count) {
                 // TODO bigger numbers
-                uint8_t offset = (uint8_t) (vm->frame_count - var.frame_offset);
-                emit_short_arg(vm, OP_LOAD_SCOPE, offset, (uint8_t) var.index);
+                emit_short_arg(vm, OP_LOAD_OFFSET, (uint8_t) var.frame_offset, (uint8_t) var.index);
                 break;
             }
             emit_byte_arg(vm, OP_LOAD, (uint8_t) var.index);
@@ -310,15 +314,43 @@ static void arith_expr(Vm *vm) {
     }
 }
 
-static void equality(Vm *vm) {
+static void comparison(Vm *vm) {
     arith_expr(vm);
+
+    while (match(vm, TOKEN_SMALLER) || match(vm, TOKEN_SMALLER_EQUALS)
+           || match(vm, TOKEN_GREATER) || match(vm, TOKEN_GREATER_EQUALS)) {
+        switch (vm->compiler.previous.type) {
+            case TOKEN_SMALLER:
+                arith_expr(vm);
+                emit_no_arg(vm, OP_LT);
+                break;
+            case TOKEN_SMALLER_EQUALS:
+                arith_expr(vm);
+                emit_no_arg(vm, OP_LE);
+                break;
+            case TOKEN_GREATER:
+                arith_expr(vm);
+                emit_no_arg(vm, OP_GT);
+                break;
+            case TOKEN_GREATER_EQUALS:
+                arith_expr(vm);
+                emit_no_arg(vm, OP_GE);
+                break;
+            default:
+                break;
+        }
+    }
+}
+
+static void equality(Vm *vm) {
+    comparison(vm);
 
     while (match(vm, TOKEN_EQUALS_EQUALS) || match(vm, TOKEN_BANG_EQUALS)) {
         if (vm->compiler.previous.type == TOKEN_EQUALS_EQUALS) {
-            arith_expr(vm);
+            comparison(vm);
             emit_no_arg(vm, OP_EQUAL);
         } else {
-            arith_expr(vm);
+            comparison(vm);
             emit_no_arg(vm, OP_NOT_EQUAL);
         }
     }
@@ -329,8 +361,7 @@ static void lambda(Vm *vm) {
 
     open_scope(vm);
 
-    CallFrame lambda_frame;
-    init_call_frame(&lambda_frame);
+    CallFrame *lambda_frame = new_call_frame();
     PUSH_FRAME(vm, lambda_frame);
 
     size_t num_params = 0;
@@ -339,6 +370,7 @@ static void lambda(Vm *vm) {
         do {
             Token param = consume(vm, TOKEN_IDENTIFIER, "Expected parameter name");
             declare_var(vm, param);
+            define_var(vm, param);
             ++num_params;
         } while (match(vm, TOKEN_COMMA));
     }
@@ -355,11 +387,11 @@ static void lambda(Vm *vm) {
     disassemble_vm(vm, "lamda");
 #endif
 
-    lambda_frame = *POP_FRAME(vm);
+    POP_FRAME(vm);
 
     ObjLambda *lambda = new_lambda(vm, num_params);
     lambda->call_frame = lambda_frame;
-    lambda->call_frame.ip = lambda->call_frame.code_buffer.code;
+    lambda->call_frame->ip = lambda->call_frame->code_buffer.code;
 
     uint16_t pos = (uint16_t) add_constant(vm, create_object((Object *) lambda));
 
@@ -381,6 +413,9 @@ static void block_expr(Vm *vm) {
     while (!check(vm, TOKEN_CLOSE_BRACE) && !check(vm, TOKEN_EOF)) {
         stmt(vm);
     }
+    // since expr_stmt pops the value from the stack, duplicate it,
+    // to have the return value still on the stack
+    emit_no_arg(vm, OP_DUP);
     close_scope(vm);
     advance(vm);
 }
@@ -426,12 +461,13 @@ static void expr(Vm *vm) {
 static void var_decl(Vm *vm) {
     advance(vm);
     Token identifier = consume(vm, TOKEN_IDENTIFIER, "Expected variable name after 'var'");
-    consume(vm, TOKEN_EQUALS, "Expected '=' after variable name");
+    declare_var(vm, identifier);
 
+    consume(vm, TOKEN_EQUALS, "Expected '=' after variable name");
     expr(vm);
     consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
 
-    declare_var(vm, identifier);
+    define_var(vm, identifier);
 }
 
 static void assignment(Vm *vm) {
@@ -443,7 +479,12 @@ static void assignment(Vm *vm) {
         consume(vm, TOKEN_EQUALS, "Expected '=' after variable name");
         expr(vm);
         Variable var = resolve_var(vm, identifier.start, identifier.length);
-        emit_byte_arg(vm, OP_STORE, (uint8_t) var.index);
+        if (var.frame_offset != vm->frame_count) {
+            // TODO bigger numbers
+            emit_short_arg(vm, OP_STORE_OFFSET, (uint8_t) var.frame_offset, (uint8_t) var.index);
+        } else {
+            emit_byte_arg(vm, OP_STORE, (uint8_t) var.index);
+        }
     }
 
     consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
@@ -451,6 +492,7 @@ static void assignment(Vm *vm) {
 
 static void expr_stmt(Vm *vm) {
     expr(vm);
+    emit_no_arg(vm, OP_POP);
     consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
 }
 

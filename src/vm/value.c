@@ -25,7 +25,7 @@ void write_value(ValueArray *value_array, Value value) {
     value_array->values[value_array->count++] = value;
 }
 
-void write_at(ValueArray *value_array, uint8_t index, Value value) {
+void write_at(ValueArray *value_array, uint32_t index, Value value) {
     while (index >= value_array->cap) {
         value_array->cap = GROW_CAP(value_array->cap);
         value_array->values = GROW_ARR(value_array->values, Value, value_array->cap);
@@ -148,15 +148,21 @@ static void init_code_buffer(CodeBuffer *code_buffer) {
 }
 
 static void free_code_buffer(CodeBuffer *code_buffer) {
-    free(code_buffer->code);
+    FREE_ARR(code_buffer->code);
+    init_code_buffer(code_buffer);
 }
 
-void init_call_frame(CallFrame *call_frame) {
+CallFrame *new_call_frame() {
+    CallFrame *call_frame = malloc(sizeof(CallFrame));
     call_frame->ip = NULL;
-    init_code_buffer(&call_frame->code_buffer);
+    CodeBuffer code_buffer;
+    init_code_buffer(&code_buffer);
+    call_frame->code_buffer = code_buffer;
 
     init_value_array(&call_frame->variables);
     init_value_array(&call_frame->constants);
+
+    return call_frame;
 }
 
 void free_call_frame(CallFrame *call_frame) {
@@ -164,6 +170,8 @@ void free_call_frame(CallFrame *call_frame) {
 
     free_value_array(&call_frame->variables);
     free_value_array(&call_frame->constants);
+
+    free(call_frame);
 }
 
 #define ALLOC_OBJ(vm, type, object_type) ((type *)allocate_object((vm), sizeof(type), (object_type)))
@@ -222,9 +230,7 @@ ObjLambda *new_lambda(Vm *vm, size_t num_params) {
     ObjLambda *lambda = ALLOC_OBJ(vm, ObjLambda, OBJ_LAMBDA);
     lambda->num_params = num_params;
 
-    CallFrame call_frame;
-    init_call_frame(&call_frame);
-    lambda->call_frame = call_frame;
+    lambda->call_frame = NULL;
 
     return lambda;
 }

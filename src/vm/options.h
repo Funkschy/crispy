@@ -8,7 +8,6 @@
 #define INITIAL_GC_THRESHOLD 64
 
 #define STACK_MAX 256
-#define FRAMES_MAX 64
 #define SCOPES_MAX 256
 
 #define NATIVE_COUNT 1

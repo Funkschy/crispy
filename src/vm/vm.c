@@ -17,11 +17,35 @@ void free_code_buffer(CodeBuffer *code_buffer) {
     code_buffer->code = NULL;
 }
 
-void push_call_frame(Vm *vm) {
-    CallFrame call_frame;
-    init_call_frame(&call_frame);
+void frames_init(FrameArray *frames) {
+    frames->count = 0;
+    frames->cap = 0;
+    frames->frame_pointers = NULL;
+}
 
-    vm->frames[vm->frame_count++] = call_frame;
+void frames_free(FrameArray *frames) {
+    // initial call frame
+    free_call_frame(frames->frame_pointers[0]);
+    FREE_ARR(frames->frame_pointers);
+    frames_init(frames);
+}
+
+void frames_write_at(FrameArray *frame_arr, uint32_t index, CallFrame *frame) {
+    if (index > frame_arr->cap) {
+        fprintf(stderr, "Invalid write in frame array");
+        exit(100);
+    }
+
+    if (index == frame_arr->cap) {
+        frame_arr->cap = GROW_CAP(frame_arr->cap);
+        frame_arr->frame_pointers = GROW_ARR(frame_arr->frame_pointers, Value, frame_arr->cap);
+    }
+
+    if (index >= frame_arr->count) {
+        ++frame_arr->count;
+    }
+
+    frame_arr->frame_pointers[index] = frame;
 }
 
 void init_vm(Vm *vm) {
@@ -30,8 +54,12 @@ void init_vm(Vm *vm) {
     vm->num_objects = 0;
     vm->max_objects = INITIAL_GC_THRESHOLD;
     vm->frame_count = 0;
+    FrameArray frames;
+    frames_init(&frames);
+    vm->frames = frames;
 
-    push_call_frame(vm);
+    CallFrame *call_frame = new_call_frame();
+    frames_write_at(&vm->frames, vm->frame_count++, call_frame);
 }
 
 void free_object(Object *object) {
@@ -44,7 +72,7 @@ void free_object(Object *object) {
         }
         case OBJ_LAMBDA: {
             ObjLambda *lambda = (ObjLambda *) object;
-            free_call_frame(&lambda->call_frame);
+            free_call_frame(lambda->call_frame);
             free(lambda);
             break;
         }
@@ -63,6 +91,8 @@ void free_object(Object *object) {
 }
 
 void free_vm(Vm *vm) {
+    frames_free(&vm->frames);
+
     Object **obj = &vm->first_object;
 
     while (*obj) {
@@ -75,14 +105,6 @@ void free_vm(Vm *vm) {
     vm->first_object = NULL;
     vm->num_objects = 0;
     vm->max_objects = 0;
-
-    free_code_buffer(&CURR_FRAME(vm)->code_buffer);
-
-    while (vm->frame_count > 0) {
-        CallFrame *frame = POP_FRAME(vm);
-        free_value_array(&frame->variables);
-        free_value_array(&frame->constants);
-    }
 }
 
 void write_code_buffer(CodeBuffer *code_buffer, uint8_t instruction) {
@@ -203,7 +225,6 @@ static InterpretResult run(Vm *vm) {
 
         switch (instruction = (OP_CODE) READ_BYTE()) {
             case OP_RETURN:
-                vm->sp = sp;
                 return INTERPRET_OK;
             case OP_LDC:
                 PUSH(READ_CONST());
@@ -237,22 +258,22 @@ static InterpretResult run(Vm *vm) {
                     ObjNativeFunc *n_fn = (ObjNativeFunc *) object;
                     Value arg = POP();
                     n_fn->func_ptr(arg);
+                    POP();
+                    PUSH(create_nil());
                     break;
                 }
-
-                size_t expected = ((ObjLambda *) pos->o_value)->num_params;
-                if (expected != num_args) {
-                    fprintf(stderr, "Invalid number of arguments. Expected %ld, but got %d\n", expected, num_args);
-                    goto ERROR;
-                }
-
 
                 if (object->type != OBJ_LAMBDA) {
                     fprintf(stderr, "Trying to call non callable Object\n");
                     goto ERROR;
                 }
-
                 ObjLambda *lambda = ((ObjLambda *) object);
+
+                size_t expected = lambda->num_params;
+                if (expected != num_args) {
+                    fprintf(stderr, "Invalid number of arguments. Expected %ld, but got %d\n", expected, num_args);
+                    goto ERROR;
+                }
 
                 // Pop arguments from stack
                 Value args[num_args];
@@ -267,10 +288,8 @@ static InterpretResult run(Vm *vm) {
                 }
                 vm->sp = sp;
                 run(vm);
-                lambda->call_frame = *POP_FRAME(vm);
-                Value return_value = *(vm->sp - 1);
+                POP_FRAME(vm);
                 sp = before_sp;
-                sp[-1] = return_value;
                 break;
             }
             case OP_ADD: {
@@ -335,11 +354,17 @@ static InterpretResult run(Vm *vm) {
             case OP_NOT_EQUAL:
                 BOOL_OP(!=);
                 break;
-            case OP_GREATER:
+            case OP_GE:
+                BOOL_OP(>=);
+                break;
+            case OP_LE:
                 BOOL_OP(<=);
                 break;
-            case OP_LESS:
-                BOOL_OP(>=);
+            case OP_GT:
+                BOOL_OP(>);
+                break;
+            case OP_LT:
+                BOOL_OP(<);
                 break;
             case OP_NEGATE: {
                 Value val = create_number(POP().d_value * -1);
@@ -349,7 +374,7 @@ static InterpretResult run(Vm *vm) {
             case OP_LOAD:
                 PUSH(READ_VAR());
                 break;
-            case OP_LOAD_SCOPE: {
+            case OP_LOAD_OFFSET: {
                 uint8_t scope = READ_BYTE();
                 uint8_t index = READ_BYTE();
 
@@ -358,6 +383,16 @@ static InterpretResult run(Vm *vm) {
 
                 PUSH(val);
 
+                break;
+            }
+            case OP_STORE_OFFSET: {
+                uint8_t scope = READ_BYTE();
+                uint8_t index = READ_BYTE();
+
+                CallFrame *frame = FRAME_AT(vm, scope);
+                Value val = POP();
+
+                frame->variables.values[index] = val;
                 break;
             }
             case OP_STORE: {

@@ -69,6 +69,12 @@ static void run_file(const char *file_name) {
     free_vm(&vm);
     free(source);
 
-    if (result == INTERPRET_RUNTIME_ERROR) { exit(42); }
-    if (result == INTERPRET_COMPILE_ERROR) { exit(43); }
+    if (result == INTERPRET_RUNTIME_ERROR) {
+        printf("Error while interpreting %s\n", file_name);
+        exit(42);
+    }
+    if (result == INTERPRET_COMPILE_ERROR) {
+        printf("Error while compiling %s\n", file_name);
+        exit(43);
+    }
 }
