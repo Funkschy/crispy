@@ -24,7 +24,7 @@ static inline char peek(Scanner *scanner) {
 }
 
 static inline char peek_next(Scanner *scanner) {
-    if (at_end(scanner)) return '\0';
+    if (at_end(scanner)) { return '\0'; }
     return scanner->current[1];
 }
 
@@ -47,11 +47,11 @@ static Token make_token(Scanner *scanner, TokenType type) {
 }
 
 static Token number(Scanner *scanner) {
-    while (is_digit(peek(scanner))) advance(scanner);
+    while (is_digit(peek(scanner))) { advance(scanner); }
 
     if (peek(scanner) == '.' && is_digit(peek_next(scanner))) {
         advance(scanner);
-        while (is_digit(peek(scanner))) advance(scanner);
+        while (is_digit(peek(scanner))) { advance(scanner); }
     }
 
     return make_token(scanner, TOKEN_NUMBER);
@@ -72,7 +72,7 @@ static void skip_whitespace(Scanner *scanner) {
                 advance(scanner);
                 break;
             case '/':
-                if(peek_next(scanner) == '/') {
+                if (peek_next(scanner) == '/') {
                     while (!at_end(scanner) && peek(scanner) != '\n') {
                         advance(scanner);
                     }
@@ -132,16 +132,18 @@ static TokenType identifier_type(Scanner *scanner) {
 }
 
 static Token identifier(Scanner *scanner) {
-    while (is_alpha(peek(scanner)) || is_digit(peek(scanner))) advance(scanner);
+    while (is_alpha(peek(scanner)) || is_digit(peek(scanner))) { advance(scanner); }
     return make_token(scanner, identifier_type(scanner));
 }
 
 static Token string(Scanner *scanner) {
-    while (!at_end(scanner) && peek(scanner) != '"')
+    while (!at_end(scanner) && peek(scanner) != '"') {
         advance(scanner);
+    }
 
-    if (at_end(scanner))
+    if (at_end(scanner)) {
         return error_token(scanner, "Unterminated String");
+    }
 
     advance(scanner);
     return make_token(scanner, TOKEN_STRING);
@@ -152,12 +154,12 @@ Token scan_token(Scanner *scanner) {
 
     scanner->start = scanner->current;
 
-    if (at_end(scanner)) return make_token(scanner, TOKEN_EOF);
+    if (at_end(scanner)) { return make_token(scanner, TOKEN_EOF); }
 
     char c = advance(scanner);
 
-    if (is_digit(c)) return number(scanner);
-    if (is_alpha(c)) return identifier(scanner);
+    if (is_digit(c)) { return number(scanner); }
+    if (is_alpha(c)) { return identifier(scanner); }
 
     switch (c) {
         case '(':
@@ -170,9 +172,8 @@ Token scan_token(Scanner *scanner) {
             if (peek(scanner) == '>') {
                 advance(scanner);
                 return make_token(scanner, TOKEN_ARROW);
-            } else {
-                return make_token(scanner, TOKEN_MINUS);
             }
+            return make_token(scanner, TOKEN_MINUS);
         case '*':
             return make_token(scanner, TOKEN_STAR);
         case '%':
@@ -189,9 +190,8 @@ Token scan_token(Scanner *scanner) {
             if (peek(scanner) == '=') {
                 advance(scanner);
                 return make_token(scanner, TOKEN_EQUALS_EQUALS);
-            } else {
-                return make_token(scanner, TOKEN_EQUALS);
             }
+            return make_token(scanner, TOKEN_EQUALS);
         case '!':
             if (peek(scanner) == '=') {
                 advance(scanner);
@@ -203,6 +203,18 @@ Token scan_token(Scanner *scanner) {
             return make_token(scanner, TOKEN_SEMICOLON);
         case '"':
             return string(scanner);
+        case '<':
+            if (peek(scanner) == '=') {
+                advance(scanner);
+                return make_token(scanner, TOKEN_SMALLER_EQUALS);
+            }
+            return make_token(scanner, TOKEN_SMALLER);
+        case '>':
+            if (peek(scanner) == '=') {
+                advance(scanner);
+                return make_token(scanner, TOKEN_GREATER_EQUALS);
+            }
+            return make_token(scanner, TOKEN_GREATER);
         default:
             return error_token(scanner, "Unexpected Character");
     }

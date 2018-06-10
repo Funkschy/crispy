@@ -70,10 +70,14 @@ int disassemble_instruction(Vm *vm, int offset) {
             return simple_instruction("OP_EQUAL", offset);
         case OP_NOT_EQUAL:
             return simple_instruction("OP_NOT_EQUAL", offset);
-        case OP_GREATER:
-            return simple_instruction("OP_GREATER", offset);
-        case OP_LESS:
-            return simple_instruction("OP_LESS", offset);
+        case OP_GT:
+            return simple_instruction("OP_GT", offset);
+        case OP_LT:
+            return simple_instruction("OP_LT", offset);
+        case OP_GE:
+            return simple_instruction("OP_GE", offset);
+        case OP_LE:
+            return simple_instruction("OP_LE", offset);
         case OP_DIV:
             return simple_instruction("OP_DIV", offset);
         case OP_LDC:
@@ -86,8 +90,10 @@ int disassemble_instruction(Vm *vm, int offset) {
             return var_instruction("OP_STORE", vm, offset);
         case OP_LOAD:
             return var_instruction("OP_LOAD", vm, offset);
-        case OP_LOAD_SCOPE:
-            return double_instruction("OP_LOAD_SCOPE", vm, offset);
+        case OP_LOAD_OFFSET:
+            return double_instruction("OP_LOAD_OFFSET", vm, offset);
+        case OP_STORE_OFFSET:
+            return double_instruction("OP_STORE_OFFSET", vm, offset);
         case OP_DUP:
             return simple_instruction("OP_DUP", offset);
         case OP_POP:

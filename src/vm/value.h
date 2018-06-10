@@ -36,7 +36,6 @@ typedef struct {
     uint32_t cap;
     uint32_t count;
     uint8_t *code;
-
 } CodeBuffer;
 
 typedef struct s_call_frame {
@@ -77,7 +76,7 @@ typedef struct {
     Object object;
 
     size_t num_params;
-    CallFrame call_frame;
+    CallFrame *call_frame;
 } ObjLambda;
 
 typedef struct {
@@ -94,8 +93,11 @@ Value create_number(double value);
 
 Value create_object(Object *object);
 
-// TODO rename to type_init etc
-void init_call_frame(CallFrame *call_frame);
+CallFrame *new_call_frame();
+
+CallFrame *new_temp_call_frame(CallFrame *other);
+
+void free_temp_call_frame(CallFrame *call_frame);
 
 void free_call_frame(CallFrame *call_frame);
 
@@ -105,7 +107,7 @@ void free_value_array(ValueArray *value_array);
 
 void write_value(ValueArray *value_array, Value value);
 
-void write_at(ValueArray *value_array, uint8_t index, Value value);
+void write_at(ValueArray *value_array, uint32_t index, Value value);
 
 void print_value(Value value, bool new_line);
 

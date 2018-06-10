@@ -1,10 +1,10 @@
 #ifndef VM_H
 #define VM_H
 
-#define CURR_FRAME(vm_ptr)          (&(vm_ptr)->frames[(vm_ptr)->frame_count - 1])
-#define FRAME_AT(vm_ptr, offset)    (&(vm_ptr)->frames[(vm_ptr)->frame_count - 1 - (offset)])
-#define PUSH_FRAME(vm_ptr, frame)   ((vm_ptr)->frames[(vm_ptr)->frame_count++] = (frame))
-#define POP_FRAME(vm_ptr)           (&(vm_ptr)->frames[--vm->frame_count])
+#define CURR_FRAME(vm_ptr)          ((vm_ptr)->frames.frame_pointers[(vm_ptr)->frame_count - 1])
+#define FRAME_AT(vm_ptr, offset)    ((vm_ptr)->frames.frame_pointers[(offset) - 1])
+#define PUSH_FRAME(vm_ptr, frame)   (frames_write_at(&(vm_ptr)->frames, (vm_ptr)->frame_count++, frame))
+#define POP_FRAME(vm_ptr)           ((vm_ptr)->frames.frame_pointers[--(vm_ptr)->frame_count])
 
 #include "../cli/common.h"
 #include "value.h"
@@ -18,12 +18,17 @@ typedef enum {
 } InterpretResult;
 
 typedef struct {
+    uint32_t count;
+    uint32_t cap;
+    CallFrame **frame_pointers;
+} FrameArray;
+
+typedef struct {
     Value stack[STACK_MAX];
     Value *sp;
 
-    // TODO move to heap
-    CallFrame frames[FRAMES_MAX];
-    size_t frame_count;
+    FrameArray frames;
+    uint32_t frame_count;
 
     Compiler compiler;
 
@@ -38,11 +43,15 @@ void init_vm(Vm *vm);
 
 void free_vm(Vm *vm);
 
+void frames_init(FrameArray *frames);
+
+void frames_free(FrameArray *frames);
+
+void frames_write_at(FrameArray *frame_arr, uint32_t index, CallFrame *frame);
+
 void compile(Vm *vm);
 
 void free_object(Object *object);
-
-void push_call_frame(Vm *vm);
 
 uint32_t add_constant(Vm *vm, Value value);
 

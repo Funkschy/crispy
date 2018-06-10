@@ -26,7 +26,7 @@ def execute(executable, test_dir, result_dir):
             expected = result_file.readline().rstrip()
 
             if str(line) != str(expected):
-                print('Expected {}, but got {}'.format(expected, line))
+                print('[{}]: Expected {}, but got {}'.format(file_name, expected, line))
                 num_errors += 1
 
             line = proc.stdout.readline().decode('utf-8').rstrip()
