@@ -13,6 +13,7 @@ typedef struct {
 
     VariableArray scope[SCOPES_MAX];
     uint32_t scope_depth;
+    // TODO find alternative; causes wasted memory
     uint32_t vars_in_scope;
 
     HashTable natives;
