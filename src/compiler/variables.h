@@ -8,6 +8,7 @@ typedef struct {
     size_t length;
     int index;
     int frame_offset;
+    bool assignable;
 } Variable;
 
 typedef struct {
