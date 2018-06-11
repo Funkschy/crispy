@@ -257,7 +257,7 @@ static InterpretResult run(Vm *vm) {
 
                 if (object->type == OBJ_NATIVE_FUNC) {
                     if (num_args != 1) {
-                        fprintf(stderr, "Native functions may only receive one argument");
+                        fprintf(stderr, "Native functions may only receive one argument\n");
                         goto ERROR;
                     }
 
