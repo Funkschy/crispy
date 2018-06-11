@@ -138,6 +138,8 @@ static TokenType identifier_type(Scanner *scanner) {
             return check_keyword(scanner, 1, 3, "rue", TOKEN_TRUE);
         case 'r':
             return check_keyword(scanner, 1, 5, "eturn", TOKEN_RETURN);
+        case 'n':
+            return check_keyword(scanner, 1, 2, "il", TOKEN_NIL);
         default:
             return TOKEN_IDENTIFIER;
     }

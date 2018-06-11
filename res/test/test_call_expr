@@ -41,3 +41,19 @@ var i = 0;
 var rec = fun -> if i < 10 { i = i + 1; println(i); rec(); };
 
 rec();
+
+val l = fun -> {
+    return;
+    println("Hello");
+};
+
+l();
+
+val l2 = fun -> {
+    return nil;
+    println("Hello");
+};
+
+if l2() != l() {
+    println("Not nil");
+}

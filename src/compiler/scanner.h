@@ -38,6 +38,7 @@ typedef enum {
     TOKEN_PERCENT,
     TOKEN_TRUE,
     TOKEN_FALSE,
+    TOKEN_NIL,
     TOKEN_RETURN,
     TOKEN_SMALLER,
     TOKEN_GREATER,

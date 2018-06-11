@@ -242,6 +242,9 @@ static void primary(Vm *vm) {
         case TOKEN_TRUE:
             emit_no_arg(vm, OP_TRUE);
             break;
+        case TOKEN_NIL:
+            emit_no_arg(vm, OP_NIL);
+            break;
         default:
             break;
     }
@@ -582,6 +585,7 @@ static void stmt(Vm *vm) {
                 expr(vm);
                 consume(vm, TOKEN_SEMICOLON, "Expected ';' after return value");
             } else {
+                advance(vm);
                 emit_no_arg(vm, OP_NIL);
             }
 
