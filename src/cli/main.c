@@ -4,8 +4,7 @@
 #include <stdbool.h>
 
 #include "../include/crispy.h"
-
-static void run_repl();
+#include "cli.h"
 
 static void run_file(const char *file_name);
 
@@ -19,25 +18,6 @@ int main(int argc, char **argv) {
     }
 
     return 0;
-}
-
-static void run_repl() {
-    Vm vm;
-    init_vm(&vm);
-
-    char line[1024];
-    while (true) {
-        printf(">>> ");
-
-        if (!fgets(line, sizeof(line), stdin)) {
-            printf("\n");
-            break;
-        }
-
-        interpret(&vm, line);
-    }
-
-    free_vm(&vm);
 }
 
 static char *read_file(const char *path) {

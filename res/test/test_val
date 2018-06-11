@@ -1,0 +1,5 @@
+var test = 1;
+test = 2;
+
+val test2 = 1;
+test2 = 2;

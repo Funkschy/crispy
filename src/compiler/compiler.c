@@ -141,8 +141,8 @@ static Variable resolve_var(Vm *vm, const char *name, size_t length) {
     return error;
 }
 
-static void declare_var(Vm *vm, Token var_decl) {
-    Variable variable = {var_decl.start, var_decl.length, vm->compiler.vars_in_scope++, (int) vm->frame_count};
+static void declare_var(Vm *vm, Token var_decl, bool assignable) {
+    Variable variable = {var_decl.start, var_decl.length, vm->compiler.vars_in_scope++, (int) vm->frame_count, assignable};
     write_variable(&vm->compiler.scope[vm->compiler.scope_depth], variable);
 }
 
@@ -241,6 +241,9 @@ static void primary(Vm *vm) {
             break;
         case TOKEN_TRUE:
             emit_no_arg(vm, OP_TRUE);
+            break;
+        case TOKEN_NIL:
+            emit_no_arg(vm, OP_NIL);
             break;
         default:
             break;
@@ -373,7 +376,7 @@ static void lambda(Vm *vm) {
     if (!check(vm, TOKEN_ARROW)) {
         do {
             Token param = consume(vm, TOKEN_IDENTIFIER, "Expected parameter name");
-            declare_var(vm, param);
+            declare_var(vm, param, true);
             define_var(vm, param);
             ++num_params;
         } while (match(vm, TOKEN_COMMA));
@@ -443,10 +446,10 @@ static void if_expr(Vm *vm) {
     patch_jump(vm, exit_jump);
 }
 
-static void var_decl(Vm *vm) {
+static void var_decl(Vm *vm, bool assignable) {
     advance(vm);
     Token identifier = consume(vm, TOKEN_IDENTIFIER, "Expected variable name after 'var'");
-    declare_var(vm, identifier);
+    declare_var(vm, identifier, assignable);
 
     consume(vm, TOKEN_EQUALS, "Expected '=' after variable name");
     expr(vm);
@@ -464,6 +467,11 @@ static void assignment(Vm *vm) {
         consume(vm, TOKEN_EQUALS, "Expected '=' after variable name");
         expr(vm);
         Variable var = resolve_var(vm, identifier.start, identifier.length);
+
+        if (!var.assignable) {
+            error(&vm->compiler, "Cannot reassign val");
+        }
+
         emit_no_arg(vm, OP_DUP);
 
         if (var.frame_offset != vm->frame_count) {
@@ -548,7 +556,10 @@ static void if_stmt(Vm *vm) {
 static void simple_stmt(Vm *vm) {
     switch (vm->compiler.token.type) {
         case TOKEN_VAR:
-            var_decl(vm);
+            var_decl(vm, true);
+            break;
+        case TOKEN_VAL:
+            var_decl(vm, false);
             break;
         default:
             expr_stmt(vm);
@@ -574,6 +585,7 @@ static void stmt(Vm *vm) {
                 expr(vm);
                 consume(vm, TOKEN_SEMICOLON, "Expected ';' after return value");
             } else {
+                advance(vm);
                 emit_no_arg(vm, OP_NIL);
             }
 

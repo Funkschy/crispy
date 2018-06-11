@@ -106,7 +106,17 @@ static TokenType check_keyword(Scanner *scanner, int start, size_t rest_length, 
 static TokenType identifier_type(Scanner *scanner) {
     switch (*scanner->start) {
         case 'v':
-            return check_keyword(scanner, 1, 2, "ar", TOKEN_VAR);
+            if (scanner->current - scanner->start > 1) {
+                switch (scanner->start[2]) {
+                    case 'r':
+                        return check_keyword(scanner, 2, 1, "r", TOKEN_VAR);
+                    case 'l':
+                        return check_keyword(scanner, 2, 1, "l", TOKEN_VAL);
+                    default:
+                        break;
+                }
+            }
+            break;
         case 'w':
             return check_keyword(scanner, 1, 4, "hile", TOKEN_WHILE);
         case 'i':
@@ -120,15 +130,21 @@ static TokenType identifier_type(Scanner *scanner) {
                         return check_keyword(scanner, 2, 1, "n", TOKEN_FUN);
                     case 'a':
                         return check_keyword(scanner, 2, 3, "lse", TOKEN_FALSE);
+                    default:
+                        break;
                 }
             }
         case 't':
             return check_keyword(scanner, 1, 3, "rue", TOKEN_TRUE);
         case 'r':
             return check_keyword(scanner, 1, 5, "eturn", TOKEN_RETURN);
+        case 'n':
+            return check_keyword(scanner, 1, 2, "il", TOKEN_NIL);
         default:
             return TOKEN_IDENTIFIER;
     }
+
+    return TOKEN_IDENTIFIER;
 }
 
 static Token identifier(Scanner *scanner) {

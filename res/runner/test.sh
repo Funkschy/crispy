@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PATH="/home/felix/Dokumente/programming/c/stackvm"
+PATH="/home/felix/Dokumente/programming/c/crispy"
 
 echo "Debug:"
 $PATH/res/runner/test_runner.py $PATH/cmake-build-debug/crispy $PATH/res/test/ $PATH/res/expected/

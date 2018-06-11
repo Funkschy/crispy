@@ -7,4 +7,6 @@ void println(Value value);
 
 void print(Value value);
 
+void exit_vm(Value value);
+
 #endif //CRISPY_STDLIB_H
