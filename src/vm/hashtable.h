@@ -4,10 +4,14 @@
 #include "value.h"
 
 typedef enum {
-    HT_KEY_OBJSTRING, HT_KEY_CSTRING, HT_KEY_INT
+    HT_KEY_OBJSTRING, HT_KEY_CSTRING, HT_KEY_INT, HT_KEY_IDENT_STRING
 } HTKeyType;
 
 typedef union {
+    struct {
+        const char *key_ident_string;
+        size_t ident_length;
+    };
     const char *key_c_string;
     ObjString *key_obj_string;
     uint32_t key_int;
@@ -22,19 +26,23 @@ typedef struct table_item_t {
 typedef struct {
     HTKeyType key_type;
 
-    // TODO use
-    float load_factor;
     uint32_t cap;
     uint32_t size;
+
+    void (*free_callback)(HTItem *);
 
     HTItem **buckets;
 } HashTable;
 
 uint32_t hash(HTItemKey key, HTKeyType type);
 
-void ht_init(HashTable *ht, HTKeyType key_type, uint32_t init_cap, float load_factor);
+void ht_init(HashTable *ht, HTKeyType key_type, uint32_t init_cap, void(*free_callback)(HTItem *));
 
 void ht_free(HashTable *ht);
+
+void free_string_literal(HTItem *item);
+
+void free_heap_string(HTItem *item);
 
 Value ht_get(HashTable *ht, HTItemKey key);
 

@@ -20,37 +20,27 @@ static void mark(Object *object) {
 }
 
 static void mark_all(Vm *vm) {
-    CallFrame *curr_frame = CURR_FRAME(vm);
+    for (int i = vm->frame_count - 1; i >= 0; --i) {
+        CallFrame *curr_frame = vm->frames.frame_pointers[i];
 
-    // variables
-    for (int i = 0; i < curr_frame->variables.count; ++i) {
-        Value *value = &curr_frame->variables.values[i];
+        // variables
+        for (int j = 0; j < curr_frame->variables.count; ++j) {
+            Value *value = &curr_frame->variables.values[j];
 
-        if (value->type == OBJECT) {
-            mark(value->o_value);
+            if (value->type == OBJECT) {
+                mark(value->o_value);
+            }
+        }
+
+        // constants
+        for (int j = 0; j < curr_frame->constants.count; ++j) {
+            Value *value = &curr_frame->constants.values[j];
+
+            if (value->type == OBJECT) {
+                mark(value->o_value);
+            }
         }
     }
-
-    // constants
-    for (int i = 0; i < curr_frame->constants.count; ++i) {
-        Value *value = &curr_frame->constants.values[i];
-
-        if (value->type == OBJECT) {
-            mark(value->o_value);
-        }
-    }
-
-    /*
-    // stack
-    size_t stack_size = vm->sp - vm->stack;
-    for(int i = 0; i < stack_size; ++i) {
-        Value *value = &vm->stack[i];
-
-        if(value->type == OBJECT) {
-            mark(value->o_value);
-        }
-    }
-     */
 }
 
 static void sweep(Vm *vm) {
@@ -59,9 +49,8 @@ static void sweep(Vm *vm) {
         if (!(*object)->marked) {
             Object *unreached = *object;
             *object = unreached->next;
-            --vm->num_objects;
 
-            free_object(unreached);
+            vm->allocated_mem -= free_object(unreached);
         } else {
             (*object)->marked = 0;
             object = &(*object)->next;
@@ -71,16 +60,16 @@ static void sweep(Vm *vm) {
 
 void gc(Vm *vm) {
 #if DEBUG_TRACE_GC
-    size_t objects_before = vm->num_objects;
+    size_t mem_before = vm->allocated_mem;
 #endif
 
     mark_all(vm);
     sweep(vm);
 
-    vm->max_objects = vm->num_objects * 2;
+    vm->max_alloc_mem = vm->allocated_mem * 2;
 
 #if DEBUG_TRACE_GC
-    printf("Collected %ld objects, %ld remaining.\n", objects_before - vm->num_objects, vm->num_objects);
+    printf("Collected %ld bytes, %ld remaining.\n", mem_before - vm->allocated_mem, vm->allocated_mem);
 #endif
 }
 

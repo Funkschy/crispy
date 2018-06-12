@@ -212,7 +212,9 @@ void free_call_frame(CallFrame *call_frame) {
  */
 static Object *allocate_object(Vm *vm, size_t size, ObjectType type) {
     // TODO don't gc while compiling
-    if (vm->num_objects >= vm->max_objects) { gc(vm); }
+    if (vm->allocated_mem >= vm->max_alloc_mem) {
+        gc(vm);
+    }
 
     Object *object = malloc(size);
     object->type = type;
@@ -220,7 +222,7 @@ static Object *allocate_object(Vm *vm, size_t size, ObjectType type) {
 
     object->next = vm->first_object;
     vm->first_object = object;
-    ++vm->num_objects;
+    vm->allocated_mem += size;
 
 #if DEBUG_TRACE_GC
     printf("[%p] Allocated %ld bytes for object of type %d\n", object, size, type);
@@ -234,8 +236,15 @@ ObjString *new_string(Vm *vm, const char *start, size_t length) {
     string->length = length;
     string->hashed = false;
 
-    char *value = malloc(length * sizeof(char));
+    size_t size = length * sizeof(char);
+    char *value = malloc(size);
     memcpy(value, start, length);
+
+    vm->allocated_mem += size;
+
+#if DEBUG_TRACE_GC
+    printf("[%p] Allocated %ld bytes for string\n", string, size);
+#endif
 
     string->start = value;
     return string;
@@ -246,8 +255,16 @@ ObjString *new_empty_string(Vm *vm, size_t length) {
     string->length = length;
     string->hashed = false;
 
-    char *value = malloc(length * sizeof(char));
+    size_t size = length * sizeof(char);
+    char *value = malloc(size);
     string->start = value;
+
+    vm->allocated_mem += size;
+
+#if DEBUG_TRACE_GC
+    printf("[%p] Allocated %ld bytes for string\n", string, size);
+#endif
+
     return string;
 }
 
@@ -299,7 +316,70 @@ uint32_t hash_uint32_t(uint32_t x) {
     return x;
 }
 
-int comp_string(ObjString *first, ObjString *second) {
+int cmp_strings(ObjString *first, ObjString *second) {
+    if (first == second) {
+        return 0;
+    }
+
     size_t smaller_length = (first->length < second->length) ? first->length : second->length;
     return memcmp(first->start, second->start, smaller_length);
+}
+
+int cmp_values(Value first, Value second) {
+    if (first.type != second.type) {
+        return false;
+    }
+
+    switch (first.type) {
+        case NUMBER:
+            if (first.d_value == second.d_value) {
+                return 0;
+            }
+            return first.d_value < second.d_value ? -1 : 1;
+        case OBJECT:
+            return cmp_objects(first.o_value, second.o_value);
+        case BOOLEAN:
+            if (first.p_value == second.p_value) {
+                return 0;
+            }
+            return first.p_value < second.p_value ? -1 : 1;
+        case NIL:
+            return second.type != NIL;
+    }
+
+    return false;
+}
+
+int cmp_objects(Object *first, Object *second) {
+    if (first->type != second->type) {
+        return false;
+    }
+
+    switch (first->type) {
+        case OBJ_STRING:
+            return cmp_strings((ObjString *) first, (ObjString *) second);
+        case OBJ_MAP:
+            // TODO implement
+            break;
+        case OBJ_LIST:
+            // TODO implement
+            break;
+        default:
+            return false;
+    }
+
+    return false;
+}
+
+bool is_truthful(Value value) {
+    switch (value.type) {
+        case NUMBER:
+            return true;
+        case OBJECT:
+            return true;
+        case BOOLEAN:
+            return value.p_value == 1;
+        case NIL:
+            return false;
+    }
 }

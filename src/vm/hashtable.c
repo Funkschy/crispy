@@ -1,4 +1,5 @@
 #include "hashtable.h"
+#include "value.h"
 
 #include <string.h>
 
@@ -10,6 +11,8 @@ uint32_t hash(HTItemKey key, HTKeyType type) {
             return hash_string_obj(key.key_obj_string);
         case HT_KEY_INT:
             return hash_uint32_t(key.key_int);
+        case HT_KEY_IDENT_STRING:
+            return hash_string(key.key_ident_string, key.ident_length);
     }
 }
 
@@ -18,9 +21,17 @@ static bool equals(HTItemKey first, HTItemKey second, HTKeyType type) {
         case HT_KEY_CSTRING:
             return strcmp(first.key_c_string, second.key_c_string) == 0;
         case HT_KEY_OBJSTRING:
-            return comp_string(first.key_obj_string, second.key_obj_string) == 0;
+            if (first.key_obj_string->length != second.key_obj_string->length) {
+                return false;
+            }
+            return cmp_strings(first.key_obj_string, second.key_obj_string) == 0;
         case HT_KEY_INT:
             return first.key_int == second.key_int;
+        case HT_KEY_IDENT_STRING:
+            if (first.ident_length != second.ident_length) {
+                return false;
+            }
+            return memcmp(first.key_ident_string, second.key_ident_string, first.ident_length) == 0;
     }
 
     return false;
@@ -38,28 +49,28 @@ static uint32_t next_pow_of_2(uint32_t num) {
     return n;
 }
 
-void ht_init(HashTable *ht, HTKeyType key_type, uint32_t init_cap, float load_factor) {
+void ht_init(HashTable *ht, HTKeyType key_type, uint32_t init_cap, void(*free_callback)(HTItem *)) {
     ht->cap = next_pow_of_2(init_cap);
     ht->size = 0;
     ht->buckets = NULL;
     ht->key_type = key_type;
-    ht->load_factor = load_factor;
+    ht->free_callback = free_callback;
 
     ht->buckets = calloc(ht->cap, sizeof(HTItem *));
 }
 
-static void free_bucket(HTItem *bucket) {
+static void free_bucket(HTItem *bucket, void(free_callback)(HTItem *)) {
     HTItem *item = bucket;
     while (item) {
         HTItem *next = item->next;
-        free(item);
+        free_callback(item);
         item = next;
     }
 }
 
 void ht_free(HashTable *ht) {
     for (int i = 0; i < ht->cap; ++i) {
-        free_bucket(ht->buckets[i]);
+        free_bucket(ht->buckets[i], ht->free_callback);
     }
     free(ht->buckets);
 }
@@ -90,12 +101,12 @@ static void insert(HTItem **bucket, HTItemKey key, HTKeyType type, HTItem *new_i
 
 static void resize(HashTable *ht) {
     HashTable new_ht;
-    ht_init(&new_ht, ht->key_type, next_pow_of_2(ht->cap + 1), ht->load_factor);
+    ht_init(&new_ht, ht->key_type, next_pow_of_2(ht->cap + 1), ht->free_callback);
 
     for (uint32_t i = 0; i < ht->cap; ++i) {
         HTItem *item = ht->buckets[i];
 
-        while(item) {
+        while (item) {
             ht_put(&new_ht, item->key, item->value);
             item = item->next;
         }
@@ -151,5 +162,16 @@ Value ht_get(HashTable *ht, HTItemKey key) {
     Value v = {NIL, 0};
     return v;
 }
+
+void free_string_literal(HTItem *item) {
+    free(item);
+}
+
+void free_heap_string(HTItem *item) {
+    const char *string = item->key.key_c_string;
+    free((void *) string);
+    free(item);
+}
+
 
 

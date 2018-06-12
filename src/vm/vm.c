@@ -51,8 +51,8 @@ void frames_write_at(FrameArray *frame_arr, uint32_t index, CallFrame *frame) {
 void init_vm(Vm *vm) {
     vm->sp = vm->stack;
     vm->first_object = NULL;
-    vm->num_objects = 0;
-    vm->max_objects = INITIAL_GC_THRESHOLD;
+    vm->allocated_mem = 0;
+    vm->max_alloc_mem = INITIAL_GC_THRESHOLD;
     vm->frame_count = 0;
     FrameArray frames;
     frames_init(&frames);
@@ -60,26 +60,33 @@ void init_vm(Vm *vm) {
 
     CallFrame *call_frame = new_call_frame();
     frames_write_at(&vm->frames, vm->frame_count++, call_frame);
+
+    HashTable strings;
+    ht_init(&strings, HT_KEY_IDENT_STRING, 16, free_string_literal);
+    vm->strings = strings;
 }
 
-void free_object(Object *object) {
+size_t free_object(Object *object) {
     switch (object->type) {
         case OBJ_STRING: {
             ObjString *string = (ObjString *) object;
+            size_t length = string->length;
+
             free((void *) string->start);
             free(object);
-            break;
+            return sizeof(ObjString) + length * sizeof(char);
         }
         case OBJ_LAMBDA: {
             ObjLambda *lambda = (ObjLambda *) object;
             free_call_frame(lambda->call_frame);
             free(lambda);
-            break;
+            // TODO size of callframe?
+            return sizeof(ObjLambda);
         }
         case OBJ_NATIVE_FUNC: {
             ObjNativeFunc *n_fn = (ObjNativeFunc *) object;
             free(n_fn);
-            break;
+            return sizeof(ObjNativeFunc);
         }
         case OBJ_LIST:
             printf("Lists can't be freed yet\n");
@@ -103,8 +110,10 @@ void free_vm(Vm *vm) {
 
     vm->sp = NULL;
     vm->first_object = NULL;
-    vm->num_objects = 0;
-    vm->max_objects = 0;
+    vm->allocated_mem = 0;
+    vm->max_alloc_mem = 0;
+
+    ht_free(&vm->strings);
 }
 
 void write_code_buffer(CodeBuffer *code_buffer, uint8_t instruction) {
@@ -135,7 +144,7 @@ static void init_compiler(Compiler *compiler, const char *source) {
     compiler->vars_in_scope = 0;
 
     HashTable ht;
-    ht_init(&ht, HT_KEY_CSTRING, 16, 0.75);
+    ht_init(&ht, HT_KEY_CSTRING, 16, free_string_literal);
     compiler->natives = ht;
 }
 
@@ -187,13 +196,6 @@ static InterpretResult run(Vm *vm) {
         if (!CHECK_NUM(first) || !CHECK_NUM(second))            \
             goto ERROR;                                         \
         PUSH(create_number(first.d_value op second.d_value));   \
-    } while (false)
-
-#define BOOL_OP(op)                                             \
-    do {                                                        \
-        Value second = POP();                                   \
-        Value first = POP();                                    \
-        PUSH(create_bool(first.d_value op second.d_value));     \
     } while (false)
 
 #define COND_JUMP(op)                                           \
@@ -359,24 +361,43 @@ static InterpretResult run(Vm *vm) {
             case OP_DIV:
                 BINARY_OP(/);
                 break;
-            case OP_EQUAL:
-                BOOL_OP(==);
+            case OP_EQUAL: {
+                Value second = POP();
+                Value first = POP();
+                PUSH(create_bool(cmp_values(first, second) == 0));
                 break;
-            case OP_NOT_EQUAL:
-                BOOL_OP(!=);
+            }
+            case OP_NOT_EQUAL: {
+                Value second = POP();
+                Value first = POP();
+                PUSH(create_bool(cmp_values(first, second) != 0));
                 break;
-            case OP_GE:
-                BOOL_OP(>=);
+            }
+            case OP_GE: {
+                // TODO exception for non orderable type (e.g nil)
+                Value second = POP();
+                Value first = POP();
+                PUSH(create_bool(cmp_values(first, second) >= 0));
                 break;
-            case OP_LE:
-                BOOL_OP(<=);
+            }
+            case OP_LE: {
+                Value second = POP();
+                Value first = POP();
+                PUSH(create_bool(cmp_values(first, second) <= 0));
                 break;
-            case OP_GT:
-                BOOL_OP(>);
+            }
+            case OP_GT: {
+                Value second = POP();
+                Value first = POP();
+                PUSH(create_bool(cmp_values(first, second) > 0));
                 break;
-            case OP_LT:
-                BOOL_OP(<);
+            }
+            case OP_LT: {
+                Value second = POP();
+                Value first = POP();
+                PUSH(create_bool(cmp_values(first, second) < 0));
                 break;
+            }
             case OP_NEGATE: {
                 Value val = create_number(POP().d_value * -1);
                 PUSH(val);

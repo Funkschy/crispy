@@ -142,7 +142,8 @@ static Variable resolve_var(Vm *vm, const char *name, size_t length) {
 }
 
 static void declare_var(Vm *vm, Token var_decl, bool assignable) {
-    Variable variable = {var_decl.start, var_decl.length, vm->compiler.vars_in_scope++, (int) vm->frame_count, assignable};
+    Variable variable = {var_decl.start, var_decl.length, vm->compiler.vars_in_scope++, (int) vm->frame_count,
+                         assignable};
     write_variable(&vm->compiler.scope[vm->compiler.scope_depth], variable);
 }
 
@@ -223,8 +224,26 @@ static void primary(Vm *vm) {
             break;
         }
         case TOKEN_STRING: {
-            ObjString *string = new_string(vm, compiler->token.start + 1, compiler->token.length - 2);
-            uint16_t pos = (uint16_t) add_constant(vm, create_object((Object *) string));
+            HTItemKey key;
+            key.key_ident_string = compiler->token.start;
+            key.ident_length = compiler->token.length;
+
+            Value item = ht_get(&vm->strings, key);
+
+            ObjString *string;
+            Value value;
+
+            // string not yet in hashtable
+            if (item.type == NIL) {
+                string = new_string(vm, compiler->token.start + 1, compiler->token.length - 2);
+                value = create_object((Object *) string);
+                ht_put(&vm->strings, key, value);
+            } else {
+                string = (ObjString *) item.o_value;
+                value = create_object((Object *) string);
+            }
+
+            uint16_t pos = (uint16_t) add_constant(vm, value);
 
             if (pos > UINT8_MAX) {
                 uint8_t index_1 = (uint8_t) (pos >> 8);
