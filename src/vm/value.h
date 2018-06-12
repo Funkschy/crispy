@@ -113,7 +113,13 @@ void print_value(Value value, bool new_line);
 
 void print_type(Value value);
 
-int comp_string(ObjString *first, ObjString *second);
+bool is_truthful(Value value);
+
+int cmp_values(Value first, Value second);
+
+int cmp_objects(Object *first, Object *second);
+
+int cmp_strings(ObjString *first, ObjString *second);
 
 /**
  * Computes the hash value for an unsigned 4 byte integer.

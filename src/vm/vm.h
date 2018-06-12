@@ -32,8 +32,10 @@ typedef struct {
 
     Compiler compiler;
 
-    size_t num_objects;
-    size_t max_objects;
+    HashTable strings;
+
+    size_t allocated_mem;
+    size_t max_alloc_mem;
     Object *first_object;
 } Vm;
 
@@ -51,7 +53,7 @@ void frames_write_at(FrameArray *frame_arr, uint32_t index, CallFrame *frame);
 
 void compile(Vm *vm);
 
-void free_object(Object *object);
+size_t free_object(Object *object);
 
 uint32_t add_constant(Vm *vm, Value value);
 
