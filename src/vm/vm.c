@@ -95,6 +95,8 @@ size_t free_object(Object *object) {
             printf("Maps can't be freed yet\n");
             break;
     }
+
+    return 0;
 }
 
 void free_vm(Vm *vm) {
@@ -264,10 +266,33 @@ static InterpretResult run(Vm *vm) {
                     }
 
                     ObjNativeFunc *n_fn = (ObjNativeFunc *) object;
-                    Value arg = POP();
-                    n_fn->func_ptr(arg);
+
+                    uint8_t expected = n_fn->num_params;
+                    if (expected != num_args) {
+                        fprintf(stderr, "Invalid number of arguments. Expected %d, but got %d\n", expected, num_args);
+                        goto ERROR;
+                    }
+
+                    // Pop arguments from stack
+                    Value args[num_args];
+                    Value *start = sp - num_args;
+
+                    for (int i = 0; i < num_args; ++i) {
+                        args[i] = *(start++);
+                        --sp;
+                    }
+
+                    Value res;
+                    if (n_fn->system_func) {
+                        vm->sp = sp;
+                        res = ((Value (*)(Value *, Vm *vm)) n_fn->func_ptr)(args, vm);
+                    } else {
+                        res = ((Value (*)(Value *)) n_fn->func_ptr)(args);
+                    }
+
                     POP();
-                    PUSH(create_nil());
+
+                    PUSH(res);
                     break;
                 }
 
@@ -277,9 +302,9 @@ static InterpretResult run(Vm *vm) {
                 }
                 ObjLambda *lambda = ((ObjLambda *) object);
 
-                size_t expected = lambda->num_params;
+                uint8_t expected = lambda->num_params;
                 if (expected != num_args) {
-                    fprintf(stderr, "Invalid number of arguments. Expected %ld, but got %d\n", expected, num_args);
+                    fprintf(stderr, "Invalid number of arguments. Expected %d, but got %d\n", expected, num_args);
                     goto ERROR;
                 }
 

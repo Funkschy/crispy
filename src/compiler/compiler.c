@@ -390,13 +390,14 @@ static void lambda(Vm *vm) {
     CallFrame *lambda_frame = new_call_frame();
     PUSH_FRAME(vm, lambda_frame);
 
-    size_t num_params = 0;
+    uint8_t num_params = 0;
 
     if (!check(vm, TOKEN_ARROW)) {
         do {
             Token param = consume(vm, TOKEN_IDENTIFIER, "Expected parameter name");
             declare_var(vm, param, true);
             define_var(vm, param);
+            // TODO check number
             ++num_params;
         } while (match(vm, TOKEN_COMMA));
     }

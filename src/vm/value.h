@@ -75,14 +75,18 @@ typedef struct {
 typedef struct {
     Object object;
 
-    size_t num_params;
+    uint8_t num_params;
     CallFrame *call_frame;
 } ObjLambda;
 
 typedef struct {
     Object object;
 
-    void (*func_ptr)(Value);
+    // determines if the current vm should be passed to the function
+    // only used for standard lib
+    bool system_func;
+    uint8_t num_params;
+    void *func_ptr;
 } ObjNativeFunc;
 
 Value create_nil();
@@ -112,8 +116,6 @@ void write_at(ValueArray *value_array, uint32_t index, Value value);
 void print_value(Value value, bool new_line);
 
 void print_type(Value value);
-
-bool is_truthful(Value value);
 
 int cmp_values(Value first, Value second);
 

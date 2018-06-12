@@ -2,11 +2,14 @@
 #define CRISPY_STDLIB_H
 
 #include "../vm/value.h"
+#include "../vm/vm.h"
 
-void println(Value value);
+Value println(Value *value);
 
-void print(Value value);
+Value print(Value *value);
 
-void exit_vm(Value value);
+Value exit_vm(Value *value);
+
+Value str(Value *value, Vm *vm);
 
 #endif //CRISPY_STDLIB_H

@@ -1,8 +1,14 @@
-var s = "Hello World";
-var u = "Hällo Wörld";
+val s = "Hello World";
+val u = "Hällo Wörld";
 
 var s1 = "Hello World";
 
 println(s);
 println(u);
 println(s1);
+
+var d = 0.0001;
+println(str(d));
+
+d = 12345678912345.1;
+println(str(d));
