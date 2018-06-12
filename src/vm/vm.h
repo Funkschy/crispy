@@ -65,7 +65,7 @@ void write_code_buffer(CodeBuffer *code_buffer, uint8_t instruction);
  * @param num_params the number of arguments, the lambda expects.
  * @return a pointer to the created lambda.
  */
-ObjLambda *new_lambda(Vm *vm, size_t num_params);
+ObjLambda *new_lambda(Vm *vm, uint8_t num_params);
 
 /**
  * Creates an empty string.
@@ -78,6 +78,7 @@ ObjString *new_empty_string(Vm *vm, size_t length);
 /**
  * Creates a string and copies the values from start until (start + length) into it.
  * @param vm the current VM.
+ * @param start a pointer to the first char of the string
  * @param length the length of the new string.
  * @return a pointer to the created string.
  */
@@ -86,9 +87,13 @@ ObjString *new_string(Vm *vm, const char *start, size_t length);
 /**
  * Allocate a new native function Object.
  * @param vm the current VM.
+ * @param func_ptr a pointer to the c function.
+ * @param num_params the number of expected parameters.
+ * @param system_func Determines, if the function belongs to the standard library,
+ * if true, the current vm will be passed to the function.
  * @return a pointer to the created function wrapper.
  */
-ObjNativeFunc *new_native_func(Vm *vm, void *func_ptr);
+ObjNativeFunc *new_native_func(Vm *vm, void *func_ptr, uint8_t num_params, bool system_func);
 
 /**
  * Compiles and executes the source code.

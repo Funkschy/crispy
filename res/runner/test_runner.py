@@ -31,6 +31,10 @@ def execute(executable, test_dir, result_dir):
 
             line = proc.stdout.readline().decode('utf-8').rstrip()
 
+        expected = result_file.readline().rstrip()
+        if expected != '':
+            print('[{}]: Error, did not print {}'.format(file_name, expected))
+
         result_file.close()
 
 

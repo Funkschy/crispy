@@ -47,7 +47,7 @@ static void print_object(Object *object, const char *new_line) {
         }
         case OBJ_LAMBDA: {
             ObjLambda *lambda = (ObjLambda *) object;
-            printf("<function of arity %ld>%s", lambda->num_params, new_line);
+            printf("<function of arity %d>%s", lambda->num_params, new_line);
             break;
         }
         case OBJ_NATIVE_FUNC: {
@@ -268,7 +268,7 @@ ObjString *new_empty_string(Vm *vm, size_t length) {
     return string;
 }
 
-ObjLambda *new_lambda(Vm *vm, size_t num_params) {
+ObjLambda *new_lambda(Vm *vm, uint8_t num_params) {
     ObjLambda *lambda = ALLOC_OBJ(vm, ObjLambda, OBJ_LAMBDA);
     lambda->num_params = num_params;
 
@@ -277,9 +277,11 @@ ObjLambda *new_lambda(Vm *vm, size_t num_params) {
     return lambda;
 }
 
-ObjNativeFunc *new_native_func(Vm *vm, void *func_ptr) {
+ObjNativeFunc *new_native_func(Vm *vm, void *func_ptr, uint8_t num_args, bool system_func) {
     ObjNativeFunc *n_fn = ALLOC_OBJ(vm, ObjNativeFunc, OBJ_NATIVE_FUNC);
     n_fn->func_ptr = func_ptr;
+    n_fn->num_params = num_args;
+    n_fn->system_func = system_func;
 
     return n_fn;
 }
@@ -369,17 +371,4 @@ int cmp_objects(Object *first, Object *second) {
     }
 
     return false;
-}
-
-bool is_truthful(Value value) {
-    switch (value.type) {
-        case NUMBER:
-            return true;
-        case OBJECT:
-            return true;
-        case BOOLEAN:
-            return value.p_value == 1;
-        case NIL:
-            return false;
-    }
 }

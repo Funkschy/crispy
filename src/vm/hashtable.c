@@ -14,6 +14,8 @@ uint32_t hash(HTItemKey key, HTKeyType type) {
         case HT_KEY_IDENT_STRING:
             return hash_string(key.key_ident_string, key.ident_length);
     }
+
+    return 0;
 }
 
 static bool equals(HTItemKey first, HTItemKey second, HTKeyType type) {
@@ -159,7 +161,9 @@ Value ht_get(HashTable *ht, HTItemKey key) {
         }
     }
 
-    Value v = {NIL, 0};
+    Value v;
+    v.type = NIL;
+    v.p_value = 0;
     return v;
 }
 
