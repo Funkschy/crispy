@@ -140,6 +140,10 @@ static TokenType identifier_type(Scanner *scanner) {
             return check_keyword(scanner, 1, 5, "eturn", TOKEN_RETURN);
         case 'n':
             return check_keyword(scanner, 1, 2, "il", TOKEN_NIL);
+        case 'o':
+            return check_keyword(scanner, 1, 1, "r", TOKEN_OR);
+        case 'a':
+            return check_keyword(scanner, 1, 2, "nd", TOKEN_AND);
         default:
             return TOKEN_IDENTIFIER;
     }
@@ -183,11 +187,18 @@ Token scan_token(Scanner *scanner) {
         case ')':
             return make_token(scanner, TOKEN_CLOSE_PAREN);
         case '+':
+            if (peek(scanner) == '+') {
+                advance(scanner);
+                return make_token(scanner, TOKEN_PLUS_PLUS);
+            }
             return make_token(scanner, TOKEN_PLUS);
         case '-':
             if (peek(scanner) == '>') {
                 advance(scanner);
                 return make_token(scanner, TOKEN_ARROW);
+            } else if (peek(scanner) == '-') {
+                advance(scanner);
+                return make_token(scanner, TOKEN_MINUS_MINUS);
             }
             return make_token(scanner, TOKEN_MINUS);
         case '*':
