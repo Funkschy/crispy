@@ -197,7 +197,8 @@ static InterpretResult run(Vm *vm) {
         Value first = POP();                                    \
         if (!CHECK_NUM(first) || !CHECK_NUM(second))            \
             goto ERROR;                                         \
-        PUSH(create_number(first.d_value op second.d_value));   \
+        first.d_value = first.d_value op second.d_value;        \
+        PUSH(first);                                            \
     } while (false)
 
 #define COND_JUMP(op)                                           \
@@ -335,7 +336,8 @@ static InterpretResult run(Vm *vm) {
                 Value first = POP();
 
                 if (first.type == NUMBER && second.type == NUMBER) {
-                    PUSH(create_number(first.d_value + second.d_value));
+                    first.d_value += second.d_value;
+                    PUSH(first);
                     break;
                 }
 
@@ -576,7 +578,6 @@ static InterpretResult run(Vm *vm) {
     return INTERPRET_RUNTIME_ERROR;
 
 #undef COND_JUMP
-#undef BOOL_OP
 #undef BINARY_OP
 #undef PEEK
 #undef PUSH
