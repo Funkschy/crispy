@@ -386,6 +386,30 @@ static InterpretResult run(Vm *vm) {
             case OP_DIV:
                 BINARY_OP(/);
                 break;
+            case OP_OR: {
+                Value second = POP();
+                Value first = POP();
+
+                if (first.type != BOOLEAN || second.type != BOOLEAN) {
+                    goto ERROR;
+                }
+
+                PUSH(create_bool(first.p_value || second.p_value));
+
+                break;
+            }
+            case OP_AND: {
+                Value second = POP();
+                Value first = POP();
+
+                if (first.type != BOOLEAN || second.type != BOOLEAN) {
+                    goto ERROR;
+                }
+
+                PUSH(create_bool(first.p_value && second.p_value));
+
+                break;
+            }
             case OP_EQUAL: {
                 Value second = POP();
                 Value first = POP();
@@ -509,22 +533,25 @@ static InterpretResult run(Vm *vm) {
             case OP_JGE:
                 COND_JUMP(>=);
                 break;
-            case OP_INC: {
-                Value value = POP();
-                if (!CHECK_NUM(value)) { goto ERROR; }
-                PUSH(create_number(value.d_value + READ_BYTE()));
-                break;
-            }
             case OP_INC_1: {
-                Value value = POP();
-                if (!CHECK_NUM(value)) { goto ERROR; }
-                PUSH(create_number(value.d_value + 1));
+                uint8_t index = READ_BYTE();
+                ++variables->values[index].d_value;
                 break;
             }
-            case OP_DEC: {
+            case OP_DEC_1: {
+                uint8_t index = READ_BYTE();
+                --variables->values[index].d_value;
+                break;
+            }
+            case OP_NOT: {
                 Value value = POP();
-                if (!CHECK_NUM(value)) { goto ERROR; }
-                PUSH(create_number(value.d_value - READ_BYTE()));
+
+                if (value.type != BOOLEAN) {
+                    goto ERROR;
+                }
+
+                value.p_value = value.p_value == 0 ? 1 : 0;
+                PUSH(value);
                 break;
             }
             case OP_TRUE:

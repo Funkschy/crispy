@@ -118,12 +118,10 @@ int disassemble_instruction(Vm *vm, int offset) {
             return jump_instruction("OP_JGT", vm, offset);
         case OP_JGE:
             return jump_instruction("OP_JGE", vm, offset);
-        case OP_INC:
-            return var_instruction("OP_INC", vm, offset);
         case OP_INC_1:
             return simple_instruction("OP_INC_1", offset);
-        case OP_DEC:
-            return var_instruction("OP_DEC", vm, offset);
+        case OP_DEC_1:
+            return simple_instruction("OP_DEC_1", offset);
         case OP_LDC_0:
             return simple_instruction("OP_LDC_0", offset);
         case OP_LDC_1:
@@ -138,6 +136,12 @@ int disassemble_instruction(Vm *vm, int offset) {
             return simple_instruction("OP_FALSE", offset);
         case OP_NIL:
             return simple_instruction("OP_NIL", offset);
+        case OP_AND:
+            return simple_instruction("OP_AND", offset);
+        case OP_OR:
+            return simple_instruction("OP_OR", offset);
+        case OP_NOT:
+            return simple_instruction("OP_NOT", offset);
         default:
             printf("Unknown instruction %d\n", instruction);
             return offset + 1;

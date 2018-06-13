@@ -221,7 +221,22 @@ static void primary(Vm *vm) {
                 break;
             }
             emit_byte_arg(vm, OP_LOAD, (uint8_t) var.index);
-            break;
+
+            advance(vm);
+
+            if (compiler->token.type == TOKEN_PLUS_PLUS || compiler->token.type == TOKEN_MINUS_MINUS) {
+                advance(vm);
+
+                if (!var.assignable) {
+                    error(compiler, "Cannot increment non value");
+                }
+
+                // TODO bigger numbers
+                emit_byte_arg(vm, compiler->previous.type == TOKEN_PLUS_PLUS ? OP_INC_1 : OP_DEC_1, (uint8_t) var.index);
+            }
+
+            // already advanced
+            return;
         }
         case TOKEN_STRING: {
             HTItemKey key;
@@ -296,7 +311,11 @@ static void primary_expr(Vm *vm) {
 
 static void factor(Vm *vm) {
     switch (vm->compiler.token.type) {
-        case TOKEN_BANG: // TODO implement 'not'
+        case TOKEN_BANG:
+            advance(vm);
+            primary_expr(vm);
+            emit_no_arg(vm, OP_NOT);
+            break;
         case TOKEN_MINUS:
             advance(vm);
             primary_expr(vm);
@@ -379,6 +398,24 @@ static void equality(Vm *vm) {
             comparison(vm);
             emit_no_arg(vm, OP_NOT_EQUAL);
         }
+    }
+}
+
+static void logic_and(Vm *vm) {
+    equality(vm);
+
+    while (match(vm, TOKEN_AND)) {
+        equality(vm);
+        emit_no_arg(vm, OP_AND);
+    }
+}
+
+static void logic_or(Vm *vm) {
+    logic_and(vm);
+
+    while(match(vm, TOKEN_OR)) {
+        logic_and(vm);
+        emit_no_arg(vm, OP_OR);
     }
 }
 
@@ -479,7 +516,7 @@ static void var_decl(Vm *vm, bool assignable) {
 }
 
 static void assignment(Vm *vm) {
-    equality(vm);
+    logic_or(vm);
     Token identifier = vm->compiler.previous;
 
     if (check(vm, TOKEN_EQUALS)) {
@@ -518,7 +555,7 @@ static void expr(Vm *vm) {
             assignment(vm);
             break;
         default:
-            equality(vm);
+            logic_or(vm);
             break;
     }
 }

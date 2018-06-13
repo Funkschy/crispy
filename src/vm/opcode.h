@@ -14,6 +14,9 @@ typedef enum {
     OP_DIV,             // divide two numbers
     OP_MOD,             // modulo operator
 
+    OP_AND,
+    OP_OR,
+
     OP_EQUAL,
     OP_NOT_EQUAL,
     OP_GT,              // greater than
@@ -35,6 +38,7 @@ typedef enum {
 
     OP_CALL,            // pop a function from the stack and call it
     OP_NEGATE,          // negate a number
+    OP_NOT,             // reverse the boolean on top of the stack
 
     OP_JMP,             // unconditional jump
     OP_JEQ,             // jump if equals
@@ -46,9 +50,8 @@ typedef enum {
     OP_JGT,             // jump if equals or greater
     OP_JGE,             // jump if greater
 
-    OP_INC,             // increment
     OP_INC_1,           // increment by 1
-    OP_DEC,             // decrement
+    OP_DEC_1,           // decrement by 1
 
     OP_RETURN           // return from Scope
 } OP_CODE;

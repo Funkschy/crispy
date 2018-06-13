@@ -15,3 +15,26 @@ var a = res = test = 555.55000001;
 println(res);
 println(test);
 println(a);
+
+println(true and true);
+println(true and false);
+println(true or false);
+println(false and false);
+println(false or false);
+println(false or (1 == 1) and (1 < 2));
+
+var i = 1;
+
+i++;
+println(i);
+println(i++);
+println(i);
+
+i--;
+println(i);
+println(i--);
+println(i);
+
+var b = true;
+println(!b);
+println(!b == !true);
