@@ -76,6 +76,8 @@ static void skip_whitespace(Scanner *scanner) {
                     while (!at_end(scanner) && peek(scanner) != '\n') {
                         advance(scanner);
                     }
+                } else {
+                    return;
                 }
                 break;
             default:

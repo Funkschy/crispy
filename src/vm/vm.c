@@ -155,6 +155,24 @@ static void free_compiler(Compiler *compiler) {
     ht_free(&compiler->natives);
 }
 
+static void print_callframe(CallFrame *call_frame) {
+    // TODO safe line number information somewhere and printf filename + linenumber
+    printf("Callframe\n");
+}
+
+static void panic(Vm *vm, const char *reason) {
+    fprintf(stderr, "%s\n", reason);
+
+    CallFrame *current = POP_FRAME(vm);
+    while (current != NULL) {
+        print_callframe(current);
+        current = POP_FRAME(vm);
+    }
+
+    free_vm(vm);
+    exit(42);
+}
+
 InterpretResult interpret(Vm *vm, const char *source) {
     Compiler compiler;
     init_compiler(&compiler, source);
@@ -385,9 +403,21 @@ static InterpretResult run(Vm *vm) {
                 PUSH(create_number(first_int % second_int));
                 break;
             }
-            case OP_DIV:
-                BINARY_OP(/);
+            case OP_DIV: {
+                Value second = POP();
+                Value first = POP();
+                if (!CHECK_NUM(first) || !CHECK_NUM(second)) {
+                    goto ERROR;
+                }
+
+                if (second.d_value == 0) {
+                    panic(vm, "Cannot divide by zero");
+                }
+
+                first.d_value = first.d_value / second.d_value;
+                PUSH(first);
                 break;
+            }
             case OP_OR: {
                 Value second = POP();
                 Value first = POP();
