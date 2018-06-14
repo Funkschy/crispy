@@ -8,12 +8,8 @@
 #define POSIX
 #endif
 
-static char *read_line_other() {
-    fprintf(stderr, "Error while reading from stdin.\n");
-    return NULL;
-}
-
-static char *read_line_posix() {
+static char *read_line() {
+#ifdef POSIX
     char *line = NULL;
     size_t buffer = 0;
     ssize_t result = getline(&line, &buffer, stdin);
@@ -24,13 +20,9 @@ static char *read_line_posix() {
     }
 
     return line;
-}
-
-static char *read_line() {
-#ifdef POSIX
-    return read_line_posix();
 #else
-    return read_line_other();
+    fprintf(stderr, "Error while reading from stdin.\n");
+    return NULL;
 #endif
 }
 

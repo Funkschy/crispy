@@ -1,0 +1,10 @@
+val pi = 22 / 7;
+println(pi);
+
+val two_pi = 2 * pi;
+println(two_pi);
+
+println("Fun fact: " + str(two_pi) + " is a better circle number than pi!");
+
+val fail = fun -> 0 / 0;
+// println(fail());
