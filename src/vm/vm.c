@@ -145,6 +145,7 @@ static void init_compiler(Compiler *compiler, const char *source) {
     compiler->scope[0] = variables;
     compiler->scope_depth = 0;
     compiler->vars_in_scope = 0;
+    compiler->print_expr = false;
 
     HashTable ht;
     // TODO change to ident string
