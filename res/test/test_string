@@ -19,3 +19,8 @@ val ml =
 3"
 
 println (ml);
+
+var a = 1
+println(str(a++) + " is a number")
+
+println("Is " + str(a) + " a number " + "aswell?");

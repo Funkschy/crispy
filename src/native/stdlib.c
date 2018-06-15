@@ -4,6 +4,7 @@
 // LICENSE file in the root directory of this source tree.
 
 #include <stdio.h>
+#include <string.h>
 #include "stdlib.h"
 #include "../vm/value.h"
 
@@ -34,5 +35,5 @@ Value str(Value *value, Vm *vm) {
     snprintf(s, 17, "%.15g", value->d_value);
 
     // one less, because crispy strings are not null terminated
-    return create_object((Object *) new_string(vm, s, 16));
+    return create_object((Object *) new_string(vm, s, strlen(s)));
 }
