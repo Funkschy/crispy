@@ -12,3 +12,10 @@ println(str(d));
 
 d = 12345678912345.1;
 println(str(d));
+
+val ml =
+"1
+2
+3"
+
+println (ml);
