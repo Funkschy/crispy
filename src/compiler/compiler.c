@@ -101,7 +101,9 @@ static inline void patch_jump(Vm *vm, uint32_t offset) {
 }
 
 void compile(Vm *vm) {
-    declare_natives(vm);
+    if (vm->compiler.natives.size <= 0) {
+        declare_natives(vm);
+    }
 
     do {
         stmt(vm);
@@ -232,7 +234,8 @@ static void primary(Vm *vm) {
                 }
 
                 // TODO bigger numbers
-                emit_byte_arg(vm, compiler->previous.type == TOKEN_PLUS_PLUS ? OP_INC_1 : OP_DEC_1, (uint8_t) var.index);
+                emit_byte_arg(vm, compiler->previous.type == TOKEN_PLUS_PLUS ? OP_INC_1 : OP_DEC_1,
+                              (uint8_t) var.index);
             }
 
             // already advanced
@@ -413,7 +416,7 @@ static void logic_and(Vm *vm) {
 static void logic_or(Vm *vm) {
     logic_and(vm);
 
-    while(match(vm, TOKEN_OR)) {
+    while (match(vm, TOKEN_OR)) {
         logic_and(vm);
         emit_no_arg(vm, OP_OR);
     }
@@ -448,7 +451,7 @@ static void lambda(Vm *vm) {
     emit_no_arg(vm, OP_RETURN);
 
 #if DEBUG_SHOW_DISASSEMBLY
-    disassemble_vm(vm, "lamda");
+    disassemble_curr_frame(vm, "lamda");
 #endif
 
     POP_FRAME(vm);
@@ -562,7 +565,14 @@ static void expr(Vm *vm) {
 
 static void expr_stmt(Vm *vm) {
     expr(vm);
-    emit_no_arg(vm, OP_POP);
+
+    CallFrame *curr_frame = CURR_FRAME(vm);
+    if (vm->interactive && curr_frame->code_buffer.code[curr_frame->code_buffer.count - 2] != OP_CALL) {
+        emit_no_arg(vm, OP_PRINT);
+    } else {
+        emit_no_arg(vm, OP_POP);
+    }
+
     consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
 }
 

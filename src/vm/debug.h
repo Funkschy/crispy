@@ -3,7 +3,7 @@
 
 #include "vm.h"
 
-void disassemble_vm(Vm *vm, const char *name);
+void disassemble_curr_frame(Vm *vm, const char *name);
 int disassemble_instruction(Vm *chunk, int offset);
 
 #endif

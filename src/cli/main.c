@@ -41,7 +41,7 @@ static char *read_file(const char *path) {
 
 static void run_file(const char *file_name) {
     Vm vm;
-    init_vm(&vm);
+    init_vm(&vm, false);
 
     char *source = read_file(file_name);
     InterpretResult result = interpret(&vm, source);

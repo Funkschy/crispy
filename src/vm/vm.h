@@ -37,11 +37,15 @@ typedef struct {
     size_t allocated_mem;
     size_t max_alloc_mem;
     Object *first_object;
+
+    // indicates if the program
+    // is running in shell mode
+    bool interactive;
 } Vm;
 
 void gc(Vm *vm);
 
-void init_vm(Vm *vm);
+void init_vm(Vm *vm, bool interactive);
 
 void free_vm(Vm *vm);
 
@@ -102,5 +106,7 @@ ObjNativeFunc *new_native_func(Vm *vm, void *func_ptr, uint8_t num_params, bool 
  * @return the result of running the program (either ok, runtime error or compilation error).
  */
 InterpretResult interpret(Vm *vm, const char *source);
+
+InterpretResult interpret_interactive(Vm *vm, const char *source);
 
 #endif

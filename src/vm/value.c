@@ -141,13 +141,13 @@ void print_type(Value value) {
     }
 }
 
-static void init_code_buffer(CodeBuffer *code_buffer) {
+void init_code_buffer(CodeBuffer *code_buffer) {
     code_buffer->cap = 0;
     code_buffer->count = 0;
     code_buffer->code = NULL;
 }
 
-static void free_code_buffer(CodeBuffer *code_buffer) {
+void free_code_buffer(CodeBuffer *code_buffer) {
     FREE_ARR(code_buffer->code);
     init_code_buffer(code_buffer);
 }

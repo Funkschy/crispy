@@ -3,10 +3,37 @@
 #include "cli.h"
 
 #include "../vm/vm.h"
+#include "../vm/memory.h"
 
 #if defined (__unix__) || (defined (__APPLE__) && defined (__MACH__))
 #define POSIX
 #endif
+
+typedef struct {
+    uint32_t count;
+    uint32_t cap;
+    char **lines;
+} LineArray;
+
+void init_line_array(LineArray *line_array) {
+    line_array->cap = 0;
+    line_array->count = 0;
+    line_array->lines = NULL;
+}
+
+void free_line_array(LineArray *line_array) {
+    FREE_ARR(line_array->lines);
+    init_line_array(line_array);
+}
+
+void write_line(LineArray *line_array, char *line) {
+    if (line_array->count >= line_array->cap) {
+        line_array->cap = GROW_CAP(line_array->cap);
+        line_array->lines = GROW_ARR(line_array->lines, Value, line_array->cap);
+    }
+
+    line_array->lines[line_array->count++] = line;
+}
 
 static char *read_line() {
 #ifdef POSIX
@@ -26,31 +53,27 @@ static char *read_line() {
 #endif
 }
 
-static void repl(Vm *vm) {
+static void repl(Vm *vm, LineArray *lines) {
     printf(">>> ");
+
     char *line = read_line();
+    interpret_interactive(vm, line);
 
-    interpret(vm, line);
-
-    frames_free(&vm->frames);
-
-    FrameArray frames;
-    frames_init(&frames);
-    vm->frames = frames;
-
-    CallFrame *call_frame = new_call_frame();
-    vm->frame_count = 0;
-    frames_write_at(&vm->frames, vm->frame_count++, call_frame);
-    free(line);
+    write_line(lines, line);
 }
 
 void run_repl() {
     Vm vm;
-    init_vm(&vm);
+    init_vm(&vm, true);
+
+    LineArray lines;
+    init_line_array(&lines);
 
     while (true) {
-        repl(&vm);
+        repl(&vm, &lines);
     }
 
+    // TODO execute
+    free_line_array(&lines);
     free_vm(&vm);
 }
