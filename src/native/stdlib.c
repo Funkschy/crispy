@@ -14,6 +14,7 @@ Value print(Value *value) {
     return create_nil();
 }
 
+// TODO maybe free vm?
 Value exit_vm(Value *value) {
     if (value[0].type == NUMBER) {
         int ret_val = (int) value[0].d_value;

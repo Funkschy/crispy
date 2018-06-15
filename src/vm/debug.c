@@ -5,12 +5,14 @@
 #include "vm.h"
 #include "value.h"
 
-void disassemble_vm(Vm *vm, const char *name) {
+void disassemble_curr_frame(Vm *vm, const char *name) {
     printf("======== %s ========\n", name);
 
     for (int i = 0; i < CURR_FRAME(vm)->code_buffer.count;) {
         i = disassemble_instruction(vm, i);
     }
+
+    printf("\n");
 }
 
 static int simple_instruction(const char *name, int offset) {
@@ -142,6 +144,8 @@ int disassemble_instruction(Vm *vm, int offset) {
             return simple_instruction("OP_OR", offset);
         case OP_NOT:
             return simple_instruction("OP_NOT", offset);
+        case OP_PRINT:
+            return simple_instruction("OP_PRINT", offset);
         default:
             printf("Unknown instruction %d\n", instruction);
             return offset + 1;

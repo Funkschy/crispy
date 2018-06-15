@@ -7,15 +7,9 @@
 #include "opcode.h"
 #include "value.h"
 #include "../compiler/compiler.h"
+#include "../compiler/scanner.h"
 
 static InterpretResult run(Vm *vm);
-
-void free_code_buffer(CodeBuffer *code_buffer) {
-    FREE_ARR(code_buffer->code);
-    code_buffer->cap = 0;
-    code_buffer->count = 0;
-    code_buffer->code = NULL;
-}
 
 void frames_init(FrameArray *frames) {
     frames->count = 0;
@@ -48,12 +42,14 @@ void frames_write_at(FrameArray *frame_arr, uint32_t index, CallFrame *frame) {
     frame_arr->frame_pointers[index] = frame;
 }
 
-void init_vm(Vm *vm) {
+void init_vm(Vm *vm, bool interactive) {
     vm->sp = vm->stack;
     vm->first_object = NULL;
     vm->allocated_mem = 0;
     vm->max_alloc_mem = INITIAL_GC_THRESHOLD;
     vm->frame_count = 0;
+    vm->interactive = interactive;
+
     FrameArray frames;
     frames_init(&frames);
     vm->frames = frames;
@@ -146,6 +142,7 @@ static void init_compiler(Compiler *compiler, const char *source) {
     compiler->vars_in_scope = 0;
 
     HashTable ht;
+    // TODO change to ident string
     ht_init(&ht, HT_KEY_CSTRING, 16, free_string_literal);
     compiler->natives = ht;
 }
@@ -181,12 +178,43 @@ InterpretResult interpret(Vm *vm, const char *source) {
     compile(vm);
 
 #if DEBUG_SHOW_DISASSEMBLY
-    disassemble_vm(vm, "Main Program");
+    disassemble_curr_frame(vm, "Main Program");
 #endif
 
     CURR_FRAME(vm)->ip = CURR_FRAME(vm)->code_buffer.code;
     InterpretResult result = run(vm);
     free_compiler(&vm->compiler);
+
+    return result;
+}
+
+InterpretResult interpret_interactive(Vm *vm, const char *source) {
+    static bool first_time = true;
+
+    if (first_time) {
+        first_time = false;
+        Compiler compiler;
+        init_compiler(&compiler, source);
+        vm->compiler = compiler;
+    } else {
+        init_scanner(&vm->compiler.scanner, source);
+        vm->compiler.scanner = vm->compiler.scanner;
+        vm->compiler.token = scan_token(&vm->compiler.scanner);
+
+        free_code_buffer(&CURR_FRAME(vm)->code_buffer);
+        CodeBuffer code_buffer;
+        init_code_buffer(&code_buffer);
+        CURR_FRAME(vm)->code_buffer = code_buffer;
+    }
+
+    compile(vm);
+
+#if DEBUG_SHOW_DISASSEMBLY
+    disassemble_curr_frame(vm, "Last input");
+#endif
+
+    CURR_FRAME(vm)->ip = CURR_FRAME(vm)->code_buffer.code;
+    InterpretResult result = run(vm);
 
     return result;
 }
@@ -341,7 +369,12 @@ static InterpretResult run(Vm *vm) {
                     PUSH(args[i]);
                 }
                 vm->sp = sp;
-                run(vm);
+                InterpretResult result = run(vm);
+
+                if (result != INTERPRET_OK) {
+                    return result;
+                }
+
                 POP_FRAME(vm);
 
                 free_temp_call_frame(call_frame);
@@ -598,6 +631,11 @@ static InterpretResult run(Vm *vm) {
             case OP_NIL:
                 PUSH(create_nil());
                 break;
+            case OP_PRINT: {
+                Value value = POP();
+                print_value(value, true);
+                break;
+            }
             default:
                 printf("Unknown instruction %d\n", instruction);
                 return INTERPRET_RUNTIME_ERROR;

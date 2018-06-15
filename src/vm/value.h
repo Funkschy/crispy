@@ -107,7 +107,11 @@ void free_call_frame(CallFrame *call_frame);
 
 void init_value_array(ValueArray *value_array);
 
+void init_code_buffer(CodeBuffer *code_buffer);
+
 void free_value_array(ValueArray *value_array);
+
+void free_code_buffer(CodeBuffer *code_buffer);
 
 void write_value(ValueArray *value_array, Value value);
 

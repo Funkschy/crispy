@@ -40,6 +40,8 @@ typedef enum {
     OP_NEGATE,          // negate a number
     OP_NOT,             // reverse the boolean on top of the stack
 
+    OP_PRINT,           // pops a value from the stack and prints it. (Only used in interactive mode)
+
     OP_JMP,             // unconditional jump
     OP_JEQ,             // jump if equals
     OP_JMT,             // jump if true
