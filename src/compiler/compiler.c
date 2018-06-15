@@ -241,7 +241,7 @@ static void primary(Vm *vm) {
                 advance(vm);
 
                 if (!var.assignable) {
-                    error(compiler, "Cannot increment non value");
+                    error(compiler, "Cannot increment value");
                 }
 
                 // TODO bigger numbers
