@@ -4,12 +4,6 @@
 #include "../cli/common.h"
 #include "scanner.h"
 
-void init_scanner(Scanner *scanner, const char *source) {
-    scanner->start = source;
-    scanner->current = source;
-    scanner->line = 1;
-}
-
 static bool at_end(Scanner *scanner) {
     return *scanner->current == '\0';
 }
@@ -46,6 +40,13 @@ static Token make_token(Scanner *scanner, TokenType type) {
     return token;
 }
 
+void init_scanner(Scanner *scanner, const char *source) {
+    scanner->start = source;
+    scanner->current = source;
+    scanner->line = 1;
+    scanner->previous = make_token(scanner, TOKEN_ERROR);
+}
+
 static Token number(Scanner *scanner) {
     while (is_digit(peek(scanner))) { advance(scanner); }
 
@@ -57,7 +58,12 @@ static Token number(Scanner *scanner) {
     return make_token(scanner, TOKEN_NUMBER);
 }
 
-static void skip_whitespace(Scanner *scanner) {
+/**
+ * Skips the whitespace until the next token starts.
+ * @param scanner the scanner.
+ * @return true if a semicolon has to be inserted;
+ */
+static bool skip_whitespace(Scanner *scanner) {
     while (true) {
         char c = *scanner->current;
 
@@ -68,6 +74,11 @@ static void skip_whitespace(Scanner *scanner) {
                 advance(scanner);
                 break;
             case '\n':
+                if (scanner->previous.type == TOKEN_RETURN) {
+                    advance(scanner);
+                    return true;
+                }
+
                 ++scanner->line;
                 advance(scanner);
                 break;
@@ -77,11 +88,11 @@ static void skip_whitespace(Scanner *scanner) {
                         advance(scanner);
                     }
                 } else {
-                    return;
+                    return false;
                 }
                 break;
             default:
-                return;
+                return false;
         }
     }
 }
@@ -171,9 +182,7 @@ static Token string(Scanner *scanner) {
     return make_token(scanner, TOKEN_STRING);
 }
 
-Token scan_token(Scanner *scanner) {
-    skip_whitespace(scanner);
-
+static Token get_next_token(Scanner *scanner) {
     scanner->start = scanner->current;
 
     if (at_end(scanner)) { return make_token(scanner, TOKEN_EOF); }
@@ -247,4 +256,16 @@ Token scan_token(Scanner *scanner) {
         default:
             return error_token(scanner, "Unexpected Character");
     }
+}
+
+Token scan_token(Scanner *scanner) {
+    bool insert_semi = skip_whitespace(scanner);
+
+    if (insert_semi) {
+        return make_token(scanner, TOKEN_SEMICOLON);
+    }
+
+    Token next = get_next_token(scanner);
+    scanner->previous = next;
+    return next;
 }

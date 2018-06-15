@@ -63,6 +63,12 @@ static Token consume(Vm *vm, TokenType type, const char *err_message) {
     return token;
 }
 
+static void consume_optional(Vm *vm, TokenType type) {
+    if (vm->compiler.token.type == type) {
+        advance(vm);
+    }
+}
+
 static inline void emit_no_arg(Vm *vm, OP_CODE op_code) {
     write_code_buffer(&CURR_FRAME(vm)->code_buffer, op_code);
 }
@@ -513,7 +519,7 @@ static void var_decl(Vm *vm, bool assignable) {
 
     consume(vm, TOKEN_EQUALS, "Expected '=' after variable name");
     expr(vm);
-    consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
+    consume_optional(vm, TOKEN_SEMICOLON);
 
     define_var(vm, identifier);
 }
@@ -566,14 +572,13 @@ static void expr(Vm *vm) {
 static void expr_stmt(Vm *vm) {
     expr(vm);
 
-    CallFrame *curr_frame = CURR_FRAME(vm);
-    if (vm->interactive && curr_frame->code_buffer.code[curr_frame->code_buffer.count - 2] != OP_CALL) {
+    if (vm->interactive) {
         emit_no_arg(vm, OP_PRINT);
     } else {
         emit_no_arg(vm, OP_POP);
     }
 
-    consume(vm, TOKEN_SEMICOLON, "Expected ';' after statement");
+    consume_optional(vm, TOKEN_SEMICOLON);
 }
 
 static void block_stmt(Vm *vm) {
@@ -650,7 +655,7 @@ static void stmt(Vm *vm) {
 
             if (!check(vm, TOKEN_SEMICOLON)) {
                 expr(vm);
-                consume(vm, TOKEN_SEMICOLON, "Expected ';' after return value");
+                consume_optional(vm, TOKEN_SEMICOLON);
             } else {
                 advance(vm);
                 emit_no_arg(vm, OP_NIL);
