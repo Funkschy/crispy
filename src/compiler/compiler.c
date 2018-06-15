@@ -112,6 +112,8 @@ static inline void patch_jump(Vm *vm, uint32_t offset) {
 }
 
 void compile(Vm *vm) {
+    vm->compiler.print_expr = true;
+
     if (vm->compiler.natives.size <= 0) {
         declare_natives(vm);
     }
@@ -152,6 +154,16 @@ static Variable resolve_var(Vm *vm, const char *name, size_t length) {
     error.index = -1;
     error.frame_offset = -1;
     return error;
+}
+
+static bool already_defined(Vm *vm, Token identifier) {
+    Variable *var = resolve_name(vm, identifier.start, identifier.length);
+
+    if (var != NULL) {
+        return var->index == vm->compiler.scope_depth;
+    }
+
+    return false;
 }
 
 static void declare_var(Vm *vm, Token var_decl, bool assignable) {
@@ -520,6 +532,15 @@ static void if_expr(Vm *vm) {
 static void var_decl(Vm *vm, bool assignable) {
     advance(vm);
     Token identifier = consume(vm, TOKEN_IDENTIFIER, "Expected variable name after 'var'");
+
+    if (already_defined(vm, identifier)) {
+        if (assignable) {
+            error(&vm->compiler, "Cannot redeclare value");
+        } else {
+            error(&vm->compiler, "Cannot redeclare variable");
+        }
+    }
+
     declare_var(vm, identifier, assignable);
 
     consume(vm, TOKEN_EQUALS, "Expected '=' after variable name");
@@ -577,7 +598,8 @@ static void expr(Vm *vm) {
 static void expr_stmt(Vm *vm) {
     expr(vm);
 
-    if (vm->interactive) {
+    if (vm->interactive && vm->compiler.print_expr) {
+        vm->compiler.print_expr = false;
         emit_no_arg(vm, OP_PRINT);
     } else {
         emit_no_arg(vm, OP_POP);
@@ -609,33 +631,14 @@ static void while_stmt(Vm *vm) {
     patch_jump_to(vm, exit_jmp, CURR_FRAME(vm)->code_buffer.count);
 }
 
-static void if_stmt(Vm *vm) {
-    advance(vm);
-    expr(vm);
-
-    uint32_t false_jump = emit_jump(vm, OP_JMF);
-    block_stmt(vm);
-
-    uint32_t exit_jump = emit_jump(vm, OP_JMP);
-    patch_jump(vm, false_jump);
-
-    if (vm->compiler.token.type == TOKEN_ELSE) {
-        advance(vm);
-        if (vm->compiler.token.type == TOKEN_IF) {
-            if_stmt(vm);
-        } else {
-            block_stmt(vm);
-        }
-    }
-    patch_jump(vm, exit_jump);
-}
-
 static void simple_stmt(Vm *vm) {
     switch (vm->compiler.token.type) {
         case TOKEN_VAR:
+            vm->compiler.print_expr = false;
             var_decl(vm, true);
             break;
         case TOKEN_VAL:
+            vm->compiler.print_expr = false;
             var_decl(vm, false);
             break;
         default:
@@ -647,15 +650,15 @@ static void simple_stmt(Vm *vm) {
 static void stmt(Vm *vm) {
     switch (vm->compiler.token.type) {
         case TOKEN_WHILE:
+            vm->compiler.print_expr = false;
             while_stmt(vm);
             break;
         case TOKEN_OPEN_BRACE:
+            vm->compiler.print_expr = false;
             block_stmt(vm);
             break;
-        case TOKEN_IF:
-            if_stmt(vm);
-            break;
         case TOKEN_RETURN:
+            vm->compiler.print_expr = false;
             advance(vm);
 
             if (!check(vm, TOKEN_SEMICOLON)) {
@@ -669,6 +672,7 @@ static void stmt(Vm *vm) {
             emit_no_arg(vm, OP_RETURN);
             break;
         case TOKEN_EOF:
+            vm->compiler.print_expr = false;
             break;
         default:
             simple_stmt(vm);

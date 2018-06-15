@@ -22,6 +22,8 @@ typedef struct {
     uint32_t vars_in_scope;
 
     HashTable natives;
+
+    bool print_expr;
 } Compiler;
 
 #endif //CALC_COMPILER_H
