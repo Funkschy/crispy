@@ -1,59 +1,59 @@
-var add = fun a, b -> a + b;
+var add = fun a, b -> a + b
 
-println(add(1, 2));
-println(add(3, 2));
-println(add(add(1,2), add(-1, -3)));
+println(add(1, 2))
+println(add(3, 2))
+println(add(add(1,2), add(-1, -3)))
 
-var unused = fun a -> println(a);
+var unused = fun a -> println(a)
 
 // Just a comment
 
-println(add("Hello ", "World"));
+println(add("Hello ", "World"))
 
-var even = fun n -> if n % 2 == 0 { 2 + 2; true; } else { return false; };
+var even = fun n -> if n % 2 == 0 { 2 + 2 true } else { return false }
 
 {
     {
-        println(even(2));
+        println(even(2))
     }
-    println(even(3));
-    println(even(42));
+    println(even(3))
+    println(even(42))
 }
 
-even = fun n -> n % 2 == 0;
+even = fun n -> n % 2 == 0
 
-println(even(2));
-println(even(3));
-println(even(42));
+println(even(2))
+println(even(3))
+println(even(42))
 
-var encapsulated = fun a, b -> add(a, b);
-println(encapsulated(40, 2));
+var encapsulated = fun a, b -> add(a, b)
+println(encapsulated(40, 2))
 
-var hello = fun -> "Hello";
-println(hello());
+var hello = fun -> "Hello"
+println(hello())
 
-var fff = fun -> fun -> fun -> "Hello World";
+var fff = fun -> fun -> fun -> "Hello World"
 
-var res = fff()()();
-println(res);
+var res = fff()()()
+println(res)
 
-var i = 0;
-var rec = fun -> if i < 10 { i = i + 1; println(i); rec(); };
+var i = 0
+var rec = fun -> if i < 10 { i = i + 1 println(i) rec() }
 
-rec();
+rec()
 
 val l = fun -> {
-    return;
-    println("Hello");
-};
+    return
+    println("Hello")
+}
 
-l();
+l()
 
 val l2 = fun -> {
-    return nil;
-    println("Hello");
-};
+    return nil
+    println("Hello")
+}
 
 if l2() != l() {
-    println("Not nil");
+    println("Not nil")
 }

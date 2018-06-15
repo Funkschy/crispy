@@ -3,13 +3,6 @@
 
 #include "../cli/common.h"
 
-typedef struct {
-    const char *start;
-    const char *current;
-
-    uint32_t line;
-} Scanner;
-
 typedef enum {
     TOKEN_OPEN_PAREN,
     TOKEN_CLOSE_PAREN,
@@ -59,6 +52,15 @@ typedef struct {
     size_t length;
     uint32_t line;
 } Token;
+
+typedef struct {
+    const char *start;
+    const char *current;
+
+    Token previous;
+
+    uint32_t line;
+} Scanner;
 
 void init_scanner(Scanner *scanner, const char *source);
 Token scan_token(Scanner *scanner);

@@ -633,6 +633,7 @@ static InterpretResult run(Vm *vm) {
                 break;
             case OP_PRINT: {
                 Value value = POP();
+                printf("> ");
                 print_value(value, true);
                 break;
             }
