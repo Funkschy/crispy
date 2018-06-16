@@ -178,7 +178,7 @@ static void define_var(Vm *vm, Token identifier) {
     emit_byte_arg(vm, OP_STORE, (uint8_t) variable.index);
 }
 
-static void string(Vm *vm) {
+static void string(Vm *vm, bool quotation_marks) {
     Compiler *compiler = &vm->compiler;
 
     HTItemKey key;
@@ -192,7 +192,11 @@ static void string(Vm *vm) {
 
     // string not yet in hashtable
     if (item.type == NIL) {
-        string = new_string(vm, compiler->token.start + 1, compiler->token.length - 2);
+        if (quotation_marks) {
+            string = new_string(vm, compiler->token.start + 1, compiler->token.length - 2);
+        } else {
+            string = new_string(vm, compiler->token.start, compiler->token.length);
+        }
         value = create_object((Object *) string);
         ht_put(&vm->strings, key, value);
     } else {
@@ -299,7 +303,7 @@ static void primary(Vm *vm) {
             return;
         }
         case TOKEN_STRING: {
-            string(vm);
+            string(vm, true);
             break;
         }
         case TOKEN_FALSE:
@@ -321,24 +325,41 @@ static void primary(Vm *vm) {
 static void primary_expr(Vm *vm) {
     primary(vm);
 
-    if (!check(vm, TOKEN_OPEN_PAREN)) { return; }
+    switch (vm->compiler.token.type) {
+        case TOKEN_OPEN_PAREN: {
+            // Call
+            size_t num_args = 0;
+            while (match(vm, TOKEN_OPEN_PAREN)) {
+                if (!match(vm, TOKEN_CLOSE_PAREN)) {
+                    do {
+                        expr(vm);
+                        ++num_args;
+                    } while (match(vm, TOKEN_COMMA));
 
-    size_t num_args = 0;
-
-    // Call
-    while (match(vm, TOKEN_OPEN_PAREN)) {
-        if (!match(vm, TOKEN_CLOSE_PAREN)) {
-            do {
-                expr(vm);
-                ++num_args;
-            } while (match(vm, TOKEN_COMMA));
-
-            consume(vm, TOKEN_CLOSE_PAREN, "Expected ')' after argument list");
-            emit_byte_arg(vm, OP_CALL, (uint8_t) num_args);
-        } else {
-            emit_byte_arg(vm, OP_CALL, 0);
+                    consume(vm, TOKEN_CLOSE_PAREN, "Expected ')' after argument list");
+                    emit_byte_arg(vm, OP_CALL, (uint8_t) num_args);
+                } else {
+                    emit_byte_arg(vm, OP_CALL, 0);
+                }
+            }
+            break;
         }
+        case TOKEN_DOT: {
+            while (match(vm, TOKEN_DOT)) {
+                if (!check(vm, TOKEN_IDENTIFIER)) {
+                    error(&vm->compiler, "Expected identifier after '.'");
+                }
+
+                string(vm, false);
+                advance(vm);
+                emit_no_arg(vm, OP_DICT_GET);
+            }
+            break;
+        }
+        default:
+            break;
     }
+
 }
 
 static void factor(Vm *vm) {
@@ -520,13 +541,13 @@ static void dict_expr(Vm *vm) {
 
     if (!check(vm, TOKEN_CLOSE_BRACE) && !check(vm, TOKEN_EOF)) {
         do {
-            string(vm);
+            string(vm, true);
             advance(vm);
             consume(vm, TOKEN_COLON, "Expected ':' between key and value in dictionary");
             expr(vm);
 
             emit_no_arg(vm, OP_DICT_ADD);
-        } while(match(vm, TOKEN_COMMA));
+        } while (match(vm, TOKEN_COMMA));
     }
 
     consume(vm, TOKEN_CLOSE_BRACE, "Expected '}' after dictionary literal");

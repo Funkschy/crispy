@@ -49,7 +49,7 @@ static void print_object(Object *object, const char *new_line, bool print_quotat
         case OBJ_STRING: {
             const char *quotation = print_quotation ? "\"" : "";
             ObjString *string = (ObjString *) object;
-            printf("%s%.*s%s%s", quotation, (int) string->length, string->start, new_line, quotation);
+            printf("%s%.*s%s%s", quotation, (int) string->length, string->start, quotation, new_line);
             break;
         }
         case OBJ_LAMBDA: {
