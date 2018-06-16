@@ -25,7 +25,8 @@ static void error(Compiler *compiler, const char *err_message) {
 
 static inline void advance(Vm *vm) {
     vm->compiler.previous = vm->compiler.token;
-    vm->compiler.token = scan_token(&vm->compiler.scanner);
+    vm->compiler.token = vm->compiler.next;
+    vm->compiler.next = scan_token(&vm->compiler.scanner);
 }
 
 static inline void open_scope(Vm *vm) {
@@ -177,6 +178,43 @@ static void define_var(Vm *vm, Token identifier) {
     emit_byte_arg(vm, OP_STORE, (uint8_t) variable.index);
 }
 
+static void string(Vm *vm, bool quotation_marks) {
+    Compiler *compiler = &vm->compiler;
+
+    HTItemKey key;
+    key.key_ident_string = compiler->token.start;
+    key.ident_length = compiler->token.length;
+
+    Value item = ht_get(&vm->strings, key);
+
+    ObjString *string;
+    Value value;
+
+    // string not yet in hashtable
+    if (item.type == NIL) {
+        if (quotation_marks) {
+            string = new_string(vm, compiler->token.start + 1, compiler->token.length - 2);
+        } else {
+            string = new_string(vm, compiler->token.start, compiler->token.length);
+        }
+        value = create_object((Object *) string);
+        ht_put(&vm->strings, key, value);
+    } else {
+        string = (ObjString *) item.o_value;
+        value = create_object((Object *) string);
+    }
+
+    uint16_t pos = (uint16_t) add_constant(vm, value);
+
+    if (pos > UINT8_MAX) {
+        uint8_t index_1 = (uint8_t) (pos >> 8);
+        uint8_t index_2 = (uint8_t) (pos & 0xFF);
+        emit_short_arg(vm, OP_LDC_W, index_1, index_2);
+    } else {
+        emit_byte_arg(vm, OP_LDC, (uint8_t) pos);
+    }
+}
+
 static void primary(Vm *vm) {
     Compiler *compiler = &vm->compiler;
 
@@ -265,35 +303,7 @@ static void primary(Vm *vm) {
             return;
         }
         case TOKEN_STRING: {
-            HTItemKey key;
-            key.key_ident_string = compiler->token.start;
-            key.ident_length = compiler->token.length;
-
-            Value item = ht_get(&vm->strings, key);
-
-            ObjString *string;
-            Value value;
-
-            // string not yet in hashtable
-            if (item.type == NIL) {
-                string = new_string(vm, compiler->token.start + 1, compiler->token.length - 2);
-                value = create_object((Object *) string);
-                ht_put(&vm->strings, key, value);
-            } else {
-                string = (ObjString *) item.o_value;
-                value = create_object((Object *) string);
-            }
-
-            uint16_t pos = (uint16_t) add_constant(vm, value);
-
-            if (pos > UINT8_MAX) {
-                uint8_t index_1 = (uint8_t) (pos >> 8);
-                uint8_t index_2 = (uint8_t) (pos & 0xFF);
-                emit_short_arg(vm, OP_LDC_W, index_1, index_2);
-            } else {
-                emit_byte_arg(vm, OP_LDC, (uint8_t) pos);
-            }
-
+            string(vm, true);
             break;
         }
         case TOKEN_FALSE:
@@ -315,24 +325,41 @@ static void primary(Vm *vm) {
 static void primary_expr(Vm *vm) {
     primary(vm);
 
-    if (!check(vm, TOKEN_OPEN_PAREN)) { return; }
+    switch (vm->compiler.token.type) {
+        case TOKEN_OPEN_PAREN: {
+            // Call
+            size_t num_args = 0;
+            while (match(vm, TOKEN_OPEN_PAREN)) {
+                if (!match(vm, TOKEN_CLOSE_PAREN)) {
+                    do {
+                        expr(vm);
+                        ++num_args;
+                    } while (match(vm, TOKEN_COMMA));
 
-    size_t num_args = 0;
-
-    // Call
-    while (match(vm, TOKEN_OPEN_PAREN)) {
-        if (!match(vm, TOKEN_CLOSE_PAREN)) {
-            do {
-                expr(vm);
-                ++num_args;
-            } while (match(vm, TOKEN_COMMA));
-
-            consume(vm, TOKEN_CLOSE_PAREN, "Expected ')' after argument list");
-            emit_byte_arg(vm, OP_CALL, (uint8_t) num_args);
-        } else {
-            emit_byte_arg(vm, OP_CALL, 0);
+                    consume(vm, TOKEN_CLOSE_PAREN, "Expected ')' after argument list");
+                    emit_byte_arg(vm, OP_CALL, (uint8_t) num_args);
+                } else {
+                    emit_byte_arg(vm, OP_CALL, 0);
+                }
+            }
+            break;
         }
+        case TOKEN_DOT: {
+            while (match(vm, TOKEN_DOT)) {
+                if (!check(vm, TOKEN_IDENTIFIER)) {
+                    error(&vm->compiler, "Expected identifier after '.'");
+                }
+
+                string(vm, false);
+                advance(vm);
+                emit_no_arg(vm, OP_DICT_GET);
+            }
+            break;
+        }
+        default:
+            break;
     }
+
 }
 
 static void factor(Vm *vm) {
@@ -497,8 +524,44 @@ static void lambda(Vm *vm) {
 
 }
 
+static void dict_expr(Vm *vm) {
+    HashTable content;
+    ht_init(&content, HT_KEY_OBJSTRING, 8, free_objstring);
+
+    ObjDict *dict = new_dict(vm, content);
+    uint16_t pos = (uint16_t) add_constant(vm, create_object((Object *) dict));
+
+    if (pos > UINT8_MAX) {
+        uint8_t index_1 = (uint8_t) (pos >> 8);
+        uint8_t index_2 = (uint8_t) (pos & 0xFF);
+        emit_short_arg(vm, OP_LDC_W, index_1, index_2);
+    } else {
+        emit_byte_arg(vm, OP_LDC, (uint8_t) pos);
+    }
+
+    if (!check(vm, TOKEN_CLOSE_BRACE) && !check(vm, TOKEN_EOF)) {
+        do {
+            string(vm, true);
+            advance(vm);
+            consume(vm, TOKEN_COLON, "Expected ':' between key and value in dictionary");
+            expr(vm);
+
+            emit_no_arg(vm, OP_DICT_ADD);
+        } while (match(vm, TOKEN_COMMA));
+    }
+
+    consume(vm, TOKEN_CLOSE_BRACE, "Expected '}' after dictionary literal");
+}
+
 static void block_expr(Vm *vm) {
     advance(vm);
+
+    // a dictionary, not a block
+    if (vm->compiler.next.type == TOKEN_COLON || vm->compiler.token.type == TOKEN_CLOSE_BRACE) {
+        dict_expr(vm);
+        return;
+    }
+
     open_scope(vm);
     while (!check(vm, TOKEN_CLOSE_BRACE) && !check(vm, TOKEN_EOF)) {
         stmt(vm);
@@ -610,6 +673,14 @@ static void expr_stmt(Vm *vm) {
 
 static void block_stmt(Vm *vm) {
     advance(vm);
+
+    // a dictionary, not a block
+    if (vm->compiler.next.type == TOKEN_COLON || vm->compiler.token.type == TOKEN_CLOSE_BRACE) {
+        dict_expr(vm);
+        return;
+    }
+
+    vm->compiler.print_expr = false;
     open_scope(vm);
     while (!check(vm, TOKEN_CLOSE_BRACE) && !check(vm, TOKEN_EOF)) {
         stmt(vm);
@@ -654,10 +725,13 @@ static void stmt(Vm *vm) {
             while_stmt(vm);
             break;
         case TOKEN_OPEN_BRACE:
-            vm->compiler.print_expr = false;
             block_stmt(vm);
             break;
         case TOKEN_RETURN:
+            if (vm->frame_count <= 1) {
+                error(&vm->compiler, "Cannot return from global scope");
+            }
+
             vm->compiler.print_expr = false;
             advance(vm);
 

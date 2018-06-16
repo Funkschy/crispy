@@ -1,0 +1,5 @@
+{"name": "peter"}
+{}
+{"first name": "peter", "last name": "parker", "age": 29}
+{"p1": {"first name": "peter", "last name": "parker", "age": 29}}
+29

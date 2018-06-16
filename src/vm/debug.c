@@ -29,7 +29,7 @@ static int constant_instruction(const char *name, Vm *vm, int offset) {
     uint8_t constant_index = CURR_FRAME(vm)->code_buffer.code[offset + 1];
 
     printf("%-16s %4d '", name, constant_index);
-    print_value(CURR_FRAME(vm)->constants.values[constant_index], false);
+    print_value(CURR_FRAME(vm)->constants.values[constant_index], false, false);
     printf("'\n");
 
     return offset + 2;
@@ -151,6 +151,10 @@ int disassemble_instruction(Vm *vm, int offset) {
             return simple_instruction("OP_NOT", offset);
         case OP_PRINT:
             return simple_instruction("OP_PRINT", offset);
+        case OP_DICT_ADD:
+            return simple_instruction("OP_DICT_ADD", offset);
+        case OP_DICT_GET:
+            return simple_instruction("OP_DICT_GET", offset);
         default:
             printf("Unknown instruction %d\n", instruction);
             return offset + 1;

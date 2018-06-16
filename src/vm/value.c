@@ -9,6 +9,7 @@
 #include "value.h"
 #include "vm.h"
 #include "memory.h"
+#include "dictionary.h"
 
 void init_value_array(ValueArray *value_array) {
     value_array->cap = 0;
@@ -43,11 +44,12 @@ void write_at(ValueArray *value_array, uint32_t index, Value value) {
     value_array->values[index] = value;
 }
 
-static void print_object(Object *object, const char *new_line) {
+static void print_object(Object *object, const char *new_line, bool print_quotation) {
     switch (object->type) {
         case OBJ_STRING: {
+            const char *quotation = print_quotation ? "\"" : "";
             ObjString *string = (ObjString *) object;
-            printf("%.*s%s", (int) string->length, string->start, new_line);
+            printf("%s%.*s%s%s", quotation, (int) string->length, string->start, quotation, new_line);
             break;
         }
         case OBJ_LAMBDA: {
@@ -59,12 +61,17 @@ static void print_object(Object *object, const char *new_line) {
             printf("<native function of arity 1>%s", new_line);
             break;
         }
+        case OBJ_DICT: {
+            print_dict((ObjDict *) object, false);
+            printf("%s", new_line);
+            break;
+        }
         default:
             printf("Invalid object%s", new_line);
     }
 }
 
-void print_value(Value value, bool new_line) {
+void print_value(Value value, bool new_line, bool print_quotation) {
     const char *nl = (new_line) ? "\n" : "";
     switch (value.type) {
         case NUMBER:
@@ -74,7 +81,7 @@ void print_value(Value value, bool new_line) {
             printf("%s%s", BOOL_STRING(value), nl);
             break;
         case OBJECT:
-            print_object(value.o_value, nl);
+            print_object(value.o_value, nl, print_quotation);
             break;
         case NIL:
             printf("nil%s", nl);
@@ -122,6 +129,9 @@ void print_object_type(Value value) {
             break;
         case OBJ_LAMBDA:
             printf(" : LAMBDA\n");
+            break;
+        case OBJ_DICT:
+            printf(" : DICT\n");
             break;
         default:
             printf(" : OBJECT\n");
@@ -291,6 +301,13 @@ ObjNativeFunc *new_native_func(Vm *vm, void *func_ptr, uint8_t num_args, bool sy
     return n_fn;
 }
 
+ObjDict *new_dict(Vm *vm, HashTable content) {
+    ObjDict *dict = ALLOC_OBJ(vm, ObjDict, OBJ_DICT);
+    dict->content = content;
+
+    return dict;
+}
+
 uint32_t hash_string(const char *string, size_t length) {
     //
     uint32_t hash = 5381;
@@ -365,7 +382,7 @@ int cmp_objects(Object *first, Object *second) {
     switch (first->type) {
         case OBJ_STRING:
             return cmp_strings((ObjString *) first, (ObjString *) second);
-        case OBJ_MAP:
+        case OBJ_DICT:
             // TODO implement
             break;
         case OBJ_LIST:

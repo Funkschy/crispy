@@ -13,6 +13,8 @@
 #include "value.h"
 #include "../compiler/compiler.h"
 #include "../compiler/scanner.h"
+#include "dictionary.h"
+#include "hashtable.h"
 
 static InterpretResult run(Vm *vm);
 
@@ -92,9 +94,12 @@ size_t free_object(Object *object) {
         case OBJ_LIST:
             printf("Lists can't be freed yet\n");
             break;
-        case OBJ_MAP:
-            printf("Maps can't be freed yet\n");
+        case OBJ_DICT: {
+            ObjDict *dict = (ObjDict *) object;
+            ht_free(&dict->content);
+            free(dict);
             break;
+        }
     }
 
     return 0;
@@ -139,6 +144,7 @@ static void init_compiler(Compiler *compiler, const char *source) {
 
     compiler->scanner = scanner;
     compiler->token = scan_token(&compiler->scanner);
+    compiler->next = scan_token(&compiler->scanner);
 
     VariableArray variables;
     init_variable_array(&variables);
@@ -206,6 +212,7 @@ InterpretResult interpret_interactive(Vm *vm, const char *source) {
         init_scanner(&vm->compiler.scanner, source);
         vm->compiler.scanner = vm->compiler.scanner;
         vm->compiler.token = scan_token(&vm->compiler.scanner);
+        vm->compiler.next = scan_token(&vm->compiler.scanner);
 
         free_code_buffer(&CURR_FRAME(vm)->code_buffer);
         CodeBuffer code_buffer;
@@ -272,7 +279,7 @@ static InterpretResult run(Vm *vm) {
         long stack_size = sp - vm->stack;
         for (int i = 0; i < stack_size; ++i) {
             printf("[%d] ", i);
-            print_value(vm->stack[i], false);
+            print_value(vm->stack[i], false, true);
             print_type(vm->stack[i]);
         }
         printf("sp: %li\n", stack_size);
@@ -640,7 +647,35 @@ static InterpretResult run(Vm *vm) {
             case OP_PRINT: {
                 Value value = POP();
                 printf("> ");
-                print_value(value, true);
+                print_value(value, true, true);
+                break;
+            }
+            case OP_DICT_ADD: {
+                Value value = POP();
+                Value key = POP();
+
+                Value dict_val = PEEK();
+                ObjDict *dict = (ObjDict *) dict_val.o_value;
+
+                HTItemKey ht_key;
+                ht_key.key_obj_string = (ObjString *) key.o_value;
+                ht_put(&dict->content, ht_key, value);
+
+                break;
+            }
+            case OP_DICT_GET: {
+                Value key_val = POP();
+                Value dict_val = POP();
+
+                ObjDict *dict = (ObjDict *) dict_val.o_value;
+                ObjString *key_string = (ObjString *) key_val.o_value;
+
+                HTItemKey key;
+                key.key_obj_string = key_string;
+
+                Value result = ht_get(&dict->content, key);
+                PUSH(result);
+
                 break;
             }
             default:
