@@ -61,7 +61,7 @@ void frames_free(FrameArray *frames);
 
 void frames_write_at(FrameArray *frame_arr, uint32_t index, CallFrame *frame);
 
-void compile(Vm *vm);
+int compile(Vm *vm);
 
 size_t free_object(Object *object);
 

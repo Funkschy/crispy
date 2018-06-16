@@ -5,6 +5,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <setjmp.h>
 
 #include "compiler.h"
 #include "../vm/vm.h"
@@ -14,13 +15,16 @@
 #include "../vm/value.h"
 #include "native.h"
 
+jmp_buf error_buf;
+
 static void expr(Vm *vm);
 
 static void stmt(Vm *vm);
 
 static void error(Compiler *compiler, const char *err_message) {
-    printf("[Line %d] %s\n", compiler->previous.line, err_message);
-    exit(44);
+    int line = compiler->previous.type == TOKEN_ERROR ? compiler->token.line : compiler->previous.line;
+    printf("[Line %d] %s\n", line, err_message);
+    longjmp(error_buf, INTERPRET_COMPILE_ERROR);
 }
 
 static inline void advance(Vm *vm) {
@@ -112,11 +116,16 @@ static inline void patch_jump(Vm *vm, uint32_t offset) {
     patch_jump_to(vm, offset, CURR_FRAME(vm)->code_buffer.count);
 }
 
-void compile(Vm *vm) {
+int compile(Vm *vm) {
     vm->compiler.print_expr = true;
 
     if (vm->compiler.natives.size <= 0) {
         declare_natives(vm);
+    }
+
+    int val = setjmp(error_buf);
+    if (val) {
+        return val;
     }
 
     do {
@@ -124,6 +133,8 @@ void compile(Vm *vm) {
     } while (vm->compiler.token.type != TOKEN_EOF);
 
     emit_no_arg(vm, OP_RETURN);
+
+    return 0;
 }
 
 static Variable *resolve_name(Vm *vm, const char *name, size_t length) {
