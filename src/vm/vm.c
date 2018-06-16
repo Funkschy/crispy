@@ -143,6 +143,8 @@ static void init_compiler(Compiler *compiler, const char *source) {
     init_scanner(&scanner, source);
 
     compiler->scanner = scanner;
+    Token err = {TOKEN_ERROR, NULL, 0, 1};
+    compiler->previous = err;
     compiler->token = scan_token(&compiler->scanner);
     compiler->next = scan_token(&compiler->scanner);
 
@@ -187,7 +189,11 @@ InterpretResult interpret(Vm *vm, const char *source) {
     init_compiler(&compiler, source);
 
     vm->compiler = compiler;
-    compile(vm);
+    int compile_result = compile(vm);
+
+    if (compile_result) {
+        return INTERPRET_COMPILE_ERROR;
+    }
 
 #if DEBUG_SHOW_DISASSEMBLY
     disassemble_curr_frame(vm, "Main Program");
@@ -220,7 +226,11 @@ InterpretResult interpret_interactive(Vm *vm, const char *source) {
         CURR_FRAME(vm)->code_buffer = code_buffer;
     }
 
-    compile(vm);
+    int compile_result = compile(vm);
+
+    if (compile_result) {
+        return INTERPRET_COMPILE_ERROR;
+    }
 
 #if DEBUG_SHOW_DISASSEMBLY
     disassemble_curr_frame(vm, "Last input");
