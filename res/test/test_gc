@@ -1,16 +1,16 @@
-var i = 0;
-var test = "a";
+var i = 0
+var test = "a"
 
-while i != 100000 {
-    i = i + 1;
-    test = test + "a";
+while i < 100000 {
+    i++
+    test = test + "a"
 }
 
 {
-    var test2 = test + "b";
-    test2 = test2 + "b";
-    test2 = test2 + "b";
-    println(test2);
+    var test2 = test + "b"
+    test2 = test2 + "b"
+    test2 = test2 + "b"
+    println(test2)
 }
 
-println(test);
+println(test)

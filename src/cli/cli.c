@@ -53,7 +53,7 @@ static char *read_line() {
 
     return line;
 #else
-    fprintf(stderr, "Error while reading from stdin.\n");
+    fprintf(stderr, "No shell on windows sorry :(.\n");
     return NULL;
 #endif
 }
