@@ -9,13 +9,13 @@
 #include "../vm/value.h"
 
 Value println(Value *value) {
-    print_value(value[0], true);
+    print_value(value[0], true, false);
 
     return create_nil();
 }
 
 Value print(Value *value) {
-    print_value(value[0], false);
+    print_value(value[0], false, false);
 
     return create_nil();
 }

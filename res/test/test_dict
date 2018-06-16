@@ -1,0 +1,15 @@
+var p = {"name": "peter"}
+println(p)
+p = {}
+println(p)
+p = {
+    "first name": "peter",
+    "last name": "parker",
+    "age": 29
+}
+println(p)
+
+var p2 = {
+    "p1": p
+}
+println(p2)

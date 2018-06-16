@@ -29,7 +29,7 @@ static int constant_instruction(const char *name, Vm *vm, int offset) {
     uint8_t constant_index = CURR_FRAME(vm)->code_buffer.code[offset + 1];
 
     printf("%-16s %4d '", name, constant_index);
-    print_value(CURR_FRAME(vm)->constants.values[constant_index], false);
+    print_value(CURR_FRAME(vm)->constants.values[constant_index], false, true);
     printf("'\n");
 
     return offset + 2;

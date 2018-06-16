@@ -44,11 +44,12 @@ void write_at(ValueArray *value_array, uint32_t index, Value value) {
     value_array->values[index] = value;
 }
 
-static void print_object(Object *object, const char *new_line) {
+static void print_object(Object *object, const char *new_line, bool print_quotation) {
     switch (object->type) {
         case OBJ_STRING: {
+            const char *quotation = print_quotation ? "\"" : "";
             ObjString *string = (ObjString *) object;
-            printf("%.*s%s", (int) string->length, string->start, new_line);
+            printf("%s%.*s%s%s", quotation, (int) string->length, string->start, new_line, quotation);
             break;
         }
         case OBJ_LAMBDA: {
@@ -70,7 +71,7 @@ static void print_object(Object *object, const char *new_line) {
     }
 }
 
-void print_value(Value value, bool new_line) {
+void print_value(Value value, bool new_line, bool print_quotation) {
     const char *nl = (new_line) ? "\n" : "";
     switch (value.type) {
         case NUMBER:
@@ -80,7 +81,7 @@ void print_value(Value value, bool new_line) {
             printf("%s%s", BOOL_STRING(value), nl);
             break;
         case OBJECT:
-            print_object(value.o_value, nl);
+            print_object(value.o_value, nl, print_quotation);
             break;
         case NIL:
             printf("nil%s", nl);

@@ -94,9 +94,12 @@ size_t free_object(Object *object) {
         case OBJ_LIST:
             printf("Lists can't be freed yet\n");
             break;
-        case OBJ_DICT:
-            printf("Maps can't be freed yet\n");
+        case OBJ_DICT: {
+            ObjDict *dict = (ObjDict *)object;
+            ht_free(&dict->content);
+            free(dict);
             break;
+        }
     }
 
     return 0;
@@ -644,7 +647,7 @@ static InterpretResult run(Vm *vm) {
             case OP_PRINT: {
                 Value value = POP();
                 printf("> ");
-                print_value(value, true);
+                print_value(value, true, true);
                 break;
             }
             case OP_DICT_ADD: {

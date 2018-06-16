@@ -184,9 +184,9 @@ void free_heap_string(HTItem *item) {
 }
 
 void free_objstring(HTItem *item) {
-    ObjString *string = item->key.key_obj_string;
-    free_object((Object *) string);
     free(item);
+    // Don't free string itself.
+    // All strings are interned and will be freed when the application exits
 }
 
 

@@ -122,7 +122,7 @@ void write_value(ValueArray *value_array, Value value);
 
 void write_at(ValueArray *value_array, uint32_t index, Value value);
 
-void print_value(Value value, bool new_line);
+void print_value(Value value, bool new_line, bool print_quotation);
 
 void print_type(Value value);
 

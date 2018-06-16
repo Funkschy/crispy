@@ -42,10 +42,10 @@ void print_dict(ObjDict *dict, bool new_line) {
             } else {
                 printf(", ");
             }
-            printf("%s", tab);
+            printf("%s\"", tab);
             print_ht_key(ht.key_type, bucket->key);
-            printf(": ");
-            print_value(bucket->value, new_line);
+            printf("\": ");
+            print_value(bucket->value, new_line, true);
 
             bucket = bucket->next;
         }
