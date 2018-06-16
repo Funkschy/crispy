@@ -151,6 +151,8 @@ int disassemble_instruction(Vm *vm, int offset) {
             return simple_instruction("OP_NOT", offset);
         case OP_PRINT:
             return simple_instruction("OP_PRINT", offset);
+        case OP_DICT_ADD:
+            return simple_instruction("OP_DICT_ADD", offset);
         default:
             printf("Unknown instruction %d\n", instruction);
             return offset + 1;

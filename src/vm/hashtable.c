@@ -5,6 +5,7 @@
 
 #include "hashtable.h"
 #include "value.h"
+#include "vm.h"
 
 #include <string.h>
 
@@ -179,6 +180,12 @@ void free_string_literal(HTItem *item) {
 void free_heap_string(HTItem *item) {
     const char *string = item->key.key_c_string;
     free((void *) string);
+    free(item);
+}
+
+void free_objstring(HTItem *item) {
+    ObjString *string = item->key.key_obj_string;
+    free_object((Object *) string);
     free(item);
 }
 

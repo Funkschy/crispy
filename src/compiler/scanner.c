@@ -258,6 +258,8 @@ static Token get_next_token(Scanner *scanner) {
                 return make_token(scanner, TOKEN_GREATER_EQUALS);
             }
             return make_token(scanner, TOKEN_GREATER);
+        case ':':
+            return make_token(scanner, TOKEN_COLON);
         default:
             return error_token(scanner, "Unexpected Character");
     }

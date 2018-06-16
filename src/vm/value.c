@@ -9,6 +9,7 @@
 #include "value.h"
 #include "vm.h"
 #include "memory.h"
+#include "dictionary.h"
 
 void init_value_array(ValueArray *value_array) {
     value_array->cap = 0;
@@ -57,6 +58,11 @@ static void print_object(Object *object, const char *new_line) {
         }
         case OBJ_NATIVE_FUNC: {
             printf("<native function of arity 1>%s", new_line);
+            break;
+        }
+        case OBJ_DICT: {
+            print_dict((ObjDict *) object, false);
+            printf("%s", new_line);
             break;
         }
         default:
@@ -122,6 +128,9 @@ void print_object_type(Value value) {
             break;
         case OBJ_LAMBDA:
             printf(" : LAMBDA\n");
+            break;
+        case OBJ_DICT:
+            printf(" : DICT\n");
             break;
         default:
             printf(" : OBJECT\n");
@@ -291,6 +300,13 @@ ObjNativeFunc *new_native_func(Vm *vm, void *func_ptr, uint8_t num_args, bool sy
     return n_fn;
 }
 
+ObjDict *new_dict(Vm *vm, HashTable content) {
+    ObjDict *dict = ALLOC_OBJ(vm, ObjDict, OBJ_DICT);
+    dict->content = content;
+
+    return dict;
+}
+
 uint32_t hash_string(const char *string, size_t length) {
     //
     uint32_t hash = 5381;
@@ -365,7 +381,7 @@ int cmp_objects(Object *first, Object *second) {
     switch (first->type) {
         case OBJ_STRING:
             return cmp_strings((ObjString *) first, (ObjString *) second);
-        case OBJ_MAP:
+        case OBJ_DICT:
             // TODO implement
             break;
         case OBJ_LIST:

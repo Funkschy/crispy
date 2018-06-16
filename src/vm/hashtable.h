@@ -49,6 +49,8 @@ void free_string_literal(HTItem *item);
 
 void free_heap_string(HTItem *item);
 
+void free_objstring(HTItem *item);
+
 Value ht_get(HashTable *ht, HTItemKey key);
 
 void ht_delete(HashTable *ht, HTItemKey key);

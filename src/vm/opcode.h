@@ -47,6 +47,8 @@ typedef enum {
 
     OP_PRINT,           // pops a value from the stack and prints it. (Only used in interactive mode)
 
+    OP_DICT_ADD,        // pops to values from the stack and adds them to a dictionary as a key-value pair
+
     OP_JMP,             // unconditional jump
     OP_JEQ,             // jump if equals
     OP_JMT,             // jump if true

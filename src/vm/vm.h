@@ -13,6 +13,7 @@
 
 #include "../cli/common.h"
 #include "value.h"
+#include "dictionary.h"
 #include "../compiler/compiler.h"
 #include "options.h"
 
@@ -103,6 +104,14 @@ ObjString *new_string(Vm *vm, const char *start, size_t length);
  * @return a pointer to the created function wrapper.
  */
 ObjNativeFunc *new_native_func(Vm *vm, void *func_ptr, uint8_t num_params, bool system_func);
+
+/**
+ * Creates a new dictionary.
+ * @param vm the current VM.
+ * @param content the HashTable which represents the dictionary.
+ * @return a pointer to the created dictionary.
+ */
+ObjDict *new_dict(Vm *vm, HashTable content);
 
 /**
  * Compiles and executes the source code.

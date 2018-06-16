@@ -56,7 +56,7 @@ typedef enum {
     OBJ_STRING,
     OBJ_LAMBDA,
     OBJ_NATIVE_FUNC,
-    OBJ_MAP,
+    OBJ_DICT,
     OBJ_LIST
 } ObjectType;
 

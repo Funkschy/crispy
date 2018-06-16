@@ -14,6 +14,8 @@
 typedef struct {
     Token token;
     Token previous;
+    Token next;
+
     Scanner scanner;
 
     VariableArray scope[SCOPES_MAX];
