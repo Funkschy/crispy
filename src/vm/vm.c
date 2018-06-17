@@ -26,7 +26,7 @@ void frames_init(FrameArray *frames) {
 
 void frames_free(FrameArray *frames) {
     // initial call frame
-    free_call_frame(frames->frame_pointers[0]);
+    call_frame_free(frames->frame_pointers[0]);
     FREE_ARR(frames->frame_pointers);
     frames_init(frames);
 }
@@ -49,7 +49,7 @@ void frames_write_at(FrameArray *frame_arr, uint32_t index, CallFrame *frame) {
     frame_arr->frame_pointers[index] = frame;
 }
 
-void init_vm(Vm *vm, bool interactive) {
+void vm_init(Vm *vm, bool interactive) {
     vm->sp = vm->stack;
     vm->first_object = NULL;
     vm->allocated_mem = 0;
@@ -81,7 +81,7 @@ size_t free_object(Object *object) {
         }
         case OBJ_LAMBDA: {
             ObjLambda *lambda = (ObjLambda *) object;
-            free_call_frame(lambda->call_frame);
+            call_frame_free(lambda->call_frame);
             free(lambda);
             // TODO size of callframe?
             return sizeof(ObjLambda);
@@ -105,7 +105,7 @@ size_t free_object(Object *object) {
     return 0;
 }
 
-void free_vm(Vm *vm) {
+void vm_free(Vm *vm) {
     frames_free(&vm->frames);
 
     Object **obj = &vm->first_object;
@@ -134,8 +134,14 @@ void write_code_buffer(CodeBuffer *code_buffer, uint8_t instruction) {
 }
 
 uint32_t add_constant(Vm *vm, Value value) {
-    write_value(&CURR_FRAME(vm)->constants, value);
-    return CURR_FRAME(vm)->constants.count - 1;
+    CallFrame *call_frame = CURR_FRAME(vm);
+    if (call_frame->constants.count >= UINT16_MAX) {
+        fprintf(stderr, "Too many constants.\n");
+        exit(42);
+    }
+    
+    write_value(&call_frame->constants, value);
+    return call_frame->constants.count - 1;
 }
 
 static void init_compiler(Compiler *compiler, const char *source) {
@@ -180,7 +186,7 @@ static void panic(Vm *vm, const char *reason) {
         current = POP_FRAME(vm);
     }
 
-    free_vm(vm);
+    vm_free(vm);
     exit(42);
 }
 
@@ -220,9 +226,9 @@ InterpretResult interpret_interactive(Vm *vm, const char *source) {
         vm->compiler.token = scan_token(&vm->compiler.scanner);
         vm->compiler.next = scan_token(&vm->compiler.scanner);
 
-        free_code_buffer(&CURR_FRAME(vm)->code_buffer);
+        code_buff_free(&CURR_FRAME(vm)->code_buffer);
         CodeBuffer code_buffer;
-        init_code_buffer(&code_buffer);
+        code_buff_init(&code_buffer);
         CURR_FRAME(vm)->code_buffer = code_buffer;
     }
 
@@ -411,7 +417,7 @@ static InterpretResult run(Vm *vm) {
 
                 POP_FRAME(vm);
 
-                free_temp_call_frame(call_frame);
+                temp_call_frame_free(call_frame);
 
                 sp = before_sp;
                 break;

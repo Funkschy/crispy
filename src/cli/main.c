@@ -46,12 +46,12 @@ static char *read_file(const char *path) {
 
 static void run_file(const char *file_name) {
     Vm vm;
-    init_vm(&vm, false);
+    vm_init(&vm, false);
 
     char *source = read_file(file_name);
     InterpretResult result = interpret(&vm, source);
 
-    free_vm(&vm);
+    vm_free(&vm);
     free(source);
 
     if (result == INTERPRET_RUNTIME_ERROR) {

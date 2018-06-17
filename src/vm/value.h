@@ -106,17 +106,17 @@ CallFrame *new_call_frame();
 
 CallFrame *new_temp_call_frame(CallFrame *other);
 
-void free_temp_call_frame(CallFrame *call_frame);
+void temp_call_frame_free(CallFrame *call_frame);
 
-void free_call_frame(CallFrame *call_frame);
+void call_frame_free(CallFrame *call_frame);
 
-void init_value_array(ValueArray *value_array);
+void val_arr_init(ValueArray *value_array);
 
-void init_code_buffer(CodeBuffer *code_buffer);
+void code_buff_init(CodeBuffer *code_buffer);
 
-void free_value_array(ValueArray *value_array);
+void val_arr_free(ValueArray *value_array);
 
-void free_code_buffer(CodeBuffer *code_buffer);
+void code_buff_free(CodeBuffer *code_buffer);
 
 void write_value(ValueArray *value_array, Value value);
 
