@@ -536,19 +536,7 @@ static void lambda(Vm *vm) {
 }
 
 static void dict_expr(Vm *vm) {
-    HashTable content;
-    ht_init(&content, HT_KEY_OBJSTRING, 8, free_objstring);
-
-    ObjDict *dict = new_dict(vm, content);
-    uint16_t pos = (uint16_t) add_constant(vm, create_object((Object *) dict));
-
-    if (pos > UINT8_MAX) {
-        uint8_t index_1 = (uint8_t) (pos >> 8);
-        uint8_t index_2 = (uint8_t) (pos & 0xFF);
-        emit_short_arg(vm, OP_LDC_W, index_1, index_2);
-    } else {
-        emit_byte_arg(vm, OP_LDC, (uint8_t) pos);
-    }
+    emit_no_arg(vm, OP_DICT_NEW);
 
     if (!check(vm, TOKEN_CLOSE_BRACE) && !check(vm, TOKEN_EOF)) {
         do {
@@ -557,7 +545,7 @@ static void dict_expr(Vm *vm) {
             consume(vm, TOKEN_COLON, "Expected ':' between key and value in dictionary");
             expr(vm);
 
-            emit_no_arg(vm, OP_DICT_ADD);
+            emit_no_arg(vm, OP_DICT_PUT);
         } while (match(vm, TOKEN_COMMA));
     }
 

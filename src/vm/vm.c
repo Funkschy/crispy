@@ -671,7 +671,16 @@ static InterpretResult run(Vm *vm) {
                 print_value(value, true, true);
                 break;
             }
-            case OP_DICT_ADD: {
+            case OP_DICT_NEW: {
+                HashTable content;
+                ht_init(&content, HT_KEY_OBJSTRING, 8, free_objstring);
+
+                ObjDict *dict = new_dict(vm, content);
+                Value value = create_object((Object *) dict);
+                PUSH(value);
+                break;
+            }
+            case OP_DICT_PUT: {
                 Value value = POP();
                 Value key = POP();
 

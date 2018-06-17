@@ -44,6 +44,75 @@ void write_at(ValueArray *value_array, uint32_t index, Value value) {
     value_array->values[index] = value;
 }
 
+size_t value_to_string(Value value, char **dest) {
+    char *string = NULL;
+    size_t str_len = 0;
+
+    switch (value.type) {
+        case NUMBER: {
+            char s[17];
+            snprintf(s, 17, "%.15g", value.d_value);
+            string = strdup(s);
+            str_len = strlen(s);
+            break;
+        }
+        case OBJECT: {
+            Object *object = value.o_value;
+
+            switch (object->type) {
+                case OBJ_STRING: {
+                    ObjString *obj_string = ((ObjString *) object);
+                    string = malloc((obj_string->length + 3) * sizeof(char));
+                    memcpy(string + 1, obj_string->start, obj_string->length);
+                    string[0] = '"';
+                    string[obj_string->length + 1] = '"';
+                    string[obj_string->length + 2] = '\0';
+                    str_len = ((ObjString *) object)->length + 2;
+                    break;
+                }
+                case OBJ_LAMBDA:
+                    // TODO arity
+                    string = strdup("<function>");
+                    str_len = 10;
+                    break;
+                case OBJ_NATIVE_FUNC:
+                    // TODO arity
+                    string = strdup("<native function>");
+                    str_len = 17;
+                    break;
+                case OBJ_DICT: {
+                    char *dict_string = dict_to_string((ObjDict *) object);
+                    string = dict_string;
+                    str_len = strlen(dict_string);
+                    break;
+                }
+                case OBJ_LIST:
+                    string = strdup("<list>");
+                    str_len = 6;
+                    break;
+            }
+            break;
+        }
+        case BOOLEAN: {
+            if (value.p_value) {
+                string = strdup("true");
+                str_len = 4;
+            } else {
+                string = strdup("false");
+                str_len = 5;
+            }
+            break;
+        }
+        case NIL:
+            string = strdup("nil");
+            str_len = 3;
+            break;
+    }
+
+    *dest = string;
+    return str_len;
+}
+
 static void print_object(Object *object, const char *new_line, bool print_quotation) {
     switch (object->type) {
         case OBJ_STRING: {
@@ -58,7 +127,8 @@ static void print_object(Object *object, const char *new_line, bool print_quotat
             break;
         }
         case OBJ_NATIVE_FUNC: {
-            printf("<native function of arity 1>%s", new_line);
+            ObjNativeFunc *n_fn = (ObjNativeFunc *) object;
+            printf("<native function of arity %d>%s", n_fn->num_params, new_line);
             break;
         }
         case OBJ_DICT: {
@@ -351,7 +421,7 @@ int cmp_strings(ObjString *first, ObjString *second) {
 
 int cmp_values(Value first, Value second) {
     if (first.type != second.type) {
-        return false;
+        return 1;
     }
 
     switch (first.type) {
@@ -371,12 +441,12 @@ int cmp_values(Value first, Value second) {
             return second.type != NIL;
     }
 
-    return false;
+    return 1;
 }
 
 int cmp_objects(Object *first, Object *second) {
     if (first->type != second->type) {
-        return false;
+        return 1;
     }
 
     switch (first->type) {
@@ -389,8 +459,8 @@ int cmp_objects(Object *first, Object *second) {
             // TODO implement
             break;
         default:
-            return false;
+            return 1;
     }
 
-    return false;
+    return 1;
 }

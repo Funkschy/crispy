@@ -1,0 +1,16 @@
+val create = fun value, left, right -> {"value": value, "left": left, "right": right}
+val tree = create(2, create(1, create(0, nil, nil), nil), create(3, nil, nil))
+
+val traverse = fun node -> {
+    if node.left != nil {
+        traverse(node.left)
+    }
+
+ 	println(node.value)
+
+ 	if node.right != nil {
+ 		traverse(node.right)
+ 	}
+}
+
+traverse(tree)
