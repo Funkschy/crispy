@@ -73,7 +73,7 @@ static void repl(Vm *vm, LineArray *lines) {
 
 void run_repl() {
     Vm vm;
-    init_vm(&vm, true);
+    vm_init(&vm, true);
 
     LineArray lines;
     init_line_array(&lines);
@@ -84,5 +84,5 @@ void run_repl() {
 
     // TODO execute
     free_line_array(&lines);
-    free_vm(&vm);
+    vm_free(&vm);
 }

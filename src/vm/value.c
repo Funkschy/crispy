@@ -11,15 +11,15 @@
 #include "memory.h"
 #include "dictionary.h"
 
-void init_value_array(ValueArray *value_array) {
+void val_arr_init(ValueArray *value_array) {
     value_array->cap = 0;
     value_array->count = 0;
     value_array->values = NULL;
 }
 
-void free_value_array(ValueArray *value_array) {
+void val_arr_free(ValueArray *value_array) {
     FREE_ARR(value_array->values);
-    init_value_array(value_array);
+    val_arr_init(value_array);
 }
 
 void write_value(ValueArray *value_array, Value value) {
@@ -226,15 +226,15 @@ void print_type(Value value) {
     }
 }
 
-void init_code_buffer(CodeBuffer *code_buffer) {
+void code_buff_init(CodeBuffer *code_buffer) {
     code_buffer->cap = 0;
     code_buffer->count = 0;
     code_buffer->code = NULL;
 }
 
-void free_code_buffer(CodeBuffer *code_buffer) {
+void code_buff_free(CodeBuffer *code_buffer) {
     FREE_ARR(code_buffer->code);
-    init_code_buffer(code_buffer);
+    code_buff_init(code_buffer);
 }
 
 CallFrame *new_temp_call_frame(CallFrame *other) {
@@ -243,7 +243,7 @@ CallFrame *new_temp_call_frame(CallFrame *other) {
     call_frame->ip = other->ip;
 
     ValueArray variables;
-    init_value_array(&variables);
+    val_arr_init(&variables);
     call_frame->variables = variables;
 
     call_frame->constants = other->constants;
@@ -251,8 +251,8 @@ CallFrame *new_temp_call_frame(CallFrame *other) {
     return call_frame;
 }
 
-void free_temp_call_frame(CallFrame *call_frame) {
-    free_value_array(&call_frame->variables);
+void temp_call_frame_free(CallFrame *call_frame) {
+    val_arr_free(&call_frame->variables);
     free(call_frame);
 }
 
@@ -261,25 +261,25 @@ CallFrame *new_call_frame() {
     call_frame->ip = NULL;
 
     CodeBuffer code_buffer;
-    init_code_buffer(&code_buffer);
+    code_buff_init(&code_buffer);
     call_frame->code_buffer = code_buffer;
 
     ValueArray variables;
-    init_value_array(&variables);
+    val_arr_init(&variables);
     call_frame->variables = variables;
 
     ValueArray constants;
-    init_value_array(&constants);
+    val_arr_init(&constants);
     call_frame->constants = constants;
 
     return call_frame;
 }
 
-void free_call_frame(CallFrame *call_frame) {
-    free_code_buffer(&call_frame->code_buffer);
+void call_frame_free(CallFrame *call_frame) {
+    code_buff_free(&call_frame->code_buffer);
 
-    free_value_array(&call_frame->variables);
-    free_value_array(&call_frame->constants);
+    val_arr_free(&call_frame->variables);
+    val_arr_free(&call_frame->constants);
 
     free(call_frame);
 }
