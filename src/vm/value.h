@@ -133,6 +133,14 @@ int cmp_objects(Object *first, Object *second);
 int cmp_strings(ObjString *first, ObjString *second);
 
 /**
+ * Creates a heap allocated string from any value.
+ * @param value the value that will be stringified.
+ * @param dest the pointer that will point to the created string.
+ * @return the length of the created string.
+ */
+size_t value_to_string(Value value, char **dest);
+
+/**
  * Computes the hash value for an unsigned 4 byte integer.
  * See https://stackoverflow.com/questions/664014/what-integer-hash-function-are-good-that-accepts-an-integer-hash-key/12996028#12996028.
  * @param x the integer that should be hashed.

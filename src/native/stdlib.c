@@ -5,8 +5,10 @@
 
 #include <stdio.h>
 #include <string.h>
+
 #include "stdlib.h"
 #include "../vm/value.h"
+#include "../vm/dictionary.h"
 
 Value println(Value *value) {
     print_value(value[0], true, false);
@@ -31,9 +33,51 @@ Value exit_vm(Value *value) {
 }
 
 Value str(Value *value, Vm *vm) {
-    char s[17];
-    snprintf(s, 17, "%.15g", value->d_value);
+    ObjString *string = NULL;
 
-    // one less, because crispy strings are not null terminated
-    return create_object((Object *) new_string(vm, s, strlen(s)));
+    switch (value->type) {
+        case NUMBER: {
+            char s[17];
+            snprintf(s, 17, "%.15g", value->d_value);
+            // one less, because crispy strings are not null terminated
+            string = new_string(vm, s, strlen(s));
+            break;
+        }
+        case OBJECT: {
+            Object *object = value->o_value;
+
+            switch (object->type) {
+                case OBJ_STRING:
+                    string = (ObjString *) object;
+                    break;
+                case OBJ_LAMBDA:
+                    // TODO arity
+                    string = new_string(vm, "<function>", 10);
+                    break;
+                case OBJ_NATIVE_FUNC:
+                    // TODO arity
+                    string = new_string(vm, "<native function>", 17);
+                    break;
+                case OBJ_DICT: {
+                    char *dict_string = dict_to_string((ObjDict *) object);
+                    string = new_string(vm, dict_string, strlen(dict_string));
+                    free(dict_string);
+                    break;
+                }
+                case OBJ_LIST:
+                    string = new_string(vm, "<list>", 6);
+                    break;
+            }
+            break;
+        }
+        case BOOLEAN: {
+            string = value->p_value ? new_string(vm, "true", 4) : new_string(vm, "false", 5);
+            break;
+        }
+        case NIL:
+            string = new_string(vm, "nil", 3);
+            break;
+    }
+
+    return create_object((Object *) string);
 }

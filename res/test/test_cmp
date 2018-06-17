@@ -28,3 +28,10 @@ println(s1 > s2);
 val s3 = "ABC";
 
 println(s3 == s1);
+
+println(nil == nil)
+println(nil != nil)
+println("" != nil)
+println(nil != "")
+println(1 != nil)
+println(nil != 1)

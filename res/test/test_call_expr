@@ -1,8 +1,11 @@
 var add = fun a, b -> a + b
+val div = fun a, b -> a / b
 
 println(add(1, 2))
 println(add(3, 2))
 println(add(add(1,2), add(-1, -3)))
+
+println(div(div(18, 3), div(24, 8)))
 
 var unused = fun a -> println(a)
 

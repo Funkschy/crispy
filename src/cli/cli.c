@@ -27,6 +27,10 @@ void init_line_array(LineArray *line_array) {
 }
 
 void free_line_array(LineArray *line_array) {
+    for (uint32_t i = 0; i < line_array->count; ++i) {
+        free(line_array->lines[i]);
+    }
+
     FREE_ARR(line_array->lines);
     init_line_array(line_array);
 }
@@ -34,7 +38,7 @@ void free_line_array(LineArray *line_array) {
 void write_line(LineArray *line_array, char *line) {
     if (line_array->count >= line_array->cap) {
         line_array->cap = GROW_CAP(line_array->cap);
-        line_array->lines = GROW_ARR(line_array->lines, Value, line_array->cap);
+        line_array->lines = GROW_ARR(line_array->lines, char *, line_array->cap);
     }
 
     line_array->lines[line_array->count++] = line;

@@ -16,4 +16,6 @@ typedef struct {
 
 void print_dict(ObjDict *dict, bool new_line);
 
+char *dict_to_string(ObjDict *dict);
+
 #endif //CRISPY_DICTIONARY_H

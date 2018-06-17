@@ -151,8 +151,10 @@ int disassemble_instruction(Vm *vm, int offset) {
             return simple_instruction("OP_NOT", offset);
         case OP_PRINT:
             return simple_instruction("OP_PRINT", offset);
-        case OP_DICT_ADD:
-            return simple_instruction("OP_DICT_ADD", offset);
+        case OP_DICT_NEW:
+            return simple_instruction("OP_DICT_NEW", offset);
+        case OP_DICT_PUT:
+            return simple_instruction("OP_DICT_PUT", offset);
         case OP_DICT_GET:
             return simple_instruction("OP_DICT_GET", offset);
         default:
