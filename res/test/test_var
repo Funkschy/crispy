@@ -38,3 +38,4 @@ println(i);
 var b = true;
 println(!b);
 println(!b == !true);
+println(1 != 2);

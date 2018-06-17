@@ -599,6 +599,8 @@ static void if_expr(Vm *vm) {
         } else {
             block_expr(vm);
         }
+    } else {
+        emit_no_arg(vm, OP_NIL);
     }
     patch_jump(vm, exit_jump);
 }
@@ -688,6 +690,12 @@ static void block_stmt(Vm *vm) {
     // a dictionary, not a block
     if (vm->compiler.next.type == TOKEN_COLON || vm->compiler.token.type == TOKEN_CLOSE_BRACE) {
         dict_expr(vm);
+        if (vm->interactive && vm->compiler.print_expr) {
+            vm->compiler.print_expr = false;
+            emit_no_arg(vm, OP_PRINT);
+        } else {
+            emit_no_arg(vm, OP_POP);
+        }
         return;
     }
 
