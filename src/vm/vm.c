@@ -285,17 +285,28 @@ static InterpretResult run(Vm *vm) {
         OP_CODE instruction;
 
 #if DEBUG_TRACE_EXECUTION
-        printf("-----\n");
-        long stack_size = sp - vm->stack;
-        for (int i = 0; i < stack_size; ++i) {
-            printf("[%d] ", i);
-            print_value(vm->stack[i], false, true);
-            print_type(vm->stack[i]);
+        {
+            printf("-----\n");
+            long stack_size = sp - vm->stack;
+            for (int i = 0; i < stack_size; ++i) {
+                printf("[%d] ", i);
+                print_value(vm->stack[i], false, true);
+                print_type(vm->stack[i]);
+            }
+            printf("sp: %li\n", stack_size);
+            printf("ip: %li\n", ip - code);
+            disassemble_instruction(vm, (int) (ip - code));
+            printf("-----\n");
         }
-        printf("sp: %li\n", stack_size);
-        printf("ip: %li\n", ip - code);
-        disassemble_instruction(vm, (int) (ip - code));
-        printf("-----\n");
+#endif
+
+#if DEBUG_TYPE_CHECK
+        {
+            long stack_size = sp - vm->stack;
+            if (stack_size < 0) {
+                printf("Negative stack pointer\n");
+            }
+        }
 #endif
 
         switch (instruction = (OP_CODE) READ_BYTE()) {

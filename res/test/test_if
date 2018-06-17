@@ -30,3 +30,7 @@ if condition == 3 {
  } else {
      println(-1);
  }
+
+ if condition != 4 {
+    println("Error");
+ }
