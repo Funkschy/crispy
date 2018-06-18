@@ -124,7 +124,7 @@ static void resize(HashTable *ht) {
     *ht = new_ht;
 }
 
-void ht_put(HashTable *ht, HTItemKey key, Value value) {
+void ht_put(HashTable *ht, HTItemKey key, CrispyValue value) {
     uint32_t index = hash(key, ht->key_type) & (ht->cap - 1);
     HTItem *new_item = malloc(sizeof(HTItem));
     new_item->next = NULL;
@@ -142,9 +142,9 @@ void ht_put(HashTable *ht, HTItemKey key, Value value) {
     }
 }
 
-static Value *find(HTItem *bucket, HTItemKey wanted, HTKeyType type) {
+static CrispyValue *find(HTItem *bucket, HTItemKey wanted, HTKeyType type) {
     HTItem *item = bucket;
-    Value *value = NULL;
+    CrispyValue *value = NULL;
 
     while (item) {
         if (equals(item->key, wanted, type)) {
@@ -157,17 +157,17 @@ static Value *find(HTItem *bucket, HTItemKey wanted, HTKeyType type) {
     return value;
 }
 
-Value ht_get(HashTable *ht, HTItemKey key) {
+CrispyValue ht_get(HashTable *ht, HTItemKey key) {
     uint32_t index = hash(key, ht->key_type) & (ht->cap - 1);
 
     if (ht->buckets[index] != NULL) {
-        Value *value = find(ht->buckets[index], key, ht->key_type);
+        CrispyValue *value = find(ht->buckets[index], key, ht->key_type);
         if (value) {
             return *value;
         }
     }
 
-    Value v;
+    CrispyValue v;
     v.type = NIL;
     v.p_value = 0;
     return v;

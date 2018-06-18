@@ -9,12 +9,12 @@
 #include "../vm/value.h"
 #include "../vm/vm.h"
 
-Value println(Value *value);
+CrispyValue println(CrispyValue *value);
 
-Value print(Value *value);
+CrispyValue print(CrispyValue *value);
 
-Value exit_vm(Value *value);
+CrispyValue exit_vm(CrispyValue *value);
 
-Value str(Value *value, Vm *vm);
+CrispyValue str(CrispyValue *value, Vm *vm);
 
 #endif //CRISPY_STDLIB_H

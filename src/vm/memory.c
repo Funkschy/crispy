@@ -30,7 +30,7 @@ static void mark_all(Vm *vm) {
 
         // variables
         for (int j = 0; j < curr_frame->variables.count; ++j) {
-            Value *value = &curr_frame->variables.values[j];
+            CrispyValue *value = &curr_frame->variables.values[j];
 
             if (value->type == OBJECT) {
                 mark(value->o_value);
@@ -39,7 +39,7 @@ static void mark_all(Vm *vm) {
 
         // constants
         for (int j = 0; j < curr_frame->constants.count; ++j) {
-            Value *value = &curr_frame->constants.values[j];
+            CrispyValue *value = &curr_frame->constants.values[j];
 
             if (value->type == OBJECT) {
                 mark(value->o_value);

@@ -30,8 +30,8 @@ typedef struct {
 } FrameArray;
 
 typedef struct {
-    Value stack[STACK_MAX];
-    Value *sp;
+    CrispyValue stack[STACK_MAX];
+    CrispyValue *sp;
 
     FrameArray frames;
     uint32_t frame_count;
@@ -109,7 +109,7 @@ size_t free_object(Object *object);
  * @param value the constant.
  * @return the position of the inserted constant inside the pool. (Max 2**16)
  */
-uint32_t add_constant(Vm *vm, Value value);
+uint32_t add_constant(Vm *vm, CrispyValue value);
 
 /**
  * Write an instruction to the codebuffer.

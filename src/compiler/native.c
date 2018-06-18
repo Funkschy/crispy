@@ -9,7 +9,7 @@
 
 static void make_native(Vm *vm, const char *name, void *fn_ptr, uint8_t num_params, bool pass_vm) {
     ObjNativeFunc *println = new_native_func(vm, fn_ptr, num_params, pass_vm);
-    Value value = create_object((Object *) println);
+    CrispyValue value = create_object((Object *) println);
 
     HTItemKey key;
     key.key_c_string = name;
