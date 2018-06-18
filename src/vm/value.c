@@ -22,19 +22,19 @@ void val_arr_free(ValueArray *value_array) {
     val_arr_init(value_array);
 }
 
-void write_value(ValueArray *value_array, Value value) {
+void write_value(ValueArray *value_array, CrispyValue value) {
     if (value_array->count >= value_array->cap) {
         value_array->cap = GROW_CAP(value_array->cap);
-        value_array->values = GROW_ARR(value_array->values, Value, value_array->cap);
+        value_array->values = GROW_ARR(value_array->values, CrispyValue, value_array->cap);
     }
 
     value_array->values[value_array->count++] = value;
 }
 
-void write_at(ValueArray *value_array, uint32_t index, Value value) {
+void write_at(ValueArray *value_array, uint32_t index, CrispyValue value) {
     while (index >= value_array->cap) {
         value_array->cap = GROW_CAP(value_array->cap);
-        value_array->values = GROW_ARR(value_array->values, Value, value_array->cap);
+        value_array->values = GROW_ARR(value_array->values, CrispyValue, value_array->cap);
     }
 
     if (index >= value_array->count) {
@@ -44,7 +44,7 @@ void write_at(ValueArray *value_array, uint32_t index, Value value) {
     value_array->values[index] = value;
 }
 
-size_t value_to_string(Value value, char **dest) {
+size_t value_to_string(CrispyValue value, char **dest) {
     char *string = NULL;
     size_t str_len = 0;
 
@@ -141,7 +141,7 @@ static void print_object(Object *object, const char *new_line, bool print_quotat
     }
 }
 
-void print_value(Value value, bool new_line, bool print_quotation) {
+void print_value(CrispyValue value, bool new_line, bool print_quotation) {
     const char *nl = (new_line) ? "\n" : "";
     switch (value.type) {
         case NUMBER:
@@ -162,35 +162,35 @@ void print_value(Value value, bool new_line, bool print_quotation) {
     }
 }
 
-Value create_nil() {
-    Value val;
+CrispyValue create_nil() {
+    CrispyValue val;
     val.type = NIL;
     val.p_value = 0;
     return val;
 }
 
-Value create_number(double value) {
-    Value val;
+CrispyValue create_number(double value) {
+    CrispyValue val;
     val.type = NUMBER;
     val.d_value = value;
     return val;
 }
 
-Value create_bool(bool value) {
-    Value val;
+CrispyValue create_bool(bool value) {
+    CrispyValue val;
     val.type = BOOLEAN;
     val.p_value = (value) ? 1 : 0;
     return val;
 }
 
-Value create_object(Object *object) {
-    Value val;
+CrispyValue create_object(Object *object) {
+    CrispyValue val;
     val.type = OBJECT;
     val.o_value = object;
     return val;
 }
 
-void print_object_type(Value value) {
+void print_object_type(CrispyValue value) {
     Object *object = value.o_value;
 
     switch (object->type) {
@@ -209,7 +209,7 @@ void print_object_type(Value value) {
     }
 }
 
-void print_type(Value value) {
+void print_type(CrispyValue value) {
     switch (value.type) {
         case NUMBER:
             printf(" : NUMBER\n");
@@ -419,7 +419,7 @@ int cmp_strings(ObjString *first, ObjString *second) {
     return memcmp(first->start, second->start, smaller_length);
 }
 
-int cmp_values(Value first, Value second) {
+int cmp_values(CrispyValue first, CrispyValue second) {
     if (first.type != second.type) {
         return 1;
     }

@@ -10,20 +10,20 @@
 #include "../vm/value.h"
 #include "../vm/dictionary.h"
 
-Value println(Value *value) {
+CrispyValue println(CrispyValue *value) {
     print_value(value[0], true, false);
 
     return create_nil();
 }
 
-Value print(Value *value) {
+CrispyValue print(CrispyValue *value) {
     print_value(value[0], false, false);
 
     return create_nil();
 }
 
 // TODO maybe free vm?
-Value exit_vm(Value *value) {
+CrispyValue exit_vm(CrispyValue *value) {
     if (value[0].type == NUMBER) {
         int ret_val = (int) value[0].d_value;
         exit(ret_val);
@@ -32,7 +32,7 @@ Value exit_vm(Value *value) {
     exit(1);
 }
 
-Value str(Value *value, Vm *vm) {
+CrispyValue str(CrispyValue *value, Vm *vm) {
     ObjString *string = NULL;
 
     switch (value->type) {

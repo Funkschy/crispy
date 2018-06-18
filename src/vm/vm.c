@@ -39,7 +39,7 @@ void frames_write_at(FrameArray *frame_arr, uint32_t index, CallFrame *frame) {
 
     if (index == frame_arr->cap) {
         frame_arr->cap = GROW_CAP(frame_arr->cap);
-        frame_arr->frame_pointers = GROW_ARR(frame_arr->frame_pointers, Value, frame_arr->cap);
+        frame_arr->frame_pointers = GROW_ARR(frame_arr->frame_pointers, CrispyValue, frame_arr->cap);
     }
 
     if (index >= frame_arr->count) {
@@ -133,7 +133,7 @@ void write_code_buffer(CodeBuffer *code_buffer, uint8_t instruction) {
     code_buffer->code[code_buffer->count++] = instruction;
 }
 
-uint32_t add_constant(Vm *vm, Value value) {
+uint32_t add_constant(Vm *vm, CrispyValue value) {
     CallFrame *call_frame = CURR_FRAME(vm);
     if (call_frame->constants.count >= UINT16_MAX) {
         fprintf(stderr, "Too many constants.\n");
@@ -252,10 +252,10 @@ static InterpretResult run(Vm *vm) {
     CallFrame *curr_frame = CURR_FRAME(vm);
 
     register uint8_t *ip = curr_frame->ip;
-    register Value *sp = vm->sp;
+    register CrispyValue *sp = vm->sp;
     register uint8_t *code = curr_frame->code_buffer.code;
 
-    Value *const_values = curr_frame->constants.values;
+    CrispyValue *const_values = curr_frame->constants.values;
     ValueArray *variables = &curr_frame->variables;
 
 #define READ_BYTE() (*ip++)
@@ -268,8 +268,8 @@ static InterpretResult run(Vm *vm) {
 #define PEEK() (*(sp - 1))
 #define BINARY_OP(op)                                           \
     do {                                                        \
-        Value second = POP();                                   \
-        Value first = POP();                                    \
+        CrispyValue second = POP();                                   \
+        CrispyValue first = POP();                                    \
         if (!CHECK_NUM(first) || !CHECK_NUM(second))            \
             goto ERROR;                                         \
         first.d_value = first.d_value op second.d_value;        \
@@ -278,8 +278,8 @@ static InterpretResult run(Vm *vm) {
 
 #define COND_JUMP(op)                                           \
     do {                                                        \
-        Value second = POP();                                   \
-        Value first = POP();                                    \
+        CrispyValue second = POP();                                   \
+        CrispyValue first = POP();                                    \
         if (first.p_value op second.p_value) {                  \
             ip = code + READ_SHORT();                           \
         } else {                                                \
@@ -326,21 +326,21 @@ static InterpretResult run(Vm *vm) {
                 break;
             }
             case OP_LDC_0: {
-                Value zero = create_number(0.0);
+                CrispyValue zero = create_number(0.0);
                 PUSH(zero);
                 break;
             }
             case OP_LDC_1: {
-                Value one = create_number(1.0);
+                CrispyValue one = create_number(1.0);
                 PUSH(one);
                 break;
             }
             case OP_CALL: {
                 uint8_t num_args = READ_BYTE();
-                Value *pos = (sp - num_args - 1);
+                CrispyValue *pos = (sp - num_args - 1);
 
                 if (pos->type != OBJECT) {
-                    fprintf(stderr, "Trying to call primitive Value\n");
+                    fprintf(stderr, "Trying to call primitive CrispyValue\n");
                     goto ERROR;
                 }
 
@@ -361,20 +361,20 @@ static InterpretResult run(Vm *vm) {
                     }
 
                     // Pop arguments from stack
-                    Value args[num_args];
-                    Value *start = sp - num_args;
+                    CrispyValue args[num_args];
+                    CrispyValue *start = sp - num_args;
 
                     for (int i = 0; i < num_args; ++i) {
                         args[i] = *(start++);
                         --sp;
                     }
 
-                    Value res;
+                    CrispyValue res;
                     if (n_fn->system_func) {
                         vm->sp = sp;
-                        res = ((Value (*)(Value *, Vm *vm)) n_fn->func_ptr)(args, vm);
+                        res = ((CrispyValue (*)(CrispyValue *, Vm *vm)) n_fn->func_ptr)(args, vm);
                     } else {
-                        res = ((Value (*)(Value *)) n_fn->func_ptr)(args);
+                        res = ((CrispyValue (*)(CrispyValue *)) n_fn->func_ptr)(args);
                     }
 
                     POP();
@@ -396,7 +396,7 @@ static InterpretResult run(Vm *vm) {
                 }
 
                 // Pop arguments from stack
-                Value args[num_args];
+                CrispyValue args[num_args];
                 for (int i = 0; i < num_args; ++i) {
                     args[i] = POP();
                 }
@@ -404,7 +404,7 @@ static InterpretResult run(Vm *vm) {
                 CallFrame *call_frame = new_temp_call_frame(lambda->call_frame);
 
                 PUSH_FRAME(vm, call_frame);
-                Value *before_sp = sp;
+                CrispyValue *before_sp = sp;
                 for (int i = 0; i < num_args; ++i) {
                     PUSH(args[i]);
                 }
@@ -423,8 +423,8 @@ static InterpretResult run(Vm *vm) {
                 break;
             }
             case OP_ADD: {
-                Value second = POP();
-                Value first = POP();
+                CrispyValue second = POP();
+                CrispyValue first = POP();
 
                 if (first.type == NUMBER && second.type == NUMBER) {
                     first.d_value += second.d_value;
@@ -462,8 +462,8 @@ static InterpretResult run(Vm *vm) {
                 BINARY_OP(*);
                 break;
             case OP_MOD: {
-                Value second = POP();
-                Value first = POP();
+                CrispyValue second = POP();
+                CrispyValue first = POP();
 
                 if (first.type != NUMBER || second.type != NUMBER) {
                     fprintf(stderr, "Modulo operator (%%) only works on numbers");
@@ -477,8 +477,8 @@ static InterpretResult run(Vm *vm) {
                 break;
             }
             case OP_DIV: {
-                Value second = POP();
-                Value first = POP();
+                CrispyValue second = POP();
+                CrispyValue first = POP();
                 if (!CHECK_NUM(first) || !CHECK_NUM(second)) {
                     goto ERROR;
                 }
@@ -492,8 +492,8 @@ static InterpretResult run(Vm *vm) {
                 break;
             }
             case OP_OR: {
-                Value second = POP();
-                Value first = POP();
+                CrispyValue second = POP();
+                CrispyValue first = POP();
 
                 if (first.type != BOOLEAN || second.type != BOOLEAN) {
                     goto ERROR;
@@ -504,8 +504,8 @@ static InterpretResult run(Vm *vm) {
                 break;
             }
             case OP_AND: {
-                Value second = POP();
-                Value first = POP();
+                CrispyValue second = POP();
+                CrispyValue first = POP();
 
                 if (first.type != BOOLEAN || second.type != BOOLEAN) {
                     goto ERROR;
@@ -516,49 +516,49 @@ static InterpretResult run(Vm *vm) {
                 break;
             }
             case OP_EQUAL: {
-                Value second = POP();
-                Value first = POP();
+                CrispyValue second = POP();
+                CrispyValue first = POP();
                 PUSH(create_bool(cmp_values(first, second) == 0));
                 break;
             }
             case OP_NOT_EQUAL: {
-                Value second = POP();
-                Value first = POP();
+                CrispyValue second = POP();
+                CrispyValue first = POP();
                 PUSH(create_bool(cmp_values(first, second) != 0));
                 break;
             }
             case OP_GE: {
                 // TODO exception for non orderable type (e.g nil)
-                Value second = POP();
-                Value first = POP();
+                CrispyValue second = POP();
+                CrispyValue first = POP();
                 PUSH(create_bool(cmp_values(first, second) >= 0));
                 break;
             }
             case OP_LE: {
-                Value second = POP();
-                Value first = POP();
+                CrispyValue second = POP();
+                CrispyValue first = POP();
                 PUSH(create_bool(cmp_values(first, second) <= 0));
                 break;
             }
             case OP_GT: {
-                Value second = POP();
-                Value first = POP();
+                CrispyValue second = POP();
+                CrispyValue first = POP();
                 PUSH(create_bool(cmp_values(first, second) > 0));
                 break;
             }
             case OP_LT: {
-                Value second = POP();
-                Value first = POP();
+                CrispyValue second = POP();
+                CrispyValue first = POP();
                 PUSH(create_bool(cmp_values(first, second) < 0));
                 break;
             }
             case OP_NEGATE: {
-                Value val = create_number(POP().d_value * -1);
+                CrispyValue val = create_number(POP().d_value * -1);
                 PUSH(val);
                 break;
             }
             case OP_LOAD: {
-                Value val = READ_VAR();
+                CrispyValue val = READ_VAR();
                 PUSH(val);
                 break;
             }
@@ -567,7 +567,7 @@ static InterpretResult run(Vm *vm) {
                 uint8_t index = READ_BYTE();
 
                 CallFrame *frame = FRAME_AT(vm, scope);
-                Value val = frame->variables.values[index];
+                CrispyValue val = frame->variables.values[index];
 
                 PUSH(val);
 
@@ -578,14 +578,14 @@ static InterpretResult run(Vm *vm) {
                 uint8_t index = READ_BYTE();
 
                 CallFrame *frame = FRAME_AT(vm, scope);
-                Value val = POP();
+                CrispyValue val = POP();
 
                 frame->variables.values[index] = val;
                 break;
             }
             case OP_STORE: {
                 uint8_t index = READ_BYTE();
-                Value val = POP();
+                CrispyValue val = POP();
                 write_at(variables, index, val);
                 break;
             }
@@ -593,7 +593,7 @@ static InterpretResult run(Vm *vm) {
                 POP();
                 break;
             case OP_DUP: {
-                Value val = PEEK();
+                CrispyValue val = PEEK();
                 PUSH(val);
                 break;
             }
@@ -601,7 +601,7 @@ static InterpretResult run(Vm *vm) {
                 ip = code + READ_SHORT();
                 break;
             case OP_JMT: {
-                Value value = POP();
+                CrispyValue value = POP();
                 if (!CHECK_BOOL(value)) { goto ERROR; }
                 if (BOOL_TRUE(value)) {
                     ip = code + READ_SHORT();
@@ -611,7 +611,7 @@ static InterpretResult run(Vm *vm) {
                 break;
             }
             case OP_JMF: {
-                Value value = POP();
+                CrispyValue value = POP();
                 if (!CHECK_BOOL(value)) { goto ERROR; }
                 if (!BOOL_TRUE(value)) {
                     ip = code + READ_SHORT();
@@ -649,7 +649,7 @@ static InterpretResult run(Vm *vm) {
                 break;
             }
             case OP_NOT: {
-                Value value = POP();
+                CrispyValue value = POP();
 
                 if (value.type != BOOLEAN) {
                     goto ERROR;
@@ -672,7 +672,7 @@ static InterpretResult run(Vm *vm) {
                 PUSH(create_nil());
                 break;
             case OP_PRINT: {
-                Value value = POP();
+                CrispyValue value = POP();
                 printf("> ");
                 print_value(value, true, true);
                 break;
@@ -682,15 +682,15 @@ static InterpretResult run(Vm *vm) {
                 ht_init(&content, HT_KEY_OBJSTRING, 8, free_objstring);
 
                 ObjDict *dict = new_dict(vm, content);
-                Value value = create_object((Object *) dict);
+                CrispyValue value = create_object((Object *) dict);
                 PUSH(value);
                 break;
             }
             case OP_DICT_PUT: {
-                Value value = POP();
-                Value key = POP();
+                CrispyValue value = POP();
+                CrispyValue key = POP();
 
-                Value dict_val = PEEK();
+                CrispyValue dict_val = PEEK();
                 ObjDict *dict = (ObjDict *) dict_val.o_value;
 
                 HTItemKey ht_key;
@@ -700,8 +700,8 @@ static InterpretResult run(Vm *vm) {
                 break;
             }
             case OP_DICT_GET: {
-                Value key_val = POP();
-                Value dict_val = POP();
+                CrispyValue key_val = POP();
+                CrispyValue dict_val = POP();
 
                 ObjDict *dict = (ObjDict *) dict_val.o_value;
                 ObjString *key_string = (ObjString *) key_val.o_value;
@@ -709,7 +709,7 @@ static InterpretResult run(Vm *vm) {
                 HTItemKey key;
                 key.key_obj_string = key_string;
 
-                Value result = ht_get(&dict->content, key);
+                CrispyValue result = ht_get(&dict->content, key);
                 PUSH(result);
 
                 break;

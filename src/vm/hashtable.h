@@ -24,7 +24,7 @@ typedef union {
 
 typedef struct table_item_t {
     HTItemKey key;
-    Value value;
+    CrispyValue value;
     struct table_item_t *next;
 } HTItem;
 
@@ -51,10 +51,10 @@ void free_heap_string(HTItem *item);
 
 void free_objstring(HTItem *item);
 
-Value ht_get(HashTable *ht, HTItemKey key);
+CrispyValue ht_get(HashTable *ht, HTItemKey key);
 
 void ht_delete(HashTable *ht, HTItemKey key);
 
-void ht_put(HashTable *ht, HTItemKey key, Value value);
+void ht_put(HashTable *ht, HTItemKey key, CrispyValue value);
 
 #endif //CRISPY_HASHMAP_H

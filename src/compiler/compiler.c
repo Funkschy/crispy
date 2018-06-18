@@ -196,10 +196,10 @@ static void string(Vm *vm, bool quotation_marks) {
     key.key_ident_string = compiler->token.start;
     key.ident_length = compiler->token.length;
 
-    Value item = ht_get(&vm->strings, key);
+    CrispyValue item = ht_get(&vm->strings, key);
 
     ObjString *string;
-    Value value;
+    CrispyValue value;
 
     // string not yet in hashtable
     if (item.type == NIL) {
@@ -277,7 +277,7 @@ static void primary(Vm *vm) {
             c_str[compiler->token.length] = '\0';
             key.key_c_string = c_str;
 
-            Value value = ht_get(&vm->compiler.natives, key);
+            CrispyValue value = ht_get(&vm->compiler.natives, key);
             free(c_str);
 
             if (value.type != NIL) {

@@ -29,12 +29,12 @@ typedef struct {
         uint64_t p_value;   // primitive value (e.g. boolean)
         Object *o_value;    // object pointer
     };
-} Value;
+} CrispyValue;
 
 typedef struct {
     uint32_t cap;
     uint32_t count;
-    Value *values;
+    CrispyValue *values;
 } ValueArray;
 
 typedef struct {
@@ -94,13 +94,13 @@ typedef struct {
     void *func_ptr;
 } ObjNativeFunc;
 
-Value create_nil();
+CrispyValue create_nil();
 
-Value create_bool(bool value);
+CrispyValue create_bool(bool value);
 
-Value create_number(double value);
+CrispyValue create_number(double value);
 
-Value create_object(Object *object);
+CrispyValue create_object(Object *object);
 
 CallFrame *new_call_frame();
 
@@ -118,15 +118,15 @@ void val_arr_free(ValueArray *value_array);
 
 void code_buff_free(CodeBuffer *code_buffer);
 
-void write_value(ValueArray *value_array, Value value);
+void write_value(ValueArray *value_array, CrispyValue value);
 
-void write_at(ValueArray *value_array, uint32_t index, Value value);
+void write_at(ValueArray *value_array, uint32_t index, CrispyValue value);
 
-void print_value(Value value, bool new_line, bool print_quotation);
+void print_value(CrispyValue value, bool new_line, bool print_quotation);
 
-void print_type(Value value);
+void print_type(CrispyValue value);
 
-int cmp_values(Value first, Value second);
+int cmp_values(CrispyValue first, CrispyValue second);
 
 int cmp_objects(Object *first, Object *second);
 
@@ -138,7 +138,7 @@ int cmp_strings(ObjString *first, ObjString *second);
  * @param dest the pointer that will point to the created string.
  * @return the length of the created string.
  */
-size_t value_to_string(Value value, char **dest);
+size_t value_to_string(CrispyValue value, char **dest);
 
 /**
  * Computes the hash value for an unsigned 4 byte integer.
