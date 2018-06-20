@@ -50,6 +50,7 @@ typedef enum {
     OP_DICT_NEW,        // create a new dictionary
     OP_DICT_PUT,        // pops to values from the stack and adds them to a dictionary as a key-value pair
     OP_DICT_GET,        // pops key from stack and tries to retrieve a value from the dict on top of the stack
+    OP_DICT_PEEK,       // peeks key on top of stack and tries to retrieve a value from the dict below
 
     OP_JMP,             // unconditional jump
     OP_JEQ,             // jump if equals

@@ -157,6 +157,8 @@ int disassemble_instruction(Vm *vm, int offset) {
             return simple_instruction("OP_DICT_PUT", offset);
         case OP_DICT_GET:
             return simple_instruction("OP_DICT_GET", offset);
+        case OP_DICT_PEEK:
+            return simple_instruction("OP_DICT_PEEK", offset);
         default:
             printf("Unknown instruction %d\n", instruction);
             return offset + 1;
