@@ -83,11 +83,21 @@ void ht_free(HashTable *ht) {
     free(ht->buckets);
 }
 
-static void insert(HTItem **bucket, HTItemKey key, HTKeyType type, HTItem *new_item) {
+/**
+ * Insert an item into a bucket.
+ * @param bucket the bucket.
+ * @param key the key.
+ * @param type the key type.
+ * @param new_item the item to insert.
+ * @return true if the key already was in the map, false if it had to be created.
+ */
+static bool insert(HTItem **bucket, HTItemKey key, HTKeyType type, HTItem *new_item) {
     if (equals((*bucket)->key, key, type)) {
+        HTItem *next = (*bucket)->next;
         free(*bucket);
         *bucket = new_item;
-        return;
+        (*bucket)->next = next;
+        return true;
     }
 
     HTItem *previous = *bucket;
@@ -95,9 +105,11 @@ static void insert(HTItem **bucket, HTItemKey key, HTKeyType type, HTItem *new_i
 
     while (*current) {
         if (equals((*current)->key, key, type)) {
+            HTItem *next = (*current)->next;
             free(*current);
             *current = new_item;
-            return;
+            (*current)->next = next;
+            return true;
         }
 
         previous = *current;
@@ -105,6 +117,7 @@ static void insert(HTItem **bucket, HTItemKey key, HTKeyType type, HTItem *new_i
     }
 
     previous->next = new_item;
+    return false;
 }
 
 static void resize(HashTable *ht) {
@@ -131,13 +144,18 @@ void ht_put(HashTable *ht, HTItemKey key, CrispyValue value) {
     new_item->key = key;
     new_item->value = value;
 
+    bool already_inside = false;
     if (ht->buckets[index] == NULL) {
         ht->buckets[index] = new_item;
     } else {
-        insert(&ht->buckets[index], key, ht->key_type, new_item);
+        already_inside = insert(&ht->buckets[index], key, ht->key_type, new_item);
     }
 
-    if (++ht->size > ht->cap) {
+    if (!already_inside) {
+        ++ht->size;
+    }
+
+    if (ht->size > ht->cap) {
         resize(ht);
     }
 }

@@ -363,7 +363,31 @@ static void primary_expr(Vm *vm) {
 
                 string(vm, false);
                 advance(vm);
-                emit_no_arg(vm, OP_DICT_GET);
+
+                switch (vm->compiler.token.type) {
+                    case TOKEN_EQUALS:
+                        advance(vm);
+                        expr(vm);
+                        emit_no_arg(vm, OP_DICT_PUT);
+                        return;
+                    case TOKEN_PLUS_PLUS:
+                        advance(vm);
+                        emit_no_arg(vm, OP_DICT_PEEK);
+                        emit_no_arg(vm, OP_LDC_1);
+                        emit_no_arg(vm, OP_ADD);
+                        emit_no_arg(vm, OP_DICT_PUT);
+                        return;
+                    case TOKEN_MINUS_MINUS:
+                        advance(vm);
+                        emit_no_arg(vm, OP_DICT_PEEK);
+                        emit_no_arg(vm, OP_LDC_1);
+                        emit_no_arg(vm, OP_SUB);
+                        emit_no_arg(vm, OP_DICT_PUT);
+                        return;
+                    default:
+                        emit_no_arg(vm, OP_DICT_GET);
+                        break;
+                }
             }
             break;
         }

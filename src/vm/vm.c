@@ -139,7 +139,7 @@ uint32_t add_constant(Vm *vm, CrispyValue value) {
         fprintf(stderr, "Too many constants.\n");
         exit(42);
     }
-    
+
     write_value(&call_frame->constants, value);
     return call_frame->constants.count - 1;
 }
@@ -202,7 +202,7 @@ InterpretResult interpret(Vm *vm, const char *source) {
     }
 
 #if DEBUG_SHOW_DISASSEMBLY
-    disassemble_curr_frame(vm, "Main Program");
+        disassemble_curr_frame(vm, "Main Program");
 #endif
 
     CURR_FRAME(vm)->ip = CURR_FRAME(vm)->code_buffer.code;
@@ -239,7 +239,7 @@ InterpretResult interpret_interactive(Vm *vm, const char *source) {
     }
 
 #if DEBUG_SHOW_DISASSEMBLY
-    disassemble_curr_frame(vm, "Last input");
+        disassemble_curr_frame(vm, "Last input");
 #endif
 
     CURR_FRAME(vm)->ip = CURR_FRAME(vm)->code_buffer.code;
@@ -702,6 +702,23 @@ static InterpretResult run(Vm *vm) {
             case OP_DICT_GET: {
                 CrispyValue key_val = POP();
                 CrispyValue dict_val = POP();
+
+                // TODO type checking
+
+                ObjDict *dict = (ObjDict *) dict_val.o_value;
+                ObjString *key_string = (ObjString *) key_val.o_value;
+
+                HTItemKey key;
+                key.key_obj_string = key_string;
+
+                CrispyValue result = ht_get(&dict->content, key);
+                PUSH(result);
+
+                break;
+            }
+            case OP_DICT_PEEK: {
+                CrispyValue key_val = PEEK();
+                CrispyValue dict_val = sp[-2];
 
                 ObjDict *dict = (ObjDict *) dict_val.o_value;
                 ObjString *key_string = (ObjString *) key_val.o_value;

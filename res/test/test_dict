@@ -15,3 +15,6 @@ var p2 = {
 println(p2)
 
 println(p2.p1.age)
+
+p2.p1.age = 29 + 1
+println(p2.p1.age)
