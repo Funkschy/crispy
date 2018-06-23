@@ -694,6 +694,7 @@ static InterpretResult run(Vm *vm) {
                 ObjDict *dict = (ObjDict *) dict_val.o_value;
 
                 HTItemKey ht_key;
+                // TODO type checking
                 ht_key.key_obj_string = (ObjString *) key.o_value;
                 ht_put(&dict->content, ht_key, value);
 

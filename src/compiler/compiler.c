@@ -333,6 +333,33 @@ static void primary(Vm *vm) {
     advance(vm);
 }
 
+static void handle_dict_assign(Vm *vm) {
+    switch (vm->compiler.token.type) {
+        case TOKEN_EQUALS:
+            advance(vm);
+            expr(vm);
+            emit_no_arg(vm, OP_DICT_PUT);
+            return;
+        case TOKEN_PLUS_PLUS:
+            advance(vm);
+            emit_no_arg(vm, OP_DICT_PEEK);
+            emit_no_arg(vm, OP_LDC_1);
+            emit_no_arg(vm, OP_ADD);
+            emit_no_arg(vm, OP_DICT_PUT);
+            return;
+        case TOKEN_MINUS_MINUS:
+            advance(vm);
+            emit_no_arg(vm, OP_DICT_PEEK);
+            emit_no_arg(vm, OP_LDC_1);
+            emit_no_arg(vm, OP_SUB);
+            emit_no_arg(vm, OP_DICT_PUT);
+            return;
+        default:
+            emit_no_arg(vm, OP_DICT_GET);
+            break;
+    }
+}
+
 static void primary_expr(Vm *vm) {
     primary(vm);
 
@@ -364,37 +391,22 @@ static void primary_expr(Vm *vm) {
                 string(vm, false);
                 advance(vm);
 
-                switch (vm->compiler.token.type) {
-                    case TOKEN_EQUALS:
-                        advance(vm);
-                        expr(vm);
-                        emit_no_arg(vm, OP_DICT_PUT);
-                        return;
-                    case TOKEN_PLUS_PLUS:
-                        advance(vm);
-                        emit_no_arg(vm, OP_DICT_PEEK);
-                        emit_no_arg(vm, OP_LDC_1);
-                        emit_no_arg(vm, OP_ADD);
-                        emit_no_arg(vm, OP_DICT_PUT);
-                        return;
-                    case TOKEN_MINUS_MINUS:
-                        advance(vm);
-                        emit_no_arg(vm, OP_DICT_PEEK);
-                        emit_no_arg(vm, OP_LDC_1);
-                        emit_no_arg(vm, OP_SUB);
-                        emit_no_arg(vm, OP_DICT_PUT);
-                        return;
-                    default:
-                        emit_no_arg(vm, OP_DICT_GET);
-                        break;
-                }
+                handle_dict_assign(vm);
+            }
+            break;
+        }
+        case TOKEN_OPEN_BRACKET: {
+            while (match(vm, TOKEN_OPEN_BRACKET)) {
+                expr(vm);
+                consume(vm, TOKEN_CLOSE_BRACKET, "Expected ']' after expression");
+
+                handle_dict_assign(vm);
             }
             break;
         }
         default:
             break;
     }
-
 }
 
 static void factor(Vm *vm) {

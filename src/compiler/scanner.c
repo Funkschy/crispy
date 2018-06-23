@@ -262,6 +262,10 @@ static Token get_next_token(Scanner *scanner) {
             return make_token(scanner, TOKEN_COLON);
         case '.':
             return make_token(scanner, TOKEN_DOT);
+        case '[':
+            return make_token(scanner, TOKEN_OPEN_BRACKET);
+        case ']':
+            return make_token(scanner, TOKEN_CLOSE_BRACKET);
         default:
             return error_token(scanner, "Unexpected Character");
     }

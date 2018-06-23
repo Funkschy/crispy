@@ -48,6 +48,8 @@ typedef enum {
     TOKEN_AND,
     TOKEN_COLON,
     TOKEN_DOT,
+    TOKEN_OPEN_BRACKET,
+    TOKEN_CLOSE_BRACKET,
 
     TOKEN_ERROR,
     TOKEN_EOF,
