@@ -124,7 +124,7 @@ static TokenType check_keyword(Scanner *scanner, int start, size_t rest_length, 
 static TokenType identifier_type(Scanner *scanner) {
     switch (*scanner->start) {
         case 'v':
-            if (scanner->current - scanner->start > 1) {
+            if (scanner->current - scanner->start > 1 && scanner->start[1] == 'a') {
                 switch (scanner->start[2]) {
                     case 'r':
                         return check_keyword(scanner, 2, 1, "r", TOKEN_VAR);
@@ -262,6 +262,10 @@ static Token get_next_token(Scanner *scanner) {
             return make_token(scanner, TOKEN_COLON);
         case '.':
             return make_token(scanner, TOKEN_DOT);
+        case '[':
+            return make_token(scanner, TOKEN_OPEN_BRACKET);
+        case ']':
+            return make_token(scanner, TOKEN_CLOSE_BRACKET);
         default:
             return error_token(scanner, "Unexpected Character");
     }

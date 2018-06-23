@@ -162,7 +162,6 @@ static void init_compiler(Compiler *compiler, const char *source) {
     compiler->print_expr = false;
 
     HashTable ht;
-    // TODO change to ident string
     ht_init(&ht, HT_KEY_CSTRING, 16, free_string_literal);
     compiler->natives = ht;
 }
@@ -690,11 +689,23 @@ static InterpretResult run(Vm *vm) {
                 CrispyValue value = POP();
                 CrispyValue key = POP();
 
+                if (key.type != OBJECT) {
+                    fprintf(stderr, "Only strings can be used as indices for dictionaries");
+                    goto ERROR;
+                }
+
                 CrispyValue dict_val = PEEK();
                 ObjDict *dict = (ObjDict *) dict_val.o_value;
 
                 HTItemKey ht_key;
-                ht_key.key_obj_string = (ObjString *) key.o_value;
+
+                Object *key_obj = key.o_value;
+                if (key_obj->type != OBJ_STRING) {
+                    fprintf(stderr, "Only strings can be used as indices for dictionaries");
+                    goto ERROR;
+                }
+
+                ht_key.key_obj_string = (ObjString *) key_obj;
                 ht_put(&dict->content, ht_key, value);
 
                 break;
@@ -703,10 +714,21 @@ static InterpretResult run(Vm *vm) {
                 CrispyValue key_val = POP();
                 CrispyValue dict_val = POP();
 
-                // TODO type checking
+                if (key_val.type != OBJECT) {
+                    fprintf(stderr, "Only strings can be used as indices for dictionaries");
+                    goto ERROR;
+                }
+
 
                 ObjDict *dict = (ObjDict *) dict_val.o_value;
-                ObjString *key_string = (ObjString *) key_val.o_value;
+                Object *key_obj = key_val.o_value;
+
+                if (key_obj->type != OBJ_STRING) {
+                    fprintf(stderr, "Only strings can be used as indices for dictionaries");
+                    goto ERROR;
+                }
+
+                ObjString *key_string = (ObjString *) key_obj;
 
                 HTItemKey key;
                 key.key_obj_string = key_string;

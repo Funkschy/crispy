@@ -281,10 +281,16 @@ static void primary(Vm *vm) {
             free(c_str);
 
             if (value.type != NIL) {
-                // TODO bigger numbers
                 // TODO don't load as constant every time (maybe constants as map?)
                 uint32_t index = add_constant(vm, value);
-                emit_byte_arg(vm, OP_LDC, (uint8_t) index);
+
+                if (index > 255) {
+                    uint8_t index_1 = (uint8_t) (index >> 8);
+                    uint8_t index_2 = (uint8_t) (index & 0xFF);
+                    emit_short_arg(vm, OP_LDC_W, index_1, index_2);
+                } else {
+                    emit_byte_arg(vm, OP_LDC, (uint8_t) index);
+                }
                 break;
             }
 
@@ -333,6 +339,33 @@ static void primary(Vm *vm) {
     advance(vm);
 }
 
+static void handle_dict_assign(Vm *vm) {
+    switch (vm->compiler.token.type) {
+        case TOKEN_EQUALS:
+            advance(vm);
+            expr(vm);
+            emit_no_arg(vm, OP_DICT_PUT);
+            return;
+        case TOKEN_PLUS_PLUS:
+            advance(vm);
+            emit_no_arg(vm, OP_DICT_PEEK);
+            emit_no_arg(vm, OP_LDC_1);
+            emit_no_arg(vm, OP_ADD);
+            emit_no_arg(vm, OP_DICT_PUT);
+            return;
+        case TOKEN_MINUS_MINUS:
+            advance(vm);
+            emit_no_arg(vm, OP_DICT_PEEK);
+            emit_no_arg(vm, OP_LDC_1);
+            emit_no_arg(vm, OP_SUB);
+            emit_no_arg(vm, OP_DICT_PUT);
+            return;
+        default:
+            emit_no_arg(vm, OP_DICT_GET);
+            break;
+    }
+}
+
 static void primary_expr(Vm *vm) {
     primary(vm);
 
@@ -364,37 +397,22 @@ static void primary_expr(Vm *vm) {
                 string(vm, false);
                 advance(vm);
 
-                switch (vm->compiler.token.type) {
-                    case TOKEN_EQUALS:
-                        advance(vm);
-                        expr(vm);
-                        emit_no_arg(vm, OP_DICT_PUT);
-                        return;
-                    case TOKEN_PLUS_PLUS:
-                        advance(vm);
-                        emit_no_arg(vm, OP_DICT_PEEK);
-                        emit_no_arg(vm, OP_LDC_1);
-                        emit_no_arg(vm, OP_ADD);
-                        emit_no_arg(vm, OP_DICT_PUT);
-                        return;
-                    case TOKEN_MINUS_MINUS:
-                        advance(vm);
-                        emit_no_arg(vm, OP_DICT_PEEK);
-                        emit_no_arg(vm, OP_LDC_1);
-                        emit_no_arg(vm, OP_SUB);
-                        emit_no_arg(vm, OP_DICT_PUT);
-                        return;
-                    default:
-                        emit_no_arg(vm, OP_DICT_GET);
-                        break;
-                }
+                handle_dict_assign(vm);
+            }
+            break;
+        }
+        case TOKEN_OPEN_BRACKET: {
+            while (match(vm, TOKEN_OPEN_BRACKET)) {
+                expr(vm);
+                consume(vm, TOKEN_CLOSE_BRACKET, "Expected ']' after expression");
+
+                handle_dict_assign(vm);
             }
             break;
         }
         default:
             break;
     }
-
 }
 
 static void factor(Vm *vm) {
