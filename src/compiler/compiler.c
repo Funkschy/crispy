@@ -281,10 +281,16 @@ static void primary(Vm *vm) {
             free(c_str);
 
             if (value.type != NIL) {
-                // TODO bigger numbers
                 // TODO don't load as constant every time (maybe constants as map?)
                 uint32_t index = add_constant(vm, value);
-                emit_byte_arg(vm, OP_LDC, (uint8_t) index);
+
+                if (index > 255) {
+                    uint8_t index_1 = (uint8_t) (index >> 8);
+                    uint8_t index_2 = (uint8_t) (index & 0xFF);
+                    emit_short_arg(vm, OP_LDC_W, index_1, index_2);
+                } else {
+                    emit_byte_arg(vm, OP_LDC, (uint8_t) index);
+                }
                 break;
             }
 
