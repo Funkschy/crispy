@@ -81,8 +81,4 @@ void run_repl() {
     while (true) {
         repl(&vm, &lines);
     }
-
-    // TODO execute
-    free_line_array(&lines);
-    vm_free(&vm);
 }

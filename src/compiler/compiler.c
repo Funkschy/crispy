@@ -172,8 +172,8 @@ static void define_var(Vm *vm, Token identifier) {
 }
 
 static void make_native(Vm *vm, const char *name, size_t length, void *fn_ptr, uint8_t num_params, bool pass_vm) {
-    ObjNativeFunc *println = new_native_func(vm, fn_ptr, num_params, pass_vm);
-    CrispyValue value = create_object((Object *) println);
+    ObjNativeFunc *native_func = new_native_func(vm, fn_ptr, num_params, pass_vm);
+    CrispyValue value = create_object((Object *) native_func);
 
     uint16_t pos = (uint16_t) add_constant(vm, value);
 
@@ -189,12 +189,14 @@ static void make_native(Vm *vm, const char *name, size_t length, void *fn_ptr, u
     VarHTItemKey key = {name, length};
     var_ht_put(&vm->compiler.scope[0], key, variable);
     emit_byte_arg(vm, OP_STORE, (uint8_t) variable.index);
+
+    // TODO if first statement in interactive mode causes an error: this bytecode will never be executed and any access segfaults
 }
 
 void declare_natives(Vm *vm) {
     make_native(vm, "println", 7, println, 1, false);
     make_native(vm, "print", 5, print, 1, false);
-    make_native(vm, "exit", 4, exit_vm, 1, false);
+    make_native(vm, "exit", 4, exit_vm, 1, true);
     make_native(vm, "str", 3, str, 1, true);
 }
 
