@@ -18,12 +18,10 @@ typedef struct {
 
     Scanner scanner;
 
-    VariableArray scope[SCOPES_MAX];
+    VarHashTable scope[SCOPES_MAX];
     uint32_t scope_depth;
     // TODO find alternative; causes wasted memory
     uint32_t vars_in_scope;
-
-    HashTable natives;
 
     bool print_expr;
 } Compiler;
