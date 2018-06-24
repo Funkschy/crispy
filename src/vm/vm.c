@@ -154,21 +154,17 @@ static void init_compiler(Compiler *compiler, const char *source) {
     compiler->token = scan_token(&compiler->scanner);
     compiler->next = scan_token(&compiler->scanner);
 
-    VariableArray variables;
-    init_variable_array(&variables);
-    compiler->scope[0] = variables;
+    VarHashTable ht;
+    var_ht_init(&ht, 16);
+    compiler->scope[0] = ht;
+
     compiler->scope_depth = 0;
     compiler->vars_in_scope = 0;
     compiler->print_expr = false;
-
-    HashTable ht;
-    ht_init(&ht, HT_KEY_CSTRING, 16, free_string_literal);
-    compiler->natives = ht;
 }
 
 static void free_compiler(Compiler *compiler) {
-    free_variable_array(&compiler->scope[0]);
-    ht_free(&compiler->natives);
+    var_ht_free(&compiler->scope[0]);
 }
 
 static void print_callframe(CallFrame *call_frame) {
@@ -690,7 +686,7 @@ static InterpretResult run(Vm *vm) {
                 CrispyValue key = POP();
 
                 if (key.type != OBJECT) {
-                    fprintf(stderr, "Only strings can be used as indices for dictionaries");
+                    fprintf(stderr, "Only strings can be used as indices for dictionaries\n");
                     goto ERROR;
                 }
 
@@ -701,7 +697,7 @@ static InterpretResult run(Vm *vm) {
 
                 Object *key_obj = key.o_value;
                 if (key_obj->type != OBJ_STRING) {
-                    fprintf(stderr, "Only strings can be used as indices for dictionaries");
+                    fprintf(stderr, "Only strings can be used as indices for dictionaries\n");
                     goto ERROR;
                 }
 
@@ -715,7 +711,7 @@ static InterpretResult run(Vm *vm) {
                 CrispyValue dict_val = POP();
 
                 if (key_val.type != OBJECT) {
-                    fprintf(stderr, "Only strings can be used as indices for dictionaries");
+                    fprintf(stderr, "Only strings can be used as indices for dictionaries\n");
                     goto ERROR;
                 }
 
@@ -724,7 +720,7 @@ static InterpretResult run(Vm *vm) {
                 Object *key_obj = key_val.o_value;
 
                 if (key_obj->type != OBJ_STRING) {
-                    fprintf(stderr, "Only strings can be used as indices for dictionaries");
+                    fprintf(stderr, "Only strings can be used as indices for dictionaries\n");
                     goto ERROR;
                 }
 

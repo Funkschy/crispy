@@ -13,7 +13,7 @@
 #include "scanner.h"
 #include "../vm/debug.h"
 #include "../vm/value.h"
-#include "native.h"
+#include "../native/stdlib.h"
 
 jmp_buf error_buf;
 
@@ -35,14 +35,14 @@ static inline void advance(Vm *vm) {
 
 static inline void open_scope(Vm *vm) {
     ++vm->compiler.scope_depth;
-    init_variable_array(&vm->compiler.scope[vm->compiler.scope_depth]);
+    var_ht_init(&vm->compiler.scope[vm->compiler.scope_depth], 8);
 }
 
 static void close_scope(Vm *vm) {
     Compiler *compiler = &vm->compiler;
 
-    compiler->vars_in_scope -= compiler->scope[compiler->scope_depth].count;
-    free_variable_array(&compiler->scope[compiler->scope_depth]);
+    compiler->vars_in_scope -= compiler->scope[compiler->scope_depth].size;
+    var_ht_free(&compiler->scope[compiler->scope_depth]);
     --compiler->scope_depth;
 }
 
@@ -116,36 +116,16 @@ static inline void patch_jump(Vm *vm, uint32_t offset) {
     patch_jump_to(vm, offset, CURR_FRAME(vm)->code_buffer.count);
 }
 
-int compile(Vm *vm) {
-    vm->compiler.print_expr = true;
-
-    if (vm->compiler.natives.size <= 0) {
-        declare_natives(vm);
-    }
-
-    int val = setjmp(error_buf);
-    if (val) {
-        return val;
-    }
-
-    do {
-        stmt(vm);
-    } while (vm->compiler.token.type != TOKEN_EOF);
-
-    emit_no_arg(vm, OP_RETURN);
-
-    return 0;
-}
-
 static Variable *resolve_name(Vm *vm, const char *name, size_t length) {
     Compiler *compiler = &vm->compiler;
+    VarHTItemKey key;
+    key.key_ident_string = name;
+    key.ident_length = length;
 
     for (int i = compiler->scope_depth; i >= 0; --i) {
-        for (int j = compiler->scope[i].count - 1; j >= 0; --j) {
-            Variable *var = &vm->compiler.scope[i].variables[j];
-            if (var->length == length && memcmp(name, var->name, length) == 0) {
-                return var;
-            }
+        Variable *var = var_ht_get(&vm->compiler.scope[i], key);
+        if (var != NULL) {
+            return var;
         }
     }
 
@@ -179,14 +159,65 @@ static bool already_defined(Vm *vm, Token identifier) {
 }
 
 static void declare_var(Vm *vm, Token var_decl, bool assignable) {
-    Variable variable = {var_decl.start, var_decl.length, vm->compiler.vars_in_scope++, (int) vm->frame_count,
-                         assignable};
-    write_variable(&vm->compiler.scope[vm->compiler.scope_depth], variable);
+    Variable variable = {vm->compiler.vars_in_scope++, (int) vm->frame_count, assignable};
+    VarHTItemKey key = {var_decl.start, var_decl.length};
+
+    var_ht_put(&vm->compiler.scope[vm->compiler.scope_depth], key, variable);
 }
 
 static void define_var(Vm *vm, Token identifier) {
     Variable variable = resolve_var(vm, identifier.start, identifier.length);
+    // TODO bigger numbers
     emit_byte_arg(vm, OP_STORE, (uint8_t) variable.index);
+}
+
+static void make_native(Vm *vm, const char *name, size_t length, void *fn_ptr, uint8_t num_params, bool pass_vm) {
+    ObjNativeFunc *println = new_native_func(vm, fn_ptr, num_params, pass_vm);
+    CrispyValue value = create_object((Object *) println);
+
+    uint16_t pos = (uint16_t) add_constant(vm, value);
+
+    if (pos > UINT8_MAX) {
+        uint8_t index_1 = (uint8_t) (pos >> 8);
+        uint8_t index_2 = (uint8_t) (pos & 0xFF);
+        emit_short_arg(vm, OP_LDC_W, index_1, index_2);
+    } else {
+        emit_byte_arg(vm, OP_LDC, (uint8_t) pos);
+    }
+
+    Variable variable = {vm->compiler.vars_in_scope++, (int) vm->frame_count, false};
+    VarHTItemKey key = {name, length};
+    var_ht_put(&vm->compiler.scope[0], key, variable);
+    emit_byte_arg(vm, OP_STORE, (uint8_t) variable.index);
+}
+
+void declare_natives(Vm *vm) {
+    make_native(vm, "println", 7, println, 1, false);
+    make_native(vm, "print", 5, print, 1, false);
+    make_native(vm, "exit", 4, exit_vm, 1, false);
+    make_native(vm, "str", 3, str, 1, true);
+}
+
+int compile(Vm *vm) {
+    vm->compiler.print_expr = true;
+
+    if (vm->compiler.scope[0].size <= 0) {
+        declare_natives(vm);
+    }
+
+    int val = setjmp(error_buf);
+    if (val) {
+        return val;
+    }
+
+    do {
+        stmt(vm);
+    } while (vm->compiler.token.type != TOKEN_EOF);
+
+    emit_no_arg(vm, OP_RETURN);
+
+    return 0;
+
 }
 
 static void string(Vm *vm, bool quotation_marks) {
@@ -271,29 +302,6 @@ static void primary(Vm *vm) {
             break;
         }
         case TOKEN_IDENTIFIER: {
-            HTItemKey key;
-            char *c_str = malloc(compiler->token.length * sizeof(char) + 1);
-            memcpy(c_str, compiler->token.start, compiler->token.length);
-            c_str[compiler->token.length] = '\0';
-            key.key_c_string = c_str;
-
-            CrispyValue value = ht_get(&vm->compiler.natives, key);
-            free(c_str);
-
-            if (value.type != NIL) {
-                // TODO don't load as constant every time (maybe constants as map?)
-                uint32_t index = add_constant(vm, value);
-
-                if (index > 255) {
-                    uint8_t index_1 = (uint8_t) (index >> 8);
-                    uint8_t index_2 = (uint8_t) (index & 0xFF);
-                    emit_short_arg(vm, OP_LDC_W, index_1, index_2);
-                } else {
-                    emit_byte_arg(vm, OP_LDC, (uint8_t) index);
-                }
-                break;
-            }
-
             Variable var = resolve_var(vm, compiler->token.start, compiler->token.length);
             if (var.frame_offset != vm->frame_count) {
                 // TODO bigger numbers
