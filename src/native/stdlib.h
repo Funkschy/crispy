@@ -13,7 +13,7 @@ CrispyValue println(CrispyValue *value);
 
 CrispyValue print(CrispyValue *value);
 
-CrispyValue exit_vm(CrispyValue *value);
+CrispyValue exit_vm(CrispyValue *value, Vm *vm);
 
 CrispyValue str(CrispyValue *value, Vm *vm);
 

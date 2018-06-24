@@ -22,8 +22,9 @@ CrispyValue print(CrispyValue *value) {
     return create_nil();
 }
 
-// TODO maybe free vm?
-CrispyValue exit_vm(CrispyValue *value) {
+CrispyValue exit_vm(CrispyValue *value, Vm *vm) {
+    vm_free(vm);
+
     if (value[0].type == NUMBER) {
         int ret_val = (int) value[0].d_value;
         exit(ret_val);
