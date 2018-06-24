@@ -172,8 +172,8 @@ static void define_var(Vm *vm, Token identifier) {
 }
 
 static void make_native(Vm *vm, const char *name, size_t length, void *fn_ptr, uint8_t num_params, bool pass_vm) {
-    ObjNativeFunc *println = new_native_func(vm, fn_ptr, num_params, pass_vm);
-    CrispyValue value = create_object((Object *) println);
+    ObjNativeFunc *native_func = new_native_func(vm, fn_ptr, num_params, pass_vm);
+    CrispyValue value = create_object((Object *) native_func);
 
     uint16_t pos = (uint16_t) add_constant(vm, value);
 
