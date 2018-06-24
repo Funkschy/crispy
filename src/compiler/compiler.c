@@ -189,6 +189,8 @@ static void make_native(Vm *vm, const char *name, size_t length, void *fn_ptr, u
     VarHTItemKey key = {name, length};
     var_ht_put(&vm->compiler.scope[0], key, variable);
     emit_byte_arg(vm, OP_STORE, (uint8_t) variable.index);
+
+    // TODO if first statement in interactive mode causes an error: this bytecode will never be executed and any access segfaults
 }
 
 void declare_natives(Vm *vm) {
