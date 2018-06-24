@@ -379,49 +379,51 @@ static void handle_dict_assign(Vm *vm) {
 static void primary_expr(Vm *vm) {
     primary(vm);
 
-    switch (vm->compiler.token.type) {
-        case TOKEN_OPEN_PAREN: {
-            // Call
-            size_t num_args = 0;
-            while (match(vm, TOKEN_OPEN_PAREN)) {
-                if (!match(vm, TOKEN_CLOSE_PAREN)) {
-                    do {
-                        expr(vm);
-                        ++num_args;
-                    } while (match(vm, TOKEN_COMMA));
+    while (check(vm, TOKEN_OPEN_PAREN) || check(vm, TOKEN_OPEN_BRACKET) || check(vm, TOKEN_DOT)) {
+        switch (vm->compiler.token.type) {
+            case TOKEN_OPEN_PAREN: {
+                // Call
+                size_t num_args = 0;
+                while (match(vm, TOKEN_OPEN_PAREN)) {
+                    if (!match(vm, TOKEN_CLOSE_PAREN)) {
+                        do {
+                            expr(vm);
+                            ++num_args;
+                        } while (match(vm, TOKEN_COMMA));
 
-                    consume(vm, TOKEN_CLOSE_PAREN, "Expected ')' after argument list");
-                    emit_byte_arg(vm, OP_CALL, (uint8_t) num_args);
-                } else {
-                    emit_byte_arg(vm, OP_CALL, 0);
+                        consume(vm, TOKEN_CLOSE_PAREN, "Expected ')' after argument list");
+                        emit_byte_arg(vm, OP_CALL, (uint8_t) num_args);
+                    } else {
+                        emit_byte_arg(vm, OP_CALL, 0);
+                    }
                 }
+                break;
             }
-            break;
-        }
-        case TOKEN_DOT: {
-            while (match(vm, TOKEN_DOT)) {
-                if (!check(vm, TOKEN_IDENTIFIER)) {
-                    error(&vm->compiler, "Expected identifier after '.'");
+            case TOKEN_DOT: {
+                while (match(vm, TOKEN_DOT)) {
+                    if (!check(vm, TOKEN_IDENTIFIER)) {
+                        error(&vm->compiler, "Expected identifier after '.'");
+                    }
+
+                    string(vm, false);
+                    advance(vm);
+
+                    handle_dict_assign(vm);
                 }
-
-                string(vm, false);
-                advance(vm);
-
-                handle_dict_assign(vm);
+                break;
             }
-            break;
-        }
-        case TOKEN_OPEN_BRACKET: {
-            while (match(vm, TOKEN_OPEN_BRACKET)) {
-                expr(vm);
-                consume(vm, TOKEN_CLOSE_BRACKET, "Expected ']' after expression");
+            case TOKEN_OPEN_BRACKET: {
+                while (match(vm, TOKEN_OPEN_BRACKET)) {
+                    expr(vm);
+                    consume(vm, TOKEN_CLOSE_BRACKET, "Expected ']' after expression");
 
-                handle_dict_assign(vm);
+                    handle_dict_assign(vm);
+                }
+                break;
             }
-            break;
+            default:
+                break;
         }
-        default:
-            break;
     }
 }
 
@@ -550,9 +552,12 @@ static void lambda(Vm *vm) {
             Token param = consume(vm, TOKEN_IDENTIFIER, "Expected parameter name");
             declare_var(vm, param, true);
             define_var(vm, param);
-            // TODO check number
             ++num_params;
         } while (match(vm, TOKEN_COMMA));
+    }
+
+    if (num_params > UINT8_MAX) {
+        error(&vm->compiler, "Too many parameters. A lambda may only have 255 parameters");
     }
 
     consume(vm, TOKEN_ARROW, "Expected '->' after parameter list");
