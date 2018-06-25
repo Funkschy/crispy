@@ -9,6 +9,8 @@
 #define CURR_FRAME(vm_ptr)          ((vm_ptr)->frames.frame_pointers[(vm_ptr)->frame_count - 1])
 #define FRAME_AT(vm_ptr, offset)    ((vm_ptr)->frames.frame_pointers[(offset) - 1])
 #define PUSH_FRAME(vm_ptr, frame)   (frames_write_at(&(vm_ptr)->frames, (vm_ptr)->frame_count++, frame))
+// same as POP_FRAME, but without the return value
+#define RM_FRAME(vm_ptr)            (--(vm_ptr)->frame_count)
 #define POP_FRAME(vm_ptr)           ((vm_ptr)->frames.frame_pointers[--(vm_ptr)->frame_count])
 
 #include "../cli/common.h"

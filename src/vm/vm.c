@@ -169,6 +169,7 @@ static void free_compiler(Compiler *compiler) {
 
 static void print_callframe(CallFrame *call_frame) {
     // TODO safe line number information somewhere and printf filename + linenumber
+    printf("%p\n", (void *) call_frame->ip);
     printf("Callframe\n");
 }
 
@@ -253,7 +254,7 @@ static InterpretResult run(Vm *vm) {
     CrispyValue *const_values = curr_frame->constants.values;
     ValueArray *variables = &curr_frame->variables;
 
-#define READ_BYTE() (*ip++)
+#define READ_BYTE() (++ip, ip[-1])
 #define READ_SHORT() (ip += 2, (uint16_t)((ip[-2] << 8) | ip[-1]))
 #define READ_CONST() (const_values[READ_BYTE()])
 #define READ_CONST_W() (const_values[(READ_BYTE() << 8) | READ_BYTE()])
@@ -372,7 +373,8 @@ static InterpretResult run(Vm *vm) {
                         res = ((CrispyValue (*)(CrispyValue *)) n_fn->func_ptr)(args);
                     }
 
-                    POP();
+                    // pop
+                    --sp;
 
                     PUSH(res);
                     break;
@@ -410,7 +412,7 @@ static InterpretResult run(Vm *vm) {
                     return result;
                 }
 
-                POP_FRAME(vm);
+                RM_FRAME(vm);
 
                 temp_call_frame_free(call_frame);
 
@@ -585,7 +587,7 @@ static InterpretResult run(Vm *vm) {
                 break;
             }
             case OP_POP:
-                POP();
+                --sp;
                 break;
             case OP_DUP: {
                 CrispyValue val = PEEK();

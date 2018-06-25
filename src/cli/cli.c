@@ -4,6 +4,7 @@
 // LICENSE file in the root directory of this source tree.
 
 #include <stdio.h>
+#include <sys/types.h>
 
 #include "cli.h"
 

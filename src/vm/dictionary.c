@@ -41,6 +41,8 @@ static size_t ht_key_to_string(HTKeyType type, HTItemKey key, char **dest) {
             return key.ident_length;
         }
     }
+
+    return 0;
 }
 
 static void print_ht_key(HTKeyType type, HTItemKey key) {
