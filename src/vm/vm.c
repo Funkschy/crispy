@@ -39,7 +39,7 @@ void frames_write_at(FrameArray *frame_arr, uint32_t index, CallFrame *frame) {
 
     if (index == frame_arr->cap) {
         frame_arr->cap = GROW_CAP(frame_arr->cap);
-        frame_arr->frame_pointers = GROW_ARR(frame_arr->frame_pointers, CrispyValue, frame_arr->cap);
+        frame_arr->frame_pointers = GROW_ARR(frame_arr->frame_pointers, CallFrame *, frame_arr->cap);
     }
 
     if (index >= frame_arr->count) {

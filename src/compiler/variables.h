@@ -10,6 +10,7 @@
 
 typedef struct {
     int index;
+	int scope;
     int frame_offset;
     bool assignable;
 } Variable;
