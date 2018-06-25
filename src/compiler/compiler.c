@@ -343,6 +343,7 @@ static void primary(Vm *vm) {
             emit_no_arg(vm, OP_NIL);
             break;
         default:
+            error(&vm->compiler, "Unexpected Token");
             break;
     }
 
