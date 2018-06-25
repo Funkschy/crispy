@@ -573,7 +573,7 @@ static void lambda(Vm *vm) {
     disassemble_curr_frame(vm, "lamda");
 #endif
 
-    POP_FRAME(vm);
+    RM_FRAME(vm);
 
     ObjLambda *lambda = new_lambda(vm, num_params);
     lambda->call_frame = lambda_frame;
