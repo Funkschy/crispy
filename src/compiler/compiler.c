@@ -152,14 +152,14 @@ static bool already_defined(Vm *vm, Token identifier) {
     Variable *var = resolve_name(vm, identifier.start, identifier.length);
 
     if (var != NULL) {
-        return var->index == vm->compiler.scope_depth;
+        return var->scope == vm->compiler.scope_depth;
     }
 
     return false;
 }
 
 static void declare_var(Vm *vm, Token var_decl, bool assignable) {
-    Variable variable = {vm->compiler.vars_in_scope++, (int) vm->frame_count, assignable};
+    Variable variable = {vm->compiler.vars_in_scope++, vm->compiler.scope_depth, (int) vm->frame_count, assignable};
     VarHTItemKey key = {var_decl.start, var_decl.length};
 
     var_ht_put(&vm->compiler.scope[vm->compiler.scope_depth], key, variable);
@@ -185,7 +185,7 @@ static void make_native(Vm *vm, const char *name, size_t length, void *fn_ptr, u
         emit_byte_arg(vm, OP_LDC, (uint8_t) pos);
     }
 
-    Variable variable = {vm->compiler.vars_in_scope++, (int) vm->frame_count, false};
+    Variable variable = {vm->compiler.vars_in_scope++, vm->compiler.scope_depth, (int) vm->frame_count, false};
     VarHTItemKey key = {name, length};
     var_ht_put(&vm->compiler.scope[0], key, variable);
     emit_byte_arg(vm, OP_STORE, (uint8_t) variable.index);
@@ -343,6 +343,7 @@ static void primary(Vm *vm) {
             emit_no_arg(vm, OP_NIL);
             break;
         default:
+            error(&vm->compiler, "Unexpected Token");
             break;
     }
 
@@ -656,9 +657,9 @@ static void var_decl(Vm *vm, bool assignable) {
 
     if (already_defined(vm, identifier)) {
         if (assignable) {
-            error(&vm->compiler, "Cannot redeclare value");
-        } else {
             error(&vm->compiler, "Cannot redeclare variable");
+        } else {
+            error(&vm->compiler, "Cannot redeclare value");
         }
     }
 
