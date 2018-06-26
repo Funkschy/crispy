@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <sys/types.h>
+#include <string.h>
 
 #include "cli.h"
 
@@ -45,11 +46,58 @@ void write_line(LineArray *line_array, char *line) {
     line_array->lines[line_array->count++] = line;
 }
 
+#ifndef POSIX
+/**
+ * Simple getline implementation, because Windows is not posix compliant.
+ * @param line_ptr this pointer will be set to the allocated string.
+ * @return the size of the string, which was read from stdin.
+ */
+static ssize_t windows_get_line(char **line_ptr) {
+    size_t buf_size = 256;
+    size_t length = 0;
+
+    // needs to be an int, because getchar returns an int (and EOF is an int)
+    int in;
+    char *string = malloc(buf_size * sizeof(char));
+
+    if (string == NULL) {
+        return -1;
+    }
+
+    do {
+        in = getchar();
+
+        if (length >= buf_size) {
+            char *new_string = malloc(2 * buf_size);
+
+            if (new_string == NULL) {
+                return -1;
+            }
+
+            memcpy(new_string, string, length);
+            free(string);
+            string = new_string;
+        }
+
+        string[length++] = (char) in;
+
+    } while (in != EOF && in != '\0');
+
+    string[length] = '\0';
+
+    *line_ptr = string;
+    return (ssize_t) length;
+}
+#endif
+
 static char *read_line() {
-#ifdef POSIX
     char *line = NULL;
+#ifdef POSIX
     size_t buffer = 0;
     ssize_t result = getline(&line, &buffer, stdin);
+#else
+    ssize_t result = windows_get_line(&line);
+#endif
 
     if (result == -1) {
         fprintf(stderr, "Error while reading from stdin.\n");
@@ -57,10 +105,6 @@ static char *read_line() {
     }
 
     return line;
-#else
-    fprintf(stderr, "No shell on windows sorry :(.\n");
-    return NULL;
-#endif
 }
 
 static void repl(Vm *vm, LineArray *lines) {

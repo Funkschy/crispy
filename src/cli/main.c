@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
 static char *read_file(const char *path) {
     FILE *file = fopen(path, "rb");
     if (file == NULL) {
-        fprintf(stderr, "Couldn't open file '%s'\n", path);
+        fprintf(stderr, "Could not open file '%s'\n", path);
         exit(-1);
     }
 
@@ -37,7 +37,19 @@ static char *read_file(const char *path) {
     rewind(file);
 
     char *buffer = malloc(file_size + 1);
+
+    if (buffer == NULL) {
+        fprintf(stderr, "Could not allocate enough memory to open file '%s'\n", path);
+        exit(-2);
+    }
+
     size_t bytes_read = fread(buffer, sizeof(char), file_size, file);
+
+    if (bytes_read < file_size) {
+        fprintf(stderr, "Could not read file \"%s\".\n", path);
+        exit(-3);
+    }
+
     buffer[bytes_read] = '\0';
 
     fclose(file);
