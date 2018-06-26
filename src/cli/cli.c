@@ -64,7 +64,7 @@ static ssize_t windows_get_line(char **line_ptr) {
         return -1;
     }
 
-    do {
+    while (true) {
         in = getchar();
 
         if (length >= buf_size) {
@@ -79,11 +79,13 @@ static ssize_t windows_get_line(char **line_ptr) {
             string = new_string;
         }
 
+        if (in == '\n') {
+            string[length++] = '\0';
+            break;
+        }
+
         string[length++] = (char) in;
-
-    } while (in != EOF && in != '\0');
-
-    string[length] = '\0';
+    }
 
     *line_ptr = string;
     return (ssize_t) length;
