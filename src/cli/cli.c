@@ -79,6 +79,10 @@ static ssize_t windows_get_line(char **line_ptr) {
             string = new_string;
         }
 
+        if (in == EOF) {
+            return -1;
+        }
+
         if (in == '\n') {
             string[length++] = '\0';
             break;
@@ -102,8 +106,8 @@ static char *read_line() {
 #endif
 
     if (result == -1) {
-        fprintf(stderr, "Error while reading from stdin.\n");
-        exit(1);
+        fprintf(stderr, "Bye.\n");
+        exit(0);
     }
 
     return line;
