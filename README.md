@@ -25,3 +25,8 @@ Alternatively you can just save your code into a file and run:
   
 If you decide to use the shell I would recommend wrapping the session with rlwrap.
   
+If you don't have cmake installed you can also compile crispy like this:  
+  
+	gcc src/*/*.c -o crispy
+  
+Crispy is tested with gcc/mingw and clang.  
