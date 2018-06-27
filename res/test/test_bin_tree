@@ -13,4 +13,32 @@ val traverse = fun node -> {
  	}
 }
 
+val insert = fun tree, value -> {
+    if value == tree.value {
+        return
+    }
+
+    if value < tree.value {
+        if tree.left == nil {
+            tree.left = create(value, nil, nil)
+        } else {
+            insert(tree.left, value)
+        }
+    } else {
+        if tree.right == nil {
+            tree.right = create(value, nil, nil)
+        } else {
+            insert(tree.right, value)
+        }
+    }
+}
+
+traverse(tree)
+
+println("----")
+
+insert(tree, 0)
+insert(tree, 6)
+insert(tree, 5)
+
 traverse(tree)
