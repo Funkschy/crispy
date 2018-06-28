@@ -263,7 +263,7 @@ static void primary(Vm *vm) {
     Compiler *compiler = &vm->compiler;
 
     switch (compiler->token.type) {
-        case TOKEN_NUMBER: {
+        case TOKEN_DEC_NUMBER: {
             Token token = compiler->token;
             if (token.length == 1) {
                 if (*token.start == '0') {
@@ -283,6 +283,27 @@ static void primary(Vm *vm) {
             double res;
 
             res = strtod(str, &ptr);
+            uint16_t pos = (uint16_t) add_constant(vm, create_number(res));
+
+            if (pos > 255) {
+                uint8_t index_1 = (uint8_t) (pos >> 8);
+                uint8_t index_2 = (uint8_t) (pos & 0xFF);
+                emit_short_arg(vm, OP_LDC_W, index_1, index_2);
+            } else {
+                emit_byte_arg(vm, OP_LDC, (uint8_t) pos);
+            }
+
+            break;
+        }
+        case TOKEN_HEX_NUMBER: {
+            size_t length = compiler->token.length;
+            char str[length + 1];
+            memcpy(str, compiler->token.start, length);
+            str[length] = '\0';
+            char *ptr;
+            uint64_t res;
+
+            res = strtoul(str, &ptr, 16);
             uint16_t pos = (uint16_t) add_constant(vm, create_number(res));
 
             if (pos > 255) {
@@ -667,7 +688,7 @@ static void var_decl(Vm *vm, bool assignable) {
     if (!assignable && !check(vm, TOKEN_EQUALS)) {
         error(&vm->compiler, "Values have to be initialised on declaration");
     }
-    
+
     declare_var(vm, identifier, assignable);
 
     if (check(vm, TOKEN_EQUALS)) {

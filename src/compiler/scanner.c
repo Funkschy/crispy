@@ -35,6 +35,10 @@ static bool is_digit(char c) {
     return c >= '0' && c <= '9';
 }
 
+static bool is_hex(char c) {
+    return is_digit(c) || (c >= 'A' && c <= 'F');
+}
+
 static Token make_token(Scanner *scanner, TokenType type) {
     Token token;
     token.type = type;
@@ -52,7 +56,23 @@ void init_scanner(Scanner *scanner, const char *source) {
     scanner->previous = make_token(scanner, TOKEN_ERROR);
 }
 
+static Token hex_number(Scanner *scanner) {
+    // consume 'x'
+    advance(scanner);
+
+    while (is_hex(peek(scanner))) {
+        advance(scanner);
+    }
+
+    return make_token(scanner, TOKEN_HEX_NUMBER);
+}
+
 static Token number(Scanner *scanner) {
+    // check for 0x...
+    if (*scanner->start == '0' && peek(scanner) == 'x') {
+        return hex_number(scanner);
+    }
+
     while (is_digit(peek(scanner))) { advance(scanner); }
 
     if (peek(scanner) == '.' && is_digit(peek_next(scanner))) {
@@ -60,7 +80,7 @@ static Token number(Scanner *scanner) {
         while (is_digit(peek(scanner))) { advance(scanner); }
     }
 
-    return make_token(scanner, TOKEN_NUMBER);
+    return make_token(scanner, TOKEN_DEC_NUMBER);
 }
 
 /**

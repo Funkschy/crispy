@@ -8,3 +8,6 @@ println("Fun fact: " + str(two_pi) + " is a better circle number than pi!");
 
 val fail = fun -> 0 / 0;
 // println(fail());
+
+val res = 0xFF + 0x1
+println(res)
