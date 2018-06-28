@@ -32,7 +32,7 @@ syntax match crispyOperator "\v\>\="
 
 " Comments
 syntax match crispyComment "\v\/\/.*$"
-syntax match crispyComment "\v\/\*.*\*\/"
+syntax region crispyBlockComment start=/\v\*/ skip=/\v\\./ end=/\v\*\//
 
 " Numbers
 syntax match crispyNumber "\v-?[0-9]*\.?[0-9]+"
@@ -45,6 +45,7 @@ highlight link crispyKeyword Keyword
 highlight link crispyBoolean Boolean
 highlight link crispyOperator Operator 
 highlight link crispyComment Comment
+highlight link crispyBlockComment Comment
 highlight link crispyNumber Number
 highlight link crispyString String
 
