@@ -1,0 +1,5 @@
+1. String escape sequences
+2. dict comparison
+3. fix truthfulness
+4. add len() to stdlib
+5. add string multiplication
