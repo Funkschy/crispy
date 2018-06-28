@@ -1,7 +1,7 @@
 val s = "Hello World";
 val u = "Hällo Wörld";
 
-var s1 = "Hello World";
+var s1 = 'Hello World';
 
 println(s);
 println(u);

@@ -182,8 +182,8 @@ static Token identifier(Scanner *scanner) {
     return make_token(scanner, identifier_type(scanner));
 }
 
-static Token string(Scanner *scanner) {
-    while (!at_end(scanner) && peek(scanner) != '"') {
+static Token string(Scanner *scanner, char quotation_mark) {
+    while (!at_end(scanner) && peek(scanner) != quotation_mark) {
         advance(scanner);
     }
 
@@ -252,8 +252,10 @@ static Token get_next_token(Scanner *scanner) {
             }
         case ';':
             return make_token(scanner, TOKEN_SEMICOLON);
+        case '\'':
+            return string(scanner, '\'');
         case '"':
-            return string(scanner);
+            return string(scanner, '"');
         case '<':
             if (peek(scanner) == '=') {
                 advance(scanner);
