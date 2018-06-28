@@ -23,7 +23,8 @@ println(false and false);
 println(false or false);
 println(false or (1 == 1) and (1 < 2));
 
-var i = 1;
+var i
+i = 1
 
 i++;
 println(i);

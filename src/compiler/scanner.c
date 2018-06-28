@@ -92,6 +92,14 @@ static bool skip_whitespace(Scanner *scanner) {
                     while (!at_end(scanner) && peek(scanner) != '\n') {
                         advance(scanner);
                     }
+                } else if (peek_next(scanner) == '*') {
+                    advance(scanner);
+                    while (!at_end(scanner) && !(peek(scanner) == '*' && peek_next(scanner) == '/')) {
+                        advance(scanner);
+                    }
+                    // '*' and '/'
+                    advance(scanner);
+                    advance(scanner);
                 } else {
                     return false;
                 }

@@ -1,3 +1,6 @@
+/**
+ * Factory function for creating tree nodes.
+ */
 val create = fun value, left, right -> {"value": value, "left": left, "right": right}
 val tree = create(2, create(1, create(0, nil, nil), nil), create(3, nil, nil))
 

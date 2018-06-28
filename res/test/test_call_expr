@@ -11,6 +11,13 @@ var unused = fun a -> println(a)
 
 // Just a comment
 
+/*
+    Just
+    a
+    multiline
+    comment
+*/
+
 println(add("Hello ", "World"))
 
 var even = fun n -> if n % 2 == 0 { 2 + 2 true } else { return false }
