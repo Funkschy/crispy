@@ -653,7 +653,8 @@ static void if_expr(Vm *vm) {
 
 static void var_decl(Vm *vm, bool assignable) {
     advance(vm);
-    Token identifier = consume(vm, TOKEN_IDENTIFIER, "Expected variable name after 'var'");
+    const char *msg = assignable ? "Expected variable name after 'var'" : "Expected variable name after 'val'";
+    Token identifier = consume(vm, TOKEN_IDENTIFIER, msg);
 
     if (already_defined(vm, identifier)) {
         if (assignable) {
@@ -663,13 +664,18 @@ static void var_decl(Vm *vm, bool assignable) {
         }
     }
 
+    if (!assignable && !check(vm, TOKEN_EQUALS)) {
+        error(&vm->compiler, "Values have to be initialised on declaration");
+    }
+    
     declare_var(vm, identifier, assignable);
 
-    consume(vm, TOKEN_EQUALS, "Expected '=' after variable name");
-    expr(vm);
-    consume_optional(vm, TOKEN_SEMICOLON);
-
-    define_var(vm, identifier);
+    if (check(vm, TOKEN_EQUALS)) {
+        consume(vm, TOKEN_EQUALS, "Expected '=' after variable name");
+        expr(vm);
+        consume_optional(vm, TOKEN_SEMICOLON);
+        define_var(vm, identifier);
+    }
 }
 
 static void assignment(Vm *vm) {
