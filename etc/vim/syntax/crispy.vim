@@ -32,13 +32,15 @@ syntax match crispyOperator "\v\>\="
 
 " Comments
 syntax match crispyComment "\v\/\/.*$"
-syntax region crispyBlockComment start=/\v\*/ skip=/\v\\./ end=/\v\*\//
+syntax region crispyBlockComment start=/\v\/\*/ skip=/\v\\./ end=/\v\*\//
 
 " Numbers
 syntax match crispyNumber "\v-?[0-9]*\.?[0-9]+"
+syntax match crispyNumber "\v-?0x\x+"
 
 " Strings
-syntax region crispyString start=/\v"/ skip=/\v\\./ end=/\v"/ 
+syntax region crispyDoubleString start=/\v"/ skip=/\v\\./ end=/\v"/ 
+syntax region crispySingleString start=/\v'/ skip=/\v\\./ end=/\v'/ 
 
 highlight link crispyStorageClass StorageClass
 highlight link crispyKeyword Keyword
@@ -47,6 +49,7 @@ highlight link crispyOperator Operator
 highlight link crispyComment Comment
 highlight link crispyBlockComment Comment
 highlight link crispyNumber Number
-highlight link crispyString String
+highlight link crispyDoubleString String
+highlight link crispySingleString String
 
 let b:current_syntax = "crispy"
