@@ -13,7 +13,7 @@ def execute(executable, test_dir, result_dir):
     global num_errors
 
     for file_name in os.listdir(test_dir):
-        result_path = Path(result_dir + '/' + file_name.replace('test', 'expected'))
+        result_path = Path(result_dir + '/' + file_name[:-4].replace('test', 'expected'))
         if not result_path.is_file():
             print("Warning: {} has no result file".format(file_name))
             continue
