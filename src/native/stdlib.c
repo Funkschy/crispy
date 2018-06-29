@@ -38,9 +38,9 @@ CrispyValue str(CrispyValue *value, Vm *vm) {
 
     switch (value->type) {
         case NUMBER: {
-            char s[17];
-            snprintf(s, 17, "%.15g", value->d_value);
-            // one less, because crispy strings are not null terminated
+            char s[23];
+            snprintf(s, 23, "%.15g", value->d_value);
+            // crispy strings are not null terminated
             string = new_string(vm, s, strlen(s));
             break;
         }

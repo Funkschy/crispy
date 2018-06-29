@@ -50,8 +50,8 @@ size_t value_to_string(CrispyValue value, char **dest) {
 
     switch (value.type) {
         case NUMBER: {
-            char s[17];
-            snprintf(s, 17, "%.15g", value.d_value);
+            char s[23];
+            snprintf(s, 23, "%.15g", value.d_value);
             string = strdup(s);
             str_len = strlen(s);
             break;
