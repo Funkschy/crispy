@@ -19,6 +19,8 @@ jmp_buf error_buf;
 
 static void expr(Vm *vm);
 
+static void factor(Vm *vm);
+
 static void stmt(Vm *vm);
 
 static void error(Compiler *compiler, const char *err_message) {
@@ -449,20 +451,29 @@ static void primary_expr(Vm *vm) {
     }
 }
 
+static void power(Vm *vm) {
+    primary_expr(vm);
+    
+    if (match(vm, TOKEN_STAR_STAR)) {
+        factor(vm);
+        emit_no_arg(vm, OP_POW);
+    }
+}
+
 static void factor(Vm *vm) {
     switch (vm->compiler.token.type) {
         case TOKEN_BANG:
             advance(vm);
-            primary_expr(vm);
+            power(vm);
             emit_no_arg(vm, OP_NOT);
             break;
         case TOKEN_MINUS:
             advance(vm);
-            primary_expr(vm);
+            power(vm);
             emit_no_arg(vm, OP_NEGATE);
             break;
         default:
-            primary_expr(vm);
+            power(vm);
             break;
     }
 }

@@ -18,6 +18,7 @@ typedef enum {
     OP_MUL,             // multiply two numbers
     OP_DIV,             // divide two numbers
     OP_MOD,             // modulo operator
+    OP_POW,             // multiply a number with itself n times
 
     OP_AND,
     OP_OR,

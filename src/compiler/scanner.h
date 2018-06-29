@@ -19,6 +19,7 @@ typedef enum {
     TOKEN_MINUS,
     TOKEN_MINUS_MINUS,
     TOKEN_STAR,
+    TOKEN_STAR_STAR,
     TOKEN_SLASH,
     TOKEN_VAR,
     TOKEN_VAL,

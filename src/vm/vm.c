@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #include "vm.h"
 #include "memory.h"
@@ -486,6 +487,18 @@ static InterpretResult run(Vm *vm) {
 
                 first.d_value = first.d_value / second.d_value;
                 PUSH(first);
+                break;
+            }
+            case OP_POW: {
+                CrispyValue exponent = POP();
+                CrispyValue base = POP();
+
+                if (!CHECK_NUM(base) || !CHECK_NUM(exponent)) {
+                    goto ERROR;
+                }
+
+                PUSH(create_number(pow(base.d_value, exponent.d_value)));
+
                 break;
             }
             case OP_OR: {

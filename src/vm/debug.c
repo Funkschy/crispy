@@ -73,6 +73,8 @@ int disassemble_instruction(Vm *vm, int offset) {
             return simple_instruction("OP_SUB", offset);
         case OP_MUL:
             return simple_instruction("OP_MUL", offset);
+        case OP_POW:
+            return simple_instruction("OP_POW", offset);
         case OP_EQUAL:
             return simple_instruction("OP_EQUAL", offset);
         case OP_NOT_EQUAL:
