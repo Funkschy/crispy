@@ -35,6 +35,17 @@ static int constant_instruction(const char *name, Vm *vm, int offset) {
     return offset + 2;
 }
 
+static int wide_constant_instruction(const char *name, Vm *vm, int offset) {
+    uint8_t *code = CURR_FRAME(vm)->code_buffer.code;
+    uint16_t constant_index = (code[offset + 1] << 8) | code[offset + 2];
+
+    printf("%-16s %4d '", name, constant_index);
+    print_value(CURR_FRAME(vm)->constants.values[constant_index], false, false);
+    printf("'\n");
+
+    return offset + 3;
+}
+
 static int var_instruction(const char *name, Vm *vm, int offset) {
     uint8_t var_index = CURR_FRAME(vm)->code_buffer.code[offset + 1];
 
@@ -73,6 +84,8 @@ int disassemble_instruction(Vm *vm, int offset) {
             return simple_instruction("OP_SUB", offset);
         case OP_MUL:
             return simple_instruction("OP_MUL", offset);
+        case OP_POW:
+            return simple_instruction("OP_POW", offset);
         case OP_EQUAL:
             return simple_instruction("OP_EQUAL", offset);
         case OP_NOT_EQUAL:
@@ -90,7 +103,7 @@ int disassemble_instruction(Vm *vm, int offset) {
         case OP_LDC:
             return constant_instruction("OP_LDC", vm, offset);
         case OP_LDC_W:
-            return constant_instruction("OP_LDC_W", vm, offset);
+            return wide_constant_instruction("OP_LDC_W", vm, offset);
         case OP_NEGATE:
             return simple_instruction("OP_NEGATE", offset);
         case OP_STORE:

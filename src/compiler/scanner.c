@@ -246,6 +246,10 @@ static Token get_next_token(Scanner *scanner) {
             }
             return make_token(scanner, TOKEN_MINUS);
         case '*':
+            if (peek(scanner) == '*') {
+                advance(scanner);
+                return make_token(scanner, TOKEN_STAR_STAR);
+            }
             return make_token(scanner, TOKEN_STAR);
         case '%':
             return make_token(scanner, TOKEN_PERCENT);
