@@ -255,18 +255,18 @@ static InterpretResult run(Vm *vm) {
     CrispyValue *const_values = curr_frame->constants.values;
     ValueArray *variables = &curr_frame->variables;
 
-#define READ_BYTE() (++ip, ip[-1])
+#define READ_BYTE() (ip += 1, ip[-1])
 #define READ_SHORT() (ip += 2, (uint16_t)((ip[-2] << 8) | ip[-1]))
 #define READ_CONST() (const_values[READ_BYTE()])
-#define READ_CONST_W() (const_values[(READ_BYTE() << 8) | READ_BYTE()])
+#define READ_CONST_W() (ip += 2, const_values[(ip[-2] << 8) | ip[-1]])
 #define READ_VAR() (variables->values[READ_BYTE()])
-#define POP() (*(--sp))
-#define PUSH(value) (*(sp++) = (value))
+#define POP() (*(sp -= 1))
+#define PUSH(value) (*sp = (value), sp += 1)
 #define PEEK() (*(sp - 1))
 #define BINARY_OP(op)                                           \
     do {                                                        \
-        CrispyValue second = POP();                                   \
-        CrispyValue first = POP();                                    \
+        CrispyValue second = POP();                             \
+        CrispyValue first = POP();                              \
         if (!CHECK_NUM(first) || !CHECK_NUM(second))            \
             goto ERROR;                                         \
         first.d_value = first.d_value op second.d_value;        \
@@ -275,8 +275,8 @@ static InterpretResult run(Vm *vm) {
 
 #define COND_JUMP(op)                                           \
     do {                                                        \
-        CrispyValue second = POP();                                   \
-        CrispyValue first = POP();                                    \
+        CrispyValue second = POP();                             \
+        CrispyValue first = POP();                              \
         if (first.p_value op second.p_value) {                  \
             ip = code + READ_SHORT();                           \
         } else {                                                \

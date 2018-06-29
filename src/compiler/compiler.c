@@ -453,7 +453,7 @@ static void primary_expr(Vm *vm) {
 
 static void power(Vm *vm) {
     primary_expr(vm);
-    
+
     if (match(vm, TOKEN_STAR_STAR)) {
         factor(vm);
         emit_no_arg(vm, OP_POW);
@@ -715,6 +715,7 @@ static void assignment(Vm *vm) {
     Token identifier = vm->compiler.previous;
 
     if (check(vm, TOKEN_EQUALS)) {
+        // TODO remove unnecessary LOAD-POP combination
         emit_no_arg(vm, OP_POP);
         consume(vm, TOKEN_EQUALS, "Expected '=' after variable name");
         expr(vm);
