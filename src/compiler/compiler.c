@@ -793,19 +793,6 @@ static void block_stmt(Vm *vm) {
     advance(vm);
 }
 
-static void while_stmt(Vm *vm) {
-    advance(vm);
-    uint32_t start_instruction = CURR_FRAME(vm)->code_buffer.count;
-    expr(vm);
-
-    uint32_t exit_jmp = emit_jump(vm, OP_JMF);
-    block_stmt(vm);
-
-    uint32_t to_start = emit_jump(vm, OP_JMP);
-    patch_jump_to(vm, to_start, start_instruction);
-    patch_jump_to(vm, exit_jmp, CURR_FRAME(vm)->code_buffer.count);
-}
-
 static void simple_stmt(Vm *vm) {
     switch (vm->compiler.token.type) {
         case TOKEN_VAR:
@@ -822,11 +809,71 @@ static void simple_stmt(Vm *vm) {
     }
 }
 
+static void for_stmt(Vm *vm) {
+    advance(vm);
+
+    open_scope(vm);
+
+    if (!match(vm, TOKEN_SEMICOLON)) {
+        simple_stmt(vm);
+        // simple_stmt already consumes semicolons
+        if (vm->compiler.previous.type != TOKEN_SEMICOLON) {
+            error(&vm->compiler, "Expected ';' after for-initializer");
+        }
+    }
+
+    uint32_t start_instruction = CURR_FRAME(vm)->code_buffer.count;
+    if (!match(vm, TOKEN_SEMICOLON)) {
+        expr(vm);
+        consume(vm, TOKEN_SEMICOLON, "Expected ';' after for-condition");
+    }
+    uint32_t exit_jmp = emit_jump(vm, OP_JMF);
+    uint32_t body_jmp = emit_jump(vm, OP_JMP);
+
+    uint32_t increment_instruction = CURR_FRAME(vm)->code_buffer.count;
+    if (!check(vm, TOKEN_OPEN_BRACE)) {
+        assignment(vm);
+        emit_no_arg(vm, OP_POP);
+    }
+    uint32_t start_jmp = emit_jump(vm, OP_JMP);
+
+    if (!check(vm, TOKEN_OPEN_BRACE)) {
+        error(&vm->compiler, "Expected '{' after assignment block in 'for'");
+    }
+
+    patch_jump_to(vm, body_jmp, CURR_FRAME(vm)->code_buffer.count);
+    block_stmt(vm);
+    uint32_t increment_jmp = emit_jump(vm, OP_JMP);
+
+    patch_jump_to(vm, start_jmp, start_instruction);
+    patch_jump_to(vm, exit_jmp, CURR_FRAME(vm)->code_buffer.count);
+    patch_jump_to(vm, increment_jmp, increment_instruction);
+
+    close_scope(vm);
+}
+
+static void while_stmt(Vm *vm) {
+    advance(vm);
+    uint32_t start_instruction = CURR_FRAME(vm)->code_buffer.count;
+    expr(vm);
+
+    uint32_t exit_jmp = emit_jump(vm, OP_JMF);
+    block_stmt(vm);
+
+    uint32_t to_start = emit_jump(vm, OP_JMP);
+    patch_jump_to(vm, to_start, start_instruction);
+    patch_jump_to(vm, exit_jmp, CURR_FRAME(vm)->code_buffer.count);
+}
+
 static void stmt(Vm *vm) {
     switch (vm->compiler.token.type) {
         case TOKEN_WHILE:
             vm->compiler.print_expr = false;
             while_stmt(vm);
+            break;
+        case TOKEN_FOR:
+            vm->compiler.print_expr = false;
+            for_stmt(vm);
             break;
         case TOKEN_OPEN_BRACE:
             block_stmt(vm);
