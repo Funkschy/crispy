@@ -176,6 +176,8 @@ static TokenType identifier_type(Scanner *scanner) {
                         return check_keyword(scanner, 2, 1, "n", TOKEN_FUN);
                     case 'a':
                         return check_keyword(scanner, 2, 3, "lse", TOKEN_FALSE);
+                    case 'o':
+                        return check_keyword(scanner, 2, 1, "r", TOKEN_FOR);
                     default:
                         break;
                 }
