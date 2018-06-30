@@ -10,6 +10,7 @@
 #include "vm.h"
 #include "memory.h"
 #include "dictionary.h"
+#include "list.h"
 
 void val_arr_init(ValueArray *value_array) {
     value_array->cap = 0;
@@ -87,6 +88,7 @@ size_t value_to_string(CrispyValue value, char **dest) {
                     break;
                 }
                 case OBJ_LIST:
+                    // TODO implement properly
                     string = strdup("<list>");
                     str_len = 6;
                     break;
@@ -134,6 +136,23 @@ static void print_object(Object *object, const char *new_line, bool print_quotat
         case OBJ_DICT: {
             print_dict((ObjDict *) object, false);
             printf("%s", new_line);
+            break;
+        }
+        case OBJ_LIST: {
+            ObjList *list = (ObjList *) object;
+            bool first = true;
+
+            printf("[");
+            for (int i = 0; i < list->content.count; ++i) {
+                if (first) {
+                    first = false;
+                } else {
+                    printf(", ");
+                }
+                print_value(list->content.values[i], false, print_quotation);
+            }
+            printf("]%s", new_line);
+
             break;
         }
         default:
@@ -376,6 +395,13 @@ ObjDict *new_dict(Vm *vm, HashTable content) {
     dict->content = content;
 
     return dict;
+}
+
+ObjList *new_list(Vm *vm, ValueArray content) {
+    ObjList *list = ALLOC_OBJ(vm, ObjList, OBJ_LIST);
+    list->content = content;
+
+    return list;
 }
 
 uint32_t hash_string(const char *string, size_t length) {

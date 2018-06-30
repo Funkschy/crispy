@@ -57,6 +57,7 @@ void vm_init(Vm *vm, bool interactive) {
     vm->max_alloc_mem = INITIAL_GC_THRESHOLD;
     vm->frame_count = 0;
     vm->interactive = interactive;
+    vm->err_flag = false;
 
     FrameArray frames;
     frames_init(&frames);
@@ -370,6 +371,14 @@ static InterpretResult run(Vm *vm) {
                     if (n_fn->system_func) {
                         vm->sp = sp;
                         res = ((CrispyValue (*)(CrispyValue *, Vm *vm)) n_fn->func_ptr)(args, vm);
+
+                        if (vm->err_flag) {
+                            vm->err_flag = false;
+                            // the system native functions return the error message as a crispy string
+                            print_value(res, true, false);
+                            goto ERROR;
+                        }
+
                     } else {
                         res = ((CrispyValue (*)(CrispyValue *)) n_fn->func_ptr)(args);
                     }
@@ -464,7 +473,7 @@ static InterpretResult run(Vm *vm) {
                 CrispyValue first = POP();
 
                 if (first.type != NUMBER || second.type != NUMBER) {
-                    fprintf(stderr, "Modulo operator (%%) only works on numbers");
+                    fprintf(stderr, "Modulo operator (%%) only works on numbers\n");
                     goto ERROR;
                 }
 
@@ -482,7 +491,7 @@ static InterpretResult run(Vm *vm) {
                 }
 
                 if (second.d_value == 0) {
-                    panic(vm, "Cannot divide by zero");
+                    panic(vm, "Cannot divide by zero\n");
                 }
 
                 first.d_value = first.d_value / second.d_value;
@@ -706,6 +715,11 @@ static InterpretResult run(Vm *vm) {
                 }
 
                 CrispyValue dict_val = PEEK();
+                if (dict_val.type != OBJECT || dict_val.o_value->type != OBJ_DICT) {
+                    fprintf(stderr, "Can only put values into dictionaries\n");
+                    goto ERROR;
+                }
+
                 ObjDict *dict = (ObjDict *) dict_val.o_value;
 
                 HTItemKey ht_key;
@@ -762,6 +776,30 @@ static InterpretResult run(Vm *vm) {
                 CrispyValue result = ht_get(&dict->content, key);
                 PUSH(result);
 
+                break;
+            }
+            case OP_LIST_NEW: {
+                ValueArray val_arr;
+                val_arr_init(&val_arr);
+
+                ObjList *list = new_list(vm, val_arr);
+                CrispyValue list_val = create_object((Object *) list);
+
+                PUSH(list_val);
+                break;
+            }
+            case OP_LIST_ADD: {
+                CrispyValue value = POP();
+                CrispyValue list_val = PEEK();
+
+                if (list_val.type != OBJECT || list_val.o_value->type != OBJ_LIST) {
+                    fprintf(stderr, "Can only put values into lists\n");
+                    goto ERROR;
+                }
+
+                ObjList *list = (ObjList *) list_val.o_value;
+
+                list_add(list, value);
                 break;
             }
             default:

@@ -9,6 +9,8 @@
 #include "stdlib.h"
 #include "../vm/value.h"
 #include "../vm/dictionary.h"
+#include "../vm/vm.h"
+#include "../vm/list.h"
 
 CrispyValue println(CrispyValue *value) {
     print_value(value[0], true, false);
@@ -81,4 +83,25 @@ CrispyValue str(CrispyValue *value, Vm *vm) {
     }
 
     return create_object((Object *) string);
+}
+
+CrispyValue len(CrispyValue *value, Vm *vm) {
+    if (value->type != OBJECT) {
+        vm->err_flag = true;
+        // TODO include type
+        return create_object((Object *)new_string(vm, "Value as no length", 18));
+    }
+
+    Object *obj = value->o_value;
+
+    switch (obj->type) {
+        case OBJ_LIST:
+            return create_number(((ObjList *)obj)->content.count);
+        case OBJ_STRING:
+            return create_number(((ObjString *)obj)->length);
+        default:
+            vm->err_flag = true;
+            // TODO include type
+            return create_object((Object *)new_string(vm, "Value as no length", 18));
+    }
 }

@@ -53,6 +53,9 @@ typedef enum {
     OP_DICT_GET,        // pops key from stack and tries to retrieve a value from the dict on top of the stack
     OP_DICT_PEEK,       // peeks key on top of stack and tries to retrieve a value from the dict below
 
+    OP_LIST_NEW,        // create a new list
+    OP_LIST_ADD,        // add an element to the list
+
     OP_JMP,             // unconditional jump
     OP_JEQ,             // jump if equals
     OP_JMT,             // jump if true
