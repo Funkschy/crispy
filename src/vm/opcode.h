@@ -53,7 +53,7 @@ typedef enum {
     OP_LIST_APPEND,     // append an element to a list
 
     OP_STRUCT_SET,      // set an element in a data structure (list or dict) at an index
-    OP_STRUCT_GET,      // get an element from a data structure (list or dict) or string
+    OP_STRUCT_GET,      // get an element from a data structure (list or dict)
     OP_STRUCT_PEEK,     // peeks key on top of stack and tries to retrieve a value from the dict or list below
 
     OP_JMP,             // unconditional jump
