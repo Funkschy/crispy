@@ -388,7 +388,7 @@ static void primary(Vm *vm) {
     advance(vm);
 }
 
-static void handle_dict_assign(Vm *vm) {
+static void handle_struct_assign(Vm *vm) {
     switch (vm->compiler.token.type) {
         case TOKEN_EQUALS:
             advance(vm);
@@ -447,7 +447,7 @@ static void primary_expr(Vm *vm) {
                     string(vm, false);
                     advance(vm);
 
-                    handle_dict_assign(vm);
+                    handle_struct_assign(vm);
                 }
                 break;
             }
@@ -456,8 +456,7 @@ static void primary_expr(Vm *vm) {
                     expr(vm);
                     consume(vm, TOKEN_CLOSE_BRACKET, "Expected ']' after expression");
 
-                    // TODO change opcode to general add, then determine type of object in vm.c
-                    handle_dict_assign(vm);
+                    handle_struct_assign(vm);
                 }
                 break;
             }

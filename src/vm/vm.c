@@ -182,10 +182,10 @@ static void print_callframe(CallFrame *call_frame) {
 static void panic(Vm *vm, const char *reason) {
     fprintf(stderr, "%s\n", reason);
 
-    CallFrame *current = POP_FRAME(vm);
-    while (current != NULL) {
-        print_callframe(current);
+    CallFrame *current;
+    while (vm->frame_count > 0) {
         current = POP_FRAME(vm);
+        print_callframe(current);
     }
 
     vm_free(vm);
@@ -422,14 +422,12 @@ static InterpretResult run(Vm *vm) {
                 vm->sp = sp;
                 InterpretResult result = run(vm);
 
+                RM_FRAME(vm);
+                temp_call_frame_free(call_frame);
+
                 if (result != INTERPRET_OK) {
                     return result;
                 }
-
-                RM_FRAME(vm);
-
-                // TODO check for memory leak if error in function call
-                temp_call_frame_free(call_frame);
 
                 sp = before_sp;
                 break;
