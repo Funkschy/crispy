@@ -195,12 +195,6 @@ void free_string_literal(HTItem *item) {
     free(item);
 }
 
-void free_heap_string(HTItem *item) {
-    const char *string = item->key.key_c_string;
-    free((void *) string);
-    free(item);
-}
-
 void free_objstring(HTItem *item) {
     free(item);
     // Don't free string itself.

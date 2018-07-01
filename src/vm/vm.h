@@ -18,6 +18,7 @@
 #include "dictionary.h"
 #include "../compiler/compiler.h"
 #include "options.h"
+#include "list.h"
 
 typedef enum {
     INTERPRET_OK,
@@ -49,6 +50,8 @@ typedef struct {
     // indicates if the program
     // is running in shell mode
     bool interactive;
+
+    bool err_flag;
 } Vm;
 
 /**
@@ -163,6 +166,14 @@ ObjNativeFunc *new_native_func(Vm *vm, void *func_ptr, uint8_t num_params, bool 
  * @return a pointer to the created dictionary.
  */
 ObjDict *new_dict(Vm *vm, HashTable content);
+
+/**
+ * Creates a new list.
+ * @param vm the current VM.
+ * @param content the ValueArray which represents the list.
+ * @return a pointer to the created list.
+ */
+ObjList *new_list(Vm *vm, ValueArray content);
 
 /**
  * Compiles and executes the source code.

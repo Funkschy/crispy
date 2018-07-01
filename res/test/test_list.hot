@@ -1,0 +1,12 @@
+var l = [1, 2, 3]
+
+for var i = 0; i < len(l); i++ {
+    l[i]++
+}
+
+println(l)
+
+l = [{"id": 1, "name": "peter"}, {"id": 2, "name": "tony"}, {"id": 3, "name": "bruce"}]
+for var i = 0; i < len(l); i++ {
+    println(l[i].name)
+}

@@ -200,6 +200,7 @@ void declare_natives(Vm *vm) {
     make_native(vm, "print", 5, print, 1, false);
     make_native(vm, "exit", 4, exit_vm, 1, true);
     make_native(vm, "str", 3, str, 1, true);
+    make_native(vm, "len", 3, len, 1, true);
 }
 
 int compile(Vm *vm) {
@@ -352,6 +353,20 @@ static void primary(Vm *vm) {
             // already advanced
             return;
         }
+        case TOKEN_OPEN_BRACKET: {
+            emit_no_arg(vm, OP_LIST_NEW);
+            advance(vm);
+
+            if (!match(vm, TOKEN_CLOSE_BRACKET)) {
+                do {
+                    expr(vm);
+                    emit_no_arg(vm, OP_LIST_APPEND);
+                } while (match(vm, TOKEN_COMMA));
+
+                consume(vm, TOKEN_CLOSE_BRACKET, "Expected ']' after list literal");
+            }
+            return;
+        }
         case TOKEN_STRING: {
             string(vm, true);
             break;
@@ -378,24 +393,24 @@ static void handle_dict_assign(Vm *vm) {
         case TOKEN_EQUALS:
             advance(vm);
             expr(vm);
-            emit_no_arg(vm, OP_DICT_PUT);
+            emit_no_arg(vm, OP_STRUCT_SET);
             return;
         case TOKEN_PLUS_PLUS:
             advance(vm);
-            emit_no_arg(vm, OP_DICT_PEEK);
+            emit_no_arg(vm, OP_STRUCT_PEEK);
             emit_no_arg(vm, OP_LDC_1);
             emit_no_arg(vm, OP_ADD);
-            emit_no_arg(vm, OP_DICT_PUT);
+            emit_no_arg(vm, OP_STRUCT_SET);
             return;
         case TOKEN_MINUS_MINUS:
             advance(vm);
-            emit_no_arg(vm, OP_DICT_PEEK);
+            emit_no_arg(vm, OP_STRUCT_PEEK);
             emit_no_arg(vm, OP_LDC_1);
             emit_no_arg(vm, OP_SUB);
-            emit_no_arg(vm, OP_DICT_PUT);
+            emit_no_arg(vm, OP_STRUCT_SET);
             return;
         default:
-            emit_no_arg(vm, OP_DICT_GET);
+            emit_no_arg(vm, OP_STRUCT_GET);
             break;
     }
 }
@@ -441,6 +456,7 @@ static void primary_expr(Vm *vm) {
                     expr(vm);
                     consume(vm, TOKEN_CLOSE_BRACKET, "Expected ']' after expression");
 
+                    // TODO change opcode to general add, then determine type of object in vm.c
                     handle_dict_assign(vm);
                 }
                 break;
@@ -635,7 +651,7 @@ static void dict_expr(Vm *vm) {
             consume(vm, TOKEN_COLON, "Expected ':' between key and value in dictionary");
             expr(vm);
 
-            emit_no_arg(vm, OP_DICT_PUT);
+            emit_no_arg(vm, OP_STRUCT_SET);
         } while (match(vm, TOKEN_COMMA));
     }
 
@@ -769,6 +785,16 @@ static void expr_stmt(Vm *vm) {
     consume_optional(vm, TOKEN_SEMICOLON);
 }
 
+static void loop_body(Vm *vm) {
+    advance(vm);
+    open_scope(vm);
+    while (!check(vm, TOKEN_CLOSE_BRACE) && !check(vm, TOKEN_EOF)) {
+        stmt(vm);
+    }
+    close_scope(vm);
+    advance(vm);
+}
+
 static void block_stmt(Vm *vm) {
     advance(vm);
 
@@ -842,7 +868,7 @@ static void for_stmt(Vm *vm) {
     }
 
     patch_jump_to(vm, body_jmp, CURR_FRAME(vm)->code_buffer.count);
-    block_stmt(vm);
+    loop_body(vm);
     uint32_t increment_jmp = emit_jump(vm, OP_JMP);
 
     patch_jump_to(vm, start_jmp, start_instruction);
@@ -858,7 +884,7 @@ static void while_stmt(Vm *vm) {
     expr(vm);
 
     uint32_t exit_jmp = emit_jump(vm, OP_JMF);
-    block_stmt(vm);
+    loop_body(vm);
 
     uint32_t to_start = emit_jump(vm, OP_JMP);
     patch_jump_to(vm, to_start, start_instruction);

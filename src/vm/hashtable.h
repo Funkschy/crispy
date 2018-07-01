@@ -47,8 +47,6 @@ void ht_free(HashTable *ht);
 
 void free_string_literal(HTItem *item);
 
-void free_heap_string(HTItem *item);
-
 void free_objstring(HTItem *item);
 
 CrispyValue ht_get(HashTable *ht, HTItemKey key);

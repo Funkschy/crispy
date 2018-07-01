@@ -49,9 +49,12 @@ typedef enum {
     OP_PRINT,           // pops a value from the stack and prints it. (Only used in interactive mode)
 
     OP_DICT_NEW,        // create a new dictionary
-    OP_DICT_PUT,        // pops to values from the stack and adds them to a dictionary as a key-value pair
-    OP_DICT_GET,        // pops key from stack and tries to retrieve a value from the dict on top of the stack
-    OP_DICT_PEEK,       // peeks key on top of stack and tries to retrieve a value from the dict below
+    OP_LIST_NEW,        // create a new list
+    OP_LIST_APPEND,     // append an element to a list
+
+    OP_STRUCT_SET,      // set an element in a data structure (list or dict) at an index
+    OP_STRUCT_GET,      // get an element from a data structure (list or dict) or string
+    OP_STRUCT_PEEK,     // peeks key on top of stack and tries to retrieve a value from the dict or list below
 
     OP_JMP,             // unconditional jump
     OP_JEQ,             // jump if equals
