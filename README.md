@@ -47,7 +47,7 @@ Crispy is tested with gcc/mingw and clang.
 **The following documentation is written for the C implementation of Crispy which can be found <a href="https://github.com/funkschy/crispy">here</a>!**  
 
 ### 1. Keywords  
-Crispy currently has only 12 keywords, even though more will follow, as the development process advances.  
+Crispy currently has only 13 keywords, even though more will follow, as the development process advances.  
 ### var  
 The var keyword is used to declare reassignable variables.  
 
