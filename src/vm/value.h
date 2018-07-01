@@ -19,7 +19,7 @@
 typedef struct object_t Object;
 
 typedef enum {
-    NUMBER, OBJECT, BOOLEAN, NIL
+    NIL, NUMBER, OBJECT, BOOLEAN
 } ValueType;
 
 typedef struct {

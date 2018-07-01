@@ -89,7 +89,7 @@ CrispyValue len(CrispyValue *value, Vm *vm) {
     if (value->type != OBJECT) {
         vm->err_flag = true;
         // TODO include type
-        return create_object((Object *)new_string(vm, "Value as no length", 18));
+        return create_object((Object *)new_string(vm, "Value has no length", 19));
     }
 
     Object *obj = value->o_value;
@@ -102,6 +102,6 @@ CrispyValue len(CrispyValue *value, Vm *vm) {
         default:
             vm->err_flag = true;
             // TODO include type
-            return create_object((Object *)new_string(vm, "Value as no length", 18));
+            return create_object((Object *)new_string(vm, "Value has no length", 19));
     }
 }

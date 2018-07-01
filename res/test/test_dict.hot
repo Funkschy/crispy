@@ -21,3 +21,8 @@ println(p2.p1.age)
 
 p2.p1.age--
 println(p2.p1.age)
+
+p2.p1["first name"] = "bruce"
+p2.p1["last name"] = "banner"
+
+println(p2)

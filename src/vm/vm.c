@@ -16,6 +16,7 @@
 #include "../compiler/scanner.h"
 #include "dictionary.h"
 #include "hashtable.h"
+#include "list.h"
 
 static InterpretResult run(Vm *vm);
 
@@ -93,9 +94,12 @@ size_t free_object(Object *object) {
             free(n_fn);
             return sizeof(ObjNativeFunc);
         }
-        case OBJ_LIST:
-            printf("Lists can't be freed yet\n");
+        case OBJ_LIST: {
+            ObjList *list = (ObjList *) object;
+            val_arr_free(&list->content);
+            free(list);
             break;
+        }
         case OBJ_DICT: {
             ObjDict *dict = (ObjDict *) object;
             ht_free(&dict->content);
@@ -424,6 +428,7 @@ static InterpretResult run(Vm *vm) {
 
                 RM_FRAME(vm);
 
+                // TODO check for memory leak if error in function call
                 temp_call_frame_free(call_frame);
 
                 sp = before_sp;
@@ -705,79 +710,6 @@ static InterpretResult run(Vm *vm) {
                 PUSH(value);
                 break;
             }
-            case OP_DICT_PUT: {
-                CrispyValue value = POP();
-                CrispyValue key = POP();
-
-                if (key.type != OBJECT) {
-                    fprintf(stderr, "Only strings can be used as indices for dictionaries\n");
-                    goto ERROR;
-                }
-
-                CrispyValue dict_val = PEEK();
-                if (dict_val.type != OBJECT || dict_val.o_value->type != OBJ_DICT) {
-                    fprintf(stderr, "Can only put values into dictionaries\n");
-                    goto ERROR;
-                }
-
-                ObjDict *dict = (ObjDict *) dict_val.o_value;
-
-                HTItemKey ht_key;
-
-                Object *key_obj = key.o_value;
-                if (key_obj->type != OBJ_STRING) {
-                    fprintf(stderr, "Only strings can be used as indices for dictionaries\n");
-                    goto ERROR;
-                }
-
-                ht_key.key_obj_string = (ObjString *) key_obj;
-                ht_put(&dict->content, ht_key, value);
-
-                break;
-            }
-            case OP_DICT_GET: {
-                CrispyValue key_val = POP();
-                CrispyValue dict_val = POP();
-
-                if (key_val.type != OBJECT) {
-                    fprintf(stderr, "Only strings can be used as indices for dictionaries\n");
-                    goto ERROR;
-                }
-
-
-                ObjDict *dict = (ObjDict *) dict_val.o_value;
-                Object *key_obj = key_val.o_value;
-
-                if (key_obj->type != OBJ_STRING) {
-                    fprintf(stderr, "Only strings can be used as indices for dictionaries\n");
-                    goto ERROR;
-                }
-
-                ObjString *key_string = (ObjString *) key_obj;
-
-                HTItemKey key;
-                key.key_obj_string = key_string;
-
-                CrispyValue result = ht_get(&dict->content, key);
-                PUSH(result);
-
-                break;
-            }
-            case OP_DICT_PEEK: {
-                CrispyValue key_val = PEEK();
-                CrispyValue dict_val = sp[-2];
-
-                ObjDict *dict = (ObjDict *) dict_val.o_value;
-                ObjString *key_string = (ObjString *) key_val.o_value;
-
-                HTItemKey key;
-                key.key_obj_string = key_string;
-
-                CrispyValue result = ht_get(&dict->content, key);
-                PUSH(result);
-
-                break;
-            }
             case OP_LIST_NEW: {
                 ValueArray val_arr;
                 val_arr_init(&val_arr);
@@ -788,7 +720,7 @@ static InterpretResult run(Vm *vm) {
                 PUSH(list_val);
                 break;
             }
-            case OP_LIST_ADD: {
+            case OP_LIST_APPEND: {
                 CrispyValue value = POP();
                 CrispyValue list_val = PEEK();
 
@@ -799,7 +731,175 @@ static InterpretResult run(Vm *vm) {
 
                 ObjList *list = (ObjList *) list_val.o_value;
 
-                list_add(list, value);
+                list_append(list, value);
+                break;
+            }
+            case OP_STRUCT_SET: {
+                CrispyValue value = POP();
+                CrispyValue key = POP();
+                CrispyValue structure = PEEK();
+
+                if (structure.type != OBJECT) {
+                    fprintf(stderr, "Trying to retrieve an element from a primitive value\n");
+                    goto ERROR;
+                }
+
+                Object *obj = structure.o_value;
+
+                switch (obj->type) {
+                    case OBJ_DICT: {
+                        ObjDict *dict = (ObjDict *) obj;
+
+                        if (key.type != OBJECT) {
+                            fprintf(stderr, "Only strings can be used as indices for dictionaries\n");
+                            goto ERROR;
+                        }
+
+                        HTItemKey ht_key;
+                        Object *key_obj = key.o_value;
+
+                        if (key_obj->type != OBJ_STRING) {
+                            fprintf(stderr, "Only strings can be used as indices for dictionaries\n");
+                            goto ERROR;
+                        }
+
+                        ht_key.key_obj_string = (ObjString *) key_obj;
+                        ht_put(&dict->content, ht_key, value);
+                        break;
+                    }
+                    case OBJ_LIST: {
+                        ObjList *list = (ObjList *) obj;
+
+                        // Check if key is an integer
+                        if (key.type != NUMBER || floor(key.d_value) != key.d_value) {
+                            fprintf(stderr, "Only integers can be used as indices for lists\n");
+                            goto ERROR;
+                        }
+
+                        uint32_t index = (uint32_t) key.d_value;
+                        list_add(list, index, value);
+                        break;
+                    }
+                    default:
+                        fprintf(stderr, "Invalid receiver for set operation\n");
+                        goto ERROR;
+                }
+
+                break;
+            }
+            case OP_STRUCT_GET: {
+                CrispyValue key_val = POP();
+                CrispyValue struct_val = POP();
+
+                if (struct_val.type != OBJECT) {
+                    fprintf(stderr, "Trying to retrieve an element from a primitive value\n");
+                    goto ERROR;
+                }
+
+                Object *obj = struct_val.o_value;
+
+                switch (obj->type) {
+                    case OBJ_DICT: {
+                        if (key_val.type != OBJECT) {
+                            fprintf(stderr, "Only strings can be used as indices for dictionaries\n");
+                            goto ERROR;
+                        }
+
+
+                        ObjDict *dict = (ObjDict *) obj;
+                        Object *key_obj = key_val.o_value;
+
+                        if (key_obj->type != OBJ_STRING) {
+                            fprintf(stderr, "Only strings can be used as indices for dictionaries\n");
+                            goto ERROR;
+                        }
+
+                        ObjString *key_string = (ObjString *) key_obj;
+
+                        HTItemKey key;
+                        key.key_obj_string = key_string;
+
+                        CrispyValue result = ht_get(&dict->content, key);
+                        PUSH(result);
+                        break;
+                    }
+                    case OBJ_LIST: {
+                        ObjList *list = (ObjList *) obj;
+
+                        // Check if key is an integer
+                        if (key_val.type != NUMBER || floor(key_val.d_value) != key_val.d_value) {
+                            fprintf(stderr, "Only integers can be used as indices for lists\n");
+                            goto ERROR;
+                        }
+
+                        uint32_t index = (uint32_t) key_val.d_value;
+                        CrispyValue value;
+                        bool success = list_get(list, index, &value);
+
+                        if (!success) {
+                            fprintf(stderr, "Index out of bounds\n");
+                            goto ERROR;
+                        }
+
+                        PUSH(value);
+                        break;
+                    }
+                    default:
+                        fprintf(stderr, "Invalid receiver for get operation\n");
+                        goto ERROR;
+                }
+
+                break;
+            }
+            case OP_STRUCT_PEEK: {
+                CrispyValue key_val = PEEK();
+                CrispyValue struct_val = sp[-2];
+
+                if (struct_val.type != OBJECT) {
+                    fprintf(stderr, "Trying to retrieve an element from a primitive value\n");
+                    goto ERROR;
+                }
+
+                Object *obj = struct_val.o_value;
+
+                switch (obj->type) {
+                    case OBJ_LIST: {
+                        ObjList *list = (ObjList *) struct_val.o_value;
+
+                        // Check if key is an integer
+                        if (key_val.type != NUMBER || floor(key_val.d_value) != key_val.d_value) {
+                            fprintf(stderr, "Only integers can be used as indices for lists\n");
+                            goto ERROR;
+                        }
+
+                        uint32_t index = (uint32_t) key_val.d_value;
+                        CrispyValue value;
+                        bool success = list_get(list, index, &value);
+
+                        if (!success) {
+                            fprintf(stderr, "Index out of bounds\n");
+                            goto ERROR;
+                        }
+
+                        PUSH(value);
+                        break;
+                    }
+                    case OBJ_DICT: {
+                        ObjDict *dict = (ObjDict *) struct_val.o_value;
+                        ObjString *key_string = (ObjString *) key_val.o_value;
+
+                        HTItemKey key;
+                        key.key_obj_string = key_string;
+
+                        CrispyValue result = ht_get(&dict->content, key);
+                        PUSH(result);
+                        break;
+                    }
+                    default:
+                        fprintf(stderr, "Invalid receiver for get operation\n");
+                        goto ERROR;
+                }
+
                 break;
             }
             default:

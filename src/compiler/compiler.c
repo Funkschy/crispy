@@ -360,7 +360,7 @@ static void primary(Vm *vm) {
             if (!match(vm, TOKEN_CLOSE_BRACKET)) {
                 do {
                     expr(vm);
-                    emit_no_arg(vm, OP_LIST_ADD);
+                    emit_no_arg(vm, OP_LIST_APPEND);
                 } while (match(vm, TOKEN_COMMA));
 
                 consume(vm, TOKEN_CLOSE_BRACKET, "Expected ']' after list literal");
@@ -393,24 +393,24 @@ static void handle_dict_assign(Vm *vm) {
         case TOKEN_EQUALS:
             advance(vm);
             expr(vm);
-            emit_no_arg(vm, OP_DICT_PUT);
+            emit_no_arg(vm, OP_STRUCT_SET);
             return;
         case TOKEN_PLUS_PLUS:
             advance(vm);
-            emit_no_arg(vm, OP_DICT_PEEK);
+            emit_no_arg(vm, OP_STRUCT_PEEK);
             emit_no_arg(vm, OP_LDC_1);
             emit_no_arg(vm, OP_ADD);
-            emit_no_arg(vm, OP_DICT_PUT);
+            emit_no_arg(vm, OP_STRUCT_SET);
             return;
         case TOKEN_MINUS_MINUS:
             advance(vm);
-            emit_no_arg(vm, OP_DICT_PEEK);
+            emit_no_arg(vm, OP_STRUCT_PEEK);
             emit_no_arg(vm, OP_LDC_1);
             emit_no_arg(vm, OP_SUB);
-            emit_no_arg(vm, OP_DICT_PUT);
+            emit_no_arg(vm, OP_STRUCT_SET);
             return;
         default:
-            emit_no_arg(vm, OP_DICT_GET);
+            emit_no_arg(vm, OP_STRUCT_GET);
             break;
     }
 }
@@ -651,7 +651,7 @@ static void dict_expr(Vm *vm) {
             consume(vm, TOKEN_COLON, "Expected ':' between key and value in dictionary");
             expr(vm);
 
-            emit_no_arg(vm, OP_DICT_PUT);
+            emit_no_arg(vm, OP_STRUCT_SET);
         } while (match(vm, TOKEN_COMMA));
     }
 
@@ -785,7 +785,7 @@ static void expr_stmt(Vm *vm) {
     consume_optional(vm, TOKEN_SEMICOLON);
 }
 
-static uint32_t loop_body(Vm *vm) {
+static void loop_body(Vm *vm) {
     advance(vm);
     open_scope(vm);
     while (!check(vm, TOKEN_CLOSE_BRACE) && !check(vm, TOKEN_EOF)) {
