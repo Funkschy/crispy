@@ -143,6 +143,8 @@ static void print_object(Object *object, const char *new_line, bool print_quotat
             ObjList *list = (ObjList *) object;
             bool first = true;
 
+            // TODO Fix print quotation
+            
             printf("[");
             for (int i = 0; i < list->content.count; ++i) {
                 if (first) {

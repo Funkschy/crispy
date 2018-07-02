@@ -199,6 +199,7 @@ void declare_natives(Vm *vm) {
     make_native(vm, "println", 7, println, 1, false);
     make_native(vm, "print", 5, print, 1, false);
     make_native(vm, "exit", 4, exit_vm, 1, true);
+    make_native(vm, "split", 5, split, 2, true);
     make_native(vm, "str", 3, str, 1, true);
     make_native(vm, "len", 3, len, 1, true);
 }
@@ -641,6 +642,7 @@ static void lambda(Vm *vm) {
 }
 
 static void dict_expr(Vm *vm) {
+    // TODO put in primary
     emit_no_arg(vm, OP_DICT_NEW);
 
     if (!check(vm, TOKEN_CLOSE_BRACE) && !check(vm, TOKEN_EOF)) {

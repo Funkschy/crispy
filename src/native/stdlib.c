@@ -89,19 +89,52 @@ CrispyValue len(CrispyValue *value, Vm *vm) {
     if (value->type != OBJECT) {
         vm->err_flag = true;
         // TODO include type
-        return create_object((Object *)new_string(vm, "Value has no length", 19));
+        return create_object((Object *) new_string(vm, "Value has no length", 19));
     }
 
     Object *obj = value->o_value;
 
     switch (obj->type) {
         case OBJ_LIST:
-            return create_number(((ObjList *)obj)->content.count);
+            return create_number(((ObjList *) obj)->content.count);
         case OBJ_STRING:
-            return create_number(((ObjString *)obj)->length);
+            return create_number(((ObjString *) obj)->length);
         default:
             vm->err_flag = true;
             // TODO include type
-            return create_object((Object *)new_string(vm, "Value has no length", 19));
+            return create_object((Object *) new_string(vm, "Value has no length", 19));
     }
+}
+
+CrispyValue split(CrispyValue *value, Vm *vm) {
+    if (value->type != OBJECT || value->o_value->type != OBJ_STRING) {
+        vm->err_flag = true;
+        return create_object((Object *) new_string(vm, "Only strings can be splitted", 28));
+    }
+
+    if (value[1].type != OBJECT || value[1].o_value->type != OBJ_STRING) {
+        vm->err_flag = true;
+        return create_object((Object *) new_string(vm, "Only strings can be used as delimiter for 'split'", 49));
+    }
+
+    ObjString *string = (ObjString *) value->o_value;
+    ObjString *delim = (ObjString *) (value + 1)->o_value;
+
+    ObjList *tokens = new_list(vm, 0);
+    size_t length = string->length - delim->length;
+    uint32_t offset = 0;
+
+    for (uint32_t i = 0; i < length; ++i) {
+        if (memcmp(string->start + i, delim->start, delim->length) == 0) {
+            i += delim->length;
+            ObjString *token = new_string(vm, &string->start[offset], i - offset - delim->length);
+            list_append(tokens, create_object((Object *) token));
+            offset = i;
+        }
+    }
+
+    ObjString *token = new_string(vm, &string->start[offset], string->length - offset);
+    list_append(tokens, create_object((Object *) token));
+
+    return create_object((Object *) tokens);
 }
