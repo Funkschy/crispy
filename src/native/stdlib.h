@@ -19,4 +19,6 @@ CrispyValue str(CrispyValue *value, Vm *vm);
 
 CrispyValue len(CrispyValue *value, Vm *vm);
 
+CrispyValue split(CrispyValue *value, Vm *vm);
+
 #endif //CRISPY_STDLIB_H

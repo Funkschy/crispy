@@ -349,14 +349,9 @@ static InterpretResult run(Vm *vm) {
                 Object *object = pos->o_value;
 
                 if (object->type == OBJ_NATIVE_FUNC) {
-                    if (num_args != 1) {
-                        fprintf(stderr, "Native functions may only receive one argument\n");
-                        goto ERROR;
-                    }
-
                     ObjNativeFunc *n_fn = (ObjNativeFunc *) object;
-
                     uint8_t expected = n_fn->num_params;
+
                     if (expected != num_args) {
                         fprintf(stderr, "Invalid number of arguments. Expected %d, but got %d\n", expected, num_args);
                         goto ERROR;

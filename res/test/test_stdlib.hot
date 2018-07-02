@@ -1,0 +1,7 @@
+var s = 'a b c'
+println(split(s, ' '))
+
+s = 'aaa'
+println(split(s, 'aa'))
+
+println(split(s, 'aaa'))
