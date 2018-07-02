@@ -16,7 +16,7 @@ uint32_t var_hash(VarHTItemKey key) {
 }
 
 void var_ht_init(VarHashTable *ht, uint32_t init_cap) {
-    ht->cap = next_pow_of_2(init_cap);
+    ht->cap = (uint32_t) next_pow_of_2(init_cap);
     ht->size = 0;
     ht->buckets = NULL;
 
@@ -85,7 +85,7 @@ static bool insert(VarHTItem **bucket, VarHTItemKey key, VarHTItem *new_item) {
 
 static void resize(VarHashTable *ht) {
     VarHashTable new_ht;
-    var_ht_init(&new_ht, next_pow_of_2(ht->cap + 1));
+    var_ht_init(&new_ht, (uint32_t) next_pow_of_2(ht->cap + 1));
 
     for (uint32_t i = 0; i < ht->cap; ++i) {
         VarHTItem *item = ht->buckets[i];

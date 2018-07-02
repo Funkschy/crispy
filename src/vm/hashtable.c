@@ -47,7 +47,7 @@ static bool equals(HTItemKey first, HTItemKey second, HTKeyType type) {
 }
 
 void ht_init(HashTable *ht, HTKeyType key_type, uint32_t init_cap, void(*free_callback)(HTItem *)) {
-    ht->cap = next_pow_of_2(init_cap);
+    ht->cap = (uint32_t) next_pow_of_2(init_cap);
     ht->size = 0;
     ht->buckets = NULL;
     ht->key_type = key_type;
@@ -111,7 +111,7 @@ static bool insert(HTItem **bucket, HTItemKey key, HTKeyType type, HTItem *new_i
 
 static void resize(HashTable *ht) {
     HashTable new_ht;
-    ht_init(&new_ht, ht->key_type, next_pow_of_2(ht->cap + 1), ht->free_callback);
+    ht_init(&new_ht, ht->key_type, (uint32_t) next_pow_of_2(ht->cap + 1), ht->free_callback);
 
     for (uint32_t i = 0; i < ht->cap; ++i) {
         HTItem *item = ht->buckets[i];

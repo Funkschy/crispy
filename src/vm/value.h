@@ -32,8 +32,8 @@ typedef struct {
 } CrispyValue;
 
 typedef struct {
-    uint32_t cap;
-    uint32_t count;
+    uint64_t cap;
+    uint64_t count;
     CrispyValue *values;
 } ValueArray;
 
