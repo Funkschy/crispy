@@ -10,3 +10,8 @@ l = [{"id": 1, "name": "peter"}, {"id": 2, "name": "tony"}, {"id": 3, "name": "b
 for var i = 0; i < len(l); i++ {
     println(l[i].name)
 }
+
+l = [1]
+l = l + 2
+l = l + 3
+println(l)

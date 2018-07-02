@@ -442,23 +442,37 @@ static InterpretResult run(Vm *vm) {
                     break;
                 }
 
-                // TODO handle lists
-                if (first.type == OBJECT && second.type == OBJECT) {
+                if (first.type == OBJECT) {
                     Object *first_obj = first.o_value;
-                    Object *second_obj = second.o_value;
 
-                    if (first_obj->type != OBJ_STRING || second_obj->type != OBJ_STRING) {
-                        goto ERROR;
+                    switch (first_obj->type) {
+                        case OBJ_STRING: {
+                            if (second.type != OBJECT || second.o_value->type != OBJ_STRING) {
+                                fprintf(stderr,
+                                        "Only strings can be appended to strings. Consider using the 'str' function\n");
+                                goto ERROR;
+                            }
+                            ObjString *first_str = (ObjString *) first_obj;
+                            ObjString *second_str = (ObjString *) second.o_value;
+
+                            ObjString *dest = new_empty_string(vm, (first_str->length + second_str->length));
+                            memcpy((char *) dest->start, first_str->start, first_str->length);
+                            memcpy((char *) (dest->start + first_str->length), second_str->start, second_str->length);
+
+                            PUSH(create_object((Object *) dest));
+                            break;
+                        }
+                        case OBJ_LIST: {
+                            ObjList *clone = clone_list(vm, (ObjList *) first_obj);
+                            list_append(clone, second);
+
+                            PUSH(create_object((Object *) clone));
+                            break;
+                        }
+                        default:
+                            fprintf(stderr, "Invalid target for addition\n");
+                            goto ERROR;
                     }
-
-                    ObjString *first_str = (ObjString *) first_obj;
-                    ObjString *second_str = (ObjString *) second_obj;
-
-                    ObjString *dest = new_empty_string(vm, (first_str->length + second_str->length));
-                    memcpy((char *) dest->start, first_str->start, first_str->length);
-                    memcpy((char *) (dest->start + first_str->length), second_str->start, second_str->length);
-
-                    PUSH(create_object((Object *) dest));
                 } else {
                     goto ERROR;
                 }
@@ -709,10 +723,7 @@ static InterpretResult run(Vm *vm) {
                 break;
             }
             case OP_LIST_NEW: {
-                ValueArray val_arr;
-                val_arr_init(&val_arr);
-
-                ObjList *list = new_list(vm, val_arr);
+                ObjList *list = new_list(vm, 0);
                 CrispyValue list_val = create_object((Object *) list);
 
                 PUSH(list_val);
@@ -774,8 +785,14 @@ static InterpretResult run(Vm *vm) {
                             goto ERROR;
                         }
 
-                        uint32_t index = (uint32_t) key.d_value;
-                        list_add(list, index, value);
+                        int64_t index = (int64_t) key.d_value;
+                        bool success = list_add(list, index, value);
+
+                        if (!success) {
+                            fprintf(stderr, "Index out of bounds\n");
+                            goto ERROR;
+                        }
+
                         break;
                     }
                     default:
@@ -830,7 +847,7 @@ static InterpretResult run(Vm *vm) {
                             goto ERROR;
                         }
 
-                        uint32_t index = (uint32_t) key_val.d_value;
+                        int64_t index = (int64_t) key_val.d_value;
                         CrispyValue value;
                         bool success = list_get(list, index, &value);
 

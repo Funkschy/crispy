@@ -11,6 +11,7 @@
 #include "memory.h"
 #include "dictionary.h"
 #include "list.h"
+#include "../cli/common.h"
 
 void val_arr_init(ValueArray *value_array) {
     value_array->cap = 0;
@@ -32,7 +33,7 @@ void write_value(ValueArray *value_array, CrispyValue value) {
     value_array->values[value_array->count++] = value;
 }
 
-void write_at(ValueArray *value_array, uint32_t index, CrispyValue value) {
+void write_at(ValueArray *value_array, uint64_t index, CrispyValue value) {
     while (index >= value_array->cap) {
         value_array->cap = GROW_CAP(value_array->cap);
         value_array->values = GROW_ARR(value_array->values, CrispyValue, value_array->cap);
@@ -397,9 +398,16 @@ ObjDict *new_dict(Vm *vm, HashTable content) {
     return dict;
 }
 
-ObjList *new_list(Vm *vm, ValueArray content) {
+ObjList *new_list(Vm *vm, size_t size) {
     ObjList *list = ALLOC_OBJ(vm, ObjList, OBJ_LIST);
-    list->content = content;
+    ValueArray val_arr;
+    val_arr_init(&val_arr);
+
+    val_arr.count = (uint32_t) size;
+    val_arr.cap = next_pow_of_2(val_arr.count);
+    val_arr.values = GROW_ARR(val_arr.values, CrispyValue, val_arr.cap);
+
+    list->content = val_arr;
 
     return list;
 }
@@ -489,4 +497,11 @@ int cmp_objects(Object *first, Object *second) {
     }
 
     return 1;
+}
+
+ObjList *clone_list(Vm *vm, ObjList *list) {
+    ObjList *clone = new_list(vm, list->content.count);
+    memcpy(clone->content.values, list->content.values, list->content.count * sizeof(CrispyValue));
+
+    return clone;
 }

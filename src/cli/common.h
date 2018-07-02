@@ -10,4 +10,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+uint32_t next_pow_of_2(uint32_t num);
+
 #endif

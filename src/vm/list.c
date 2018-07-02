@@ -10,11 +10,16 @@ void list_append(ObjList *list, CrispyValue value) {
     write_value(&list->content, value);
 }
 
-void list_add(ObjList *list, uint32_t index, CrispyValue value) {
-    write_at(&list->content, index, value);
+bool list_add(ObjList *list, int64_t index, CrispyValue value) {
+    if (index < 0 || index >= list->content.count) {
+        return false;
+    }
+
+    write_at(&list->content, (uint64_t) index, value);
+    return true;
 }
 
-bool list_get(ObjList *list, uint32_t index, CrispyValue *return_value) {
+bool list_get(ObjList *list, int64_t index, CrispyValue *return_value) {
     if (index < 0 || index >= list->content.count) {
         return false;
     }

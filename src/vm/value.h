@@ -120,7 +120,7 @@ void code_buff_free(CodeBuffer *code_buffer);
 
 void write_value(ValueArray *value_array, CrispyValue value);
 
-void write_at(ValueArray *value_array, uint32_t index, CrispyValue value);
+void write_at(ValueArray *value_array, uint64_t index, CrispyValue value);
 
 void print_value(CrispyValue value, bool new_line, bool print_quotation);
 
