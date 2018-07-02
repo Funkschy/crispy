@@ -21,16 +21,20 @@ void list_append(ObjList *list, CrispyValue value);
 
 /**
  * Set the element at an index to a value.
+ * @param list the list.
+ * @param index the index.
+ * @param value the value.
+ * @return true if successful else false.
  */
-void list_add(ObjList *list, uint32_t index, CrispyValue value);
+bool list_add(ObjList *list, int64_t index, CrispyValue value);
 
 /**
  * Retrieve an element from a list.
  * @param list the list.
  * @param index the index.
  * @param return_value will be set to the return value if successful.
- * @return true if successful else false;
+ * @return true if successful else false.
  */
-bool list_get(ObjList *list, uint32_t index, CrispyValue *return_value);
+bool list_get(ObjList *list, int64_t index, CrispyValue *return_value);
 
 #endif //CRISPY_LIST_H

@@ -32,8 +32,8 @@ typedef struct {
 } CrispyValue;
 
 typedef struct {
-    uint32_t cap;
-    uint32_t count;
+    uint64_t cap;
+    uint64_t count;
     CrispyValue *values;
 } ValueArray;
 
@@ -120,7 +120,7 @@ void code_buff_free(CodeBuffer *code_buffer);
 
 void write_value(ValueArray *value_array, CrispyValue value);
 
-void write_at(ValueArray *value_array, uint32_t index, CrispyValue value);
+void write_at(ValueArray *value_array, uint64_t index, CrispyValue value);
 
 void print_value(CrispyValue value, bool new_line, bool print_quotation);
 

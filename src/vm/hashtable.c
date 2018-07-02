@@ -6,6 +6,7 @@
 #include "hashtable.h"
 #include "value.h"
 #include "vm.h"
+#include "../cli/common.h"
 
 #include <string.h>
 
@@ -45,20 +46,8 @@ static bool equals(HTItemKey first, HTItemKey second, HTKeyType type) {
     return false;
 }
 
-static uint32_t next_pow_of_2(uint32_t num) {
-    uint32_t n = num - 1;
-    n |= n >> 1;
-    n |= n >> 2;
-    n |= n >> 4;
-    n |= n >> 8;
-    n |= n >> 16;
-    // if n is 0 add 1
-    n += 1 + (n == 0);
-    return n;
-}
-
 void ht_init(HashTable *ht, HTKeyType key_type, uint32_t init_cap, void(*free_callback)(HTItem *)) {
-    ht->cap = next_pow_of_2(init_cap);
+    ht->cap = (uint32_t) next_pow_of_2(init_cap);
     ht->size = 0;
     ht->buckets = NULL;
     ht->key_type = key_type;
@@ -122,7 +111,7 @@ static bool insert(HTItem **bucket, HTItemKey key, HTKeyType type, HTItem *new_i
 
 static void resize(HashTable *ht) {
     HashTable new_ht;
-    ht_init(&new_ht, ht->key_type, next_pow_of_2(ht->cap + 1), ht->free_callback);
+    ht_init(&new_ht, ht->key_type, (uint32_t) next_pow_of_2(ht->cap + 1), ht->free_callback);
 
     for (uint32_t i = 0; i < ht->cap; ++i) {
         HTItem *item = ht->buckets[i];

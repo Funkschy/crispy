@@ -170,10 +170,18 @@ ObjDict *new_dict(Vm *vm, HashTable content);
 /**
  * Creates a new list.
  * @param vm the current VM.
- * @param content the ValueArray which represents the list.
+ * @param size the size which will be initially allocated.
  * @return a pointer to the created list.
  */
-ObjList *new_list(Vm *vm, ValueArray content);
+ObjList *new_list(Vm *vm, size_t size);
+
+/**
+ * Clones a list.
+ * @param vm the current vm.
+ * @param list the original list.
+ * @return the clone.
+ */
+ObjList *clone_list(Vm *vm, ObjList *list);
 
 /**
  * Compiles and executes the source code.
