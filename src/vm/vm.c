@@ -313,6 +313,7 @@ static InterpretResult run(Vm *vm) {
             long stack_size = sp - vm->stack;
             if (stack_size < 0) {
                 printf("Negative stack pointer\n");
+                goto ERROR;
             }
         }
 #endif

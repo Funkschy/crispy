@@ -38,7 +38,7 @@ val insert = fun tree, value -> {
 
 traverse(tree)
 
-println("----")
+println("-----")
 
 insert(tree, 0)
 insert(tree, 6)
