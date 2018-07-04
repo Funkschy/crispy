@@ -428,8 +428,8 @@ static void primary_expr(Vm *vm) {
         switch (vm->compiler.token.type) {
             case TOKEN_OPEN_PAREN: {
                 // Call
-                size_t num_args = 0;
                 while (match(vm, TOKEN_OPEN_PAREN)) {
+                    size_t num_args = 0;
                     if (!match(vm, TOKEN_CLOSE_PAREN)) {
                         do {
                             expr(vm);

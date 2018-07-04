@@ -5,6 +5,8 @@ The official C implementation of the Crispy Programming Language.
 Crispy is a dynamically typed minimalistic scripting language.
 This implementation includes a bytecode compiler and a simple stack based virtual machine.
 
+Take a look at some of the expamples in res/test/ to get an idea.
+
 A slightly more advanced (but way slower) version of crispy can be found here:
 https://github.com/crispyteam/crispy-lang
   
