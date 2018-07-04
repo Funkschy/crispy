@@ -120,6 +120,10 @@ CrispyValue split(CrispyValue *value, Vm *vm) {
     ObjString *string = (ObjString *) value->o_value;
     ObjString *delim = (ObjString *) (value + 1)->o_value;
 
+    if (delim->length > string->length) {
+        return create_object((Object *) new_list(vm, 0));
+    }
+
     ObjList *tokens = new_list(vm, 0);
     size_t length = string->length - delim->length;
     uint32_t offset = 0;

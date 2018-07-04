@@ -100,6 +100,11 @@ static inline void remove_arg(Vm *vm) {
     CURR_FRAME(vm)->code_buffer.count--;
 }
 
+static inline OP_CODE last_instruction(Vm *vm) {
+    uint8_t last = CURR_FRAME(vm)->code_buffer.code[CURR_FRAME(vm)->code_buffer.count - 1];
+    return last <= OP_RETURN ? (OP_CODE) last : OP_NOP;
+}
+
 static inline uint32_t emit_jump(Vm *vm, OP_CODE op_code) {
     emit_short_arg(vm, op_code, 0xFF, 0xFF);
     return CURR_FRAME(vm)->code_buffer.count - 2;
@@ -588,7 +593,6 @@ static void logic_or(Vm *vm) {
 
 static void lambda(Vm *vm) {
     advance(vm);
-
     open_scope(vm);
 
     CallFrame *lambda_frame = new_call_frame();
@@ -618,7 +622,12 @@ static void lambda(Vm *vm) {
     emit_no_arg(vm, OP_RETURN);
 
 #if DEBUG_SHOW_DISASSEMBLY
-    disassemble_curr_frame(vm, "lamda");
+    static int lambda_counter = 0;
+    lambda_counter += 1;
+
+    char name[17];
+    sprintf(name, "lambda %d", lambda_counter);
+    disassemble_curr_frame(vm, name);
 #endif
 
     RM_FRAME(vm);
@@ -672,7 +681,12 @@ static void block_expr(Vm *vm) {
     while (!check(vm, TOKEN_CLOSE_BRACE) && !check(vm, TOKEN_EOF)) {
         stmt(vm);
     }
-    remove_arg(vm);
+
+    // block expression needs a return value
+    if (last_instruction(vm) == OP_POP) {
+        remove_arg(vm);
+    }
+
     close_scope(vm);
     advance(vm);
 }
