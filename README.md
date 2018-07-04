@@ -40,14 +40,14 @@ If you don't have cmake installed you can also compile crispy like this:
   
 Crispy is tested with gcc/mingw and clang.  
   
+If you like to use vim (I like you already), you can use syntax highlighting.
+Just cd into the etc/vim/ directory an run the install script. It will simply copy the files you need to their positions.
+  
 
 <a name="syntax"/>  
   
 ## Syntax  
-
-**The complete grammar specification can be found in the "grammar.txt" file**   
-**The following documentation is written for the C implementation of Crispy which can be found <a href="https://github.com/funkschy/crispy">here</a>!**  
-
+  
 ### 1. Keywords  
 Crispy currently has only 12 keywords, even though more will follow, as the development process advances.  
 ### var  
