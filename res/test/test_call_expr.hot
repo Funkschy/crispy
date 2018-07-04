@@ -77,3 +77,8 @@ val f = fun -> {
 }
 
 f()
+
+{
+    val add = fun a -> fun b -> a + b
+    println(add(1)(2))
+}
