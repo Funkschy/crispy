@@ -202,6 +202,7 @@ static void make_native(Vm *vm, const char *name, size_t length, void *fn_ptr, u
 
 void declare_natives(Vm *vm) {
     make_native(vm, "println", 7, println, 1, false);
+    make_native(vm, "input", 5, input, 0, true);
     make_native(vm, "print", 5, print, 1, false);
     make_native(vm, "exit", 4, exit_vm, 1, true);
     make_native(vm, "split", 5, split, 2, true);

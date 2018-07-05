@@ -13,7 +13,7 @@
 #define RM_FRAME(vm_ptr)            (--(vm_ptr)->frame_count)
 #define POP_FRAME(vm_ptr)           ((vm_ptr)->frames.frame_pointers[--(vm_ptr)->frame_count])
 
-#include "../cli/common.h"
+#include "../util/common.h"
 #include "value.h"
 #include "dictionary.h"
 #include "../compiler/compiler.h"

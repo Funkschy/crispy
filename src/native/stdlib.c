@@ -11,6 +11,7 @@
 #include "../vm/dictionary.h"
 #include "../vm/vm.h"
 #include "../vm/list.h"
+#include "../util/ioutil.h"
 
 CrispyValue println(CrispyValue *value) {
     print_value(value[0], true, false);
@@ -141,4 +142,20 @@ CrispyValue split(CrispyValue *value, Vm *vm) {
     list_append(tokens, create_object((Object *) token));
 
     return create_object((Object *) tokens);
+}
+
+CrispyValue input(CrispyValue *value, Vm *vm) {
+    char *line;
+    ssize_t length = read_line(&line);
+
+    if (length < 0) {
+        vm->err_flag = true;
+        return create_object((Object *) new_string(vm, "Error while reading line from stdin", 35));
+    }
+
+    // cut off trailing newline
+    ObjString *string = new_string(vm, line, (size_t) length - 1);
+    free(line);
+
+    return create_object((Object *) string);
 }
