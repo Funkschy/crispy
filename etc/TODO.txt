@@ -2,3 +2,4 @@
 2. dict comparison
 3. fix truthfulness
 4. add string multiplication
+5. substrings (maybe slices)

@@ -6,7 +6,7 @@
 #include "hashtable.h"
 #include "value.h"
 #include "vm.h"
-#include "../cli/common.h"
+#include "../util/common.h"
 
 #include <string.h>
 

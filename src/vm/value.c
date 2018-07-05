@@ -11,7 +11,7 @@
 #include "memory.h"
 #include "dictionary.h"
 #include "list.h"
-#include "../cli/common.h"
+#include "../util/common.h"
 
 void val_arr_init(ValueArray *value_array) {
     value_array->cap = 0;

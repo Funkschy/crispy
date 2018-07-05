@@ -6,7 +6,7 @@
 #ifndef VALUE_H
 #define VALUE_H
 
-#include "../cli/common.h"
+#include "../util/common.h"
 
 #define CHECK_TYPE(val, check_type) ((val).type == (check_type))
 

@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../cli/common.h"
+#include "../util/common.h"
 #include "scanner.h"
 
 static bool at_end(Scanner *scanner) {

@@ -6,7 +6,7 @@
 #ifndef CALC_VARIABLES_H
 #define CALC_VARIABLES_H
 
-#include "../cli/common.h"
+#include "../util/common.h"
 
 typedef struct {
     int index;

@@ -6,7 +6,7 @@
 #ifndef CALC_SCANNER_H
 #define CALC_SCANNER_H
 
-#include "../cli/common.h"
+#include "../util/common.h"
 
 typedef enum {
     TOKEN_OPEN_PAREN,
