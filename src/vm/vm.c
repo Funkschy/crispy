@@ -59,6 +59,7 @@ void vm_init(Vm *vm, bool interactive) {
     vm->frame_count = 0;
     vm->interactive = interactive;
     vm->err_flag = false;
+    vm->current_status = VM_STATUS_INIT;
 
     FrameArray frames;
     frames_init(&frames);
@@ -147,7 +148,7 @@ uint32_t add_constant(Vm *vm, CrispyValue value) {
     }
 
     write_value(&call_frame->constants, value);
-    return call_frame->constants.count - 1;
+    return (uint32_t) (call_frame->constants.count - 1);
 }
 
 static void init_compiler(Compiler *compiler, const char *source) {
@@ -251,6 +252,7 @@ InterpretResult interpret_interactive(Vm *vm, const char *source) {
 }
 
 static InterpretResult run(Vm *vm) {
+    vm->current_status = VM_STATUS_RUNNING;
     CallFrame *curr_frame = CURR_FRAME(vm);
 
     register uint8_t *ip = curr_frame->ip;

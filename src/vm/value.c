@@ -144,7 +144,7 @@ static void print_object(Object *object, const char *new_line, bool print_quotat
             bool first = true;
 
             // TODO Fix print quotation
-            
+
             printf("[");
             for (int i = 0; i < list->content.count; ++i) {
                 if (first) {
@@ -318,8 +318,7 @@ void call_frame_free(CallFrame *call_frame) {
  * @return a pointer to the created object.
  */
 static Object *allocate_object(Vm *vm, size_t size, ObjectType type) {
-    // TODO don't gc while compiling
-    if (vm->allocated_mem >= vm->max_alloc_mem) {
+    if (vm->current_status == VM_STATUS_RUNNING && vm->allocated_mem >= vm->max_alloc_mem) {
         gc(vm);
     }
 

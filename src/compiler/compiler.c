@@ -212,6 +212,7 @@ void declare_natives(Vm *vm) {
 
 int compile(Vm *vm) {
     vm->compiler.print_expr = true;
+    vm->current_status = VM_STATUS_COMPILING;
 
     if (vm->compiler.scope[0].size <= 0) {
         declare_natives(vm);
