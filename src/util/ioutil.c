@@ -68,7 +68,12 @@ ssize_t read_line(char **line) {
     ssize_t result = windows_get_line(&temp_line);
 #endif
 
-    *line = temp_line;
+    if (result >= 0) {
+        *line = temp_line;
+    } else {
+        *line = NULL;
+        free(temp_line);
+    }
 
     return result;
 }

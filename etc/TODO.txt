@@ -3,3 +3,4 @@
 3. fix truthfulness
 4. add string multiplication
 5. substrings (maybe slices)
+6. move dict to primary()

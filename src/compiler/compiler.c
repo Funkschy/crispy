@@ -374,6 +374,30 @@ static void primary(Vm *vm) {
             }
             return;
         }
+        case TOKEN_OPEN_BRACE: {
+            advance(vm);
+            // a dictionary, not a block
+            if (compiler->next.type == TOKEN_COLON || compiler->token.type == TOKEN_CLOSE_BRACE) {
+                emit_no_arg(vm, OP_DICT_NEW);
+
+                if (!check(vm, TOKEN_CLOSE_BRACE) && !check(vm, TOKEN_EOF)) {
+                    do {
+                        // consume key
+                        string(vm, true);
+                        advance(vm);
+                        consume(vm, TOKEN_COLON, "Expected ':' between key and value in dictionary");
+                        // consume value
+                        expr(vm);
+
+                        emit_no_arg(vm, OP_STRUCT_SET);
+                    } while (match(vm, TOKEN_COMMA));
+                }
+
+                consume(vm, TOKEN_CLOSE_BRACE, "Expected '}' after dictionary literal");
+            }
+
+            return;
+        }
         case TOKEN_STRING: {
             string(vm, true);
             break;
@@ -651,30 +675,10 @@ static void lambda(Vm *vm) {
 
 }
 
-static void dict_expr(Vm *vm) {
-    // TODO put in primary
-    emit_no_arg(vm, OP_DICT_NEW);
-
-    if (!check(vm, TOKEN_CLOSE_BRACE) && !check(vm, TOKEN_EOF)) {
-        do {
-            string(vm, true);
-            advance(vm);
-            consume(vm, TOKEN_COLON, "Expected ':' between key and value in dictionary");
-            expr(vm);
-
-            emit_no_arg(vm, OP_STRUCT_SET);
-        } while (match(vm, TOKEN_COMMA));
-    }
-
-    consume(vm, TOKEN_CLOSE_BRACE, "Expected '}' after dictionary literal");
-}
-
 static void block_expr(Vm *vm) {
-    advance(vm);
+    primary(vm);
 
-    // a dictionary, not a block
-    if (vm->compiler.next.type == TOKEN_COLON || vm->compiler.token.type == TOKEN_CLOSE_BRACE) {
-        dict_expr(vm);
+    if (vm->compiler.previous.type == TOKEN_CLOSE_BRACE) {
         return;
     }
 
@@ -811,30 +815,6 @@ static void loop_body(Vm *vm) {
     advance(vm);
 }
 
-static void block_stmt(Vm *vm) {
-    advance(vm);
-
-    // a dictionary, not a block
-    if (vm->compiler.next.type == TOKEN_COLON || vm->compiler.token.type == TOKEN_CLOSE_BRACE) {
-        dict_expr(vm);
-        if (vm->interactive && vm->compiler.print_expr) {
-            vm->compiler.print_expr = false;
-            emit_no_arg(vm, OP_PRINT);
-        } else {
-            emit_no_arg(vm, OP_POP);
-        }
-        return;
-    }
-
-    vm->compiler.print_expr = false;
-    open_scope(vm);
-    while (!check(vm, TOKEN_CLOSE_BRACE) && !check(vm, TOKEN_EOF)) {
-        stmt(vm);
-    }
-    close_scope(vm);
-    advance(vm);
-}
-
 static void simple_stmt(Vm *vm) {
     switch (vm->compiler.token.type) {
         case TOKEN_VAR:
@@ -916,9 +896,6 @@ static void stmt(Vm *vm) {
         case TOKEN_FOR:
             vm->compiler.print_expr = false;
             for_stmt(vm);
-            break;
-        case TOKEN_OPEN_BRACE:
-            block_stmt(vm);
             break;
         case TOKEN_RETURN:
             if (vm->frame_count <= 1) {
