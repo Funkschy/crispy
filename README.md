@@ -41,7 +41,7 @@ If you don't have cmake installed you can also compile crispy like this:
 Crispy is tested with gcc/mingw and clang.  
   
 If you like to use vim (I like you already), you can use syntax highlighting.
-Just cd into the etc/vim/ directory an run the install script. It will simply copy the files you need to their positions.
+Just cd into the etc/vim/ directory and run the install script. It will simply copy the files you need to their positions.
   
 
 <a name="syntax"/>  
@@ -129,7 +129,7 @@ After the fun keyword you can declare as many parameters as you wish. The paramt
 Since blocks in crispy are expressions, the lambda body can have an arbitrary length.
   
 	// of course you could just write ... -> a + b + c
-	// you could also just remove the return, since the last expression in the block
+	// you could also just remove the return keyword, since the last expression in the block
 	// will be the return value
 	val add_3 = fun a, b, c -> {
 		val temp = a + b
