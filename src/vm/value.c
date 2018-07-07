@@ -152,7 +152,7 @@ static void print_object(Object *object, const char *new_line, bool print_quotat
                 } else {
                     printf(", ");
                 }
-                print_value(list->content.values[i], false, print_quotation);
+                print_value(list->content.values[i], false, true);
             }
             printf("]%s", new_line);
 

@@ -13,19 +13,19 @@
 #include "../vm/list.h"
 #include "../util/ioutil.h"
 
-CrispyValue println(CrispyValue *value) {
+CrispyValue std_println(CrispyValue *value) {
     print_value(value[0], true, false);
 
     return create_nil();
 }
 
-CrispyValue print(CrispyValue *value) {
+CrispyValue std_print(CrispyValue *value) {
     print_value(value[0], false, false);
 
     return create_nil();
 }
 
-CrispyValue exit_vm(CrispyValue *value, Vm *vm) {
+CrispyValue std_exit(CrispyValue *value, Vm *vm) {
     vm_free(vm);
 
     if (value[0].type == NUMBER) {
@@ -36,7 +36,7 @@ CrispyValue exit_vm(CrispyValue *value, Vm *vm) {
     exit(1);
 }
 
-CrispyValue str(CrispyValue *value, Vm *vm) {
+CrispyValue std_str(CrispyValue *value, Vm *vm) {
     ObjString *string = NULL;
 
     switch (value->type) {
@@ -86,7 +86,7 @@ CrispyValue str(CrispyValue *value, Vm *vm) {
     return create_object((Object *) string);
 }
 
-CrispyValue len(CrispyValue *value, Vm *vm) {
+CrispyValue std_len(CrispyValue *value, Vm *vm) {
     if (value->type != OBJECT) {
         vm->err_flag = true;
         // TODO include type
@@ -107,7 +107,7 @@ CrispyValue len(CrispyValue *value, Vm *vm) {
     }
 }
 
-CrispyValue split(CrispyValue *value, Vm *vm) {
+CrispyValue std_split(CrispyValue *value, Vm *vm) {
     if (value->type != OBJECT || value->o_value->type != OBJ_STRING) {
         vm->err_flag = true;
         return create_object((Object *) new_string(vm, "Only strings can be splitted", 28));
@@ -144,7 +144,7 @@ CrispyValue split(CrispyValue *value, Vm *vm) {
     return create_object((Object *) tokens);
 }
 
-CrispyValue input(CrispyValue *value, Vm *vm) {
+CrispyValue std_input(CrispyValue *value, Vm *vm) {
     char *line;
     ssize_t length = read_line(&line);
 
@@ -158,4 +158,48 @@ CrispyValue input(CrispyValue *value, Vm *vm) {
     free(line);
 
     return create_object((Object *) string);
+}
+
+CrispyValue std_list(CrispyValue *value, Vm *vm) {
+    switch (value[0].type) {
+        case OBJECT:
+            switch (value->o_value->type) {
+                case OBJ_LIST:
+                    return *value;
+                case OBJ_STRING: {
+                    ObjString *string = (ObjString *) value->o_value;
+                    ObjList *list = new_list(vm, string->length);
+
+                    for (uint32_t i = 0; i < string->length; ++i) {
+                        list->content.values[i] =
+                                create_object((Object *) new_string(vm, string->start + i, 1));
+                    }
+
+                    return create_object((Object *) list);
+                }
+                default:
+                    vm->err_flag = true;
+                    return create_object((Object *) new_string(vm, "Invalid type for list()", 23));
+            }
+        default:
+            vm->err_flag = true;
+            return create_object((Object *) new_string(vm, "Invalid type for list()", 23));
+    }
+}
+
+CrispyValue std_num(CrispyValue *value, Vm *vm) {
+    if (value[0].type != OBJECT || value[0].o_value->type != OBJ_STRING) {
+        vm->err_flag = true;
+        return create_object((Object *) new_string(vm, "num() can only be used on strings", 33));
+    }
+
+    ObjString *string = (ObjString *) value[0].o_value;
+    char temp[string->length + 1];
+    memcpy(temp, string->start, string->length);
+    temp[string->length] = '\0';
+
+    double res;
+    res = strtod(temp, NULL);
+
+    return create_number(res);
 }

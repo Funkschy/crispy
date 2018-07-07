@@ -201,13 +201,15 @@ static void make_native(Vm *vm, const char *name, size_t length, void *fn_ptr, u
 }
 
 void declare_natives(Vm *vm) {
-    make_native(vm, "println", 7, println, 1, false);
-    make_native(vm, "input", 5, input, 0, true);
-    make_native(vm, "print", 5, print, 1, false);
-    make_native(vm, "exit", 4, exit_vm, 1, true);
-    make_native(vm, "split", 5, split, 2, true);
-    make_native(vm, "str", 3, str, 1, true);
-    make_native(vm, "len", 3, len, 1, true);
+    make_native(vm, "println", 7, std_println, 1, false);
+    make_native(vm, "input", 5, std_input, 0, true);
+    make_native(vm, "print", 5, std_print, 1, false);
+    make_native(vm, "split", 5, std_split, 2, true);
+    make_native(vm, "list", 4, std_list, 1, true);
+    make_native(vm, "exit", 4, std_exit, 1, true);
+    make_native(vm, "num", 3, std_num, 1, true);
+    make_native(vm, "str", 3, std_str, 1, true);
+    make_native(vm, "len", 3, std_len, 1, true);
 }
 
 int compile(Vm *vm) {
@@ -290,10 +292,9 @@ static void primary(Vm *vm) {
             char str[length + 1];
             memcpy(str, compiler->token.start, length);
             str[length] = '\0';
-            char *ptr;
             double res;
 
-            res = strtod(str, &ptr);
+            res = strtod(str, NULL);
             uint16_t pos = (uint16_t) add_constant(vm, create_number(res));
 
             if (pos > 255) {
@@ -311,10 +312,9 @@ static void primary(Vm *vm) {
             char str[length + 1];
             memcpy(str, compiler->token.start, length);
             str[length] = '\0';
-            char *ptr;
             uint64_t res;
 
-            res = strtoul(str, &ptr, 16);
+            res = strtoul(str, NULL, 16);
             uint16_t pos = (uint16_t) add_constant(vm, create_number(res));
 
             if (pos > 255) {

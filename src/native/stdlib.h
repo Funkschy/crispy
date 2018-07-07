@@ -9,18 +9,22 @@
 #include "../vm/value.h"
 #include "../vm/vm.h"
 
-CrispyValue println(CrispyValue *value);
+CrispyValue std_println(CrispyValue *value);
 
-CrispyValue print(CrispyValue *value);
+CrispyValue std_print(CrispyValue *value);
 
-CrispyValue exit_vm(CrispyValue *value, Vm *vm);
+CrispyValue std_exit(CrispyValue *value, Vm *vm);
 
-CrispyValue str(CrispyValue *value, Vm *vm);
+CrispyValue std_str(CrispyValue *value, Vm *vm);
 
-CrispyValue len(CrispyValue *value, Vm *vm);
+CrispyValue std_len(CrispyValue *value, Vm *vm);
 
-CrispyValue split(CrispyValue *value, Vm *vm);
+CrispyValue std_split(CrispyValue *value, Vm *vm);
 
-CrispyValue input(CrispyValue *value, Vm *vm);
+CrispyValue std_input(CrispyValue *value, Vm *vm);
+
+CrispyValue std_list(CrispyValue *value, Vm *vm);
+
+CrispyValue std_num(CrispyValue *value, Vm *vm);
 
 #endif //CRISPY_STDLIB_H

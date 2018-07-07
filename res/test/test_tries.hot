@@ -1,0 +1,72 @@
+/**
+*   Possible solution for https://www.hackerrank.com/challenges/ctci-contacts/problem
+*/
+
+val mk_node = fun -> {'ends_after': 0, 'is_end': false, 'children': {}}
+
+// Temporay solution
+val sub_string = fun string, start, end -> {
+	var s = ''
+	val string_list = list(string)
+	
+	val length = len(string)
+
+	for var i = start; i < length and i < end; i++ {
+		s = s + string_list[i]
+	}
+
+	return s
+}
+
+val not_in = fun key, dict -> dict[key] == nil
+
+val insert = fun self, name -> {
+	val n = list(name)[0]
+
+	if not_in(n, self.children) {
+		self.children[n] = mk_node()
+	}
+
+	if len(name) > 1 {
+		self.ends_after++
+		insert(self.children[n], sub_string(name, 1, len(name)))
+	} else {
+		self.is_end = true
+	}
+}
+
+val find_partial = fun trie, name -> {
+	var ends = 0
+
+	if trie.is_end {
+		ends++
+	}
+
+	val l = list(name)
+	
+	for var i = 0; i < len(l); i++ {
+		trie = trie.children[l[i]]
+
+		if trie == nil {
+			return 0
+		}
+	}
+
+	if trie.is_end {
+		ends++
+	}
+
+	ends = ends + trie.ends_after
+}
+
+val trie = mk_node()
+val n = num(input())
+
+for var i = 0; i < n; i++ {
+	val cmd = split(input(), ' ')
+	if cmd[0] == 'add' {
+		insert(trie, cmd[1])
+	} else {
+		println(find_partial(trie, cmd[1]))
+	}
+}
