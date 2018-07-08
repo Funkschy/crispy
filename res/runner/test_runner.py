@@ -42,6 +42,7 @@ def execute(executable, test_dir, result_dir, input_dir):
         expected = result_file.readline().rstrip()
         if expected != '':
             print('[{}]: Error, did not print {}'.format(file_name, expected))
+            num_errors += 1
 
         result_file.close()
 

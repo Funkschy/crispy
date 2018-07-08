@@ -37,6 +37,7 @@ void var_ht_free(VarHashTable *ht) {
         free_bucket(ht->buckets[i]);
     }
     free(ht->buckets);
+    ht->buckets = NULL;
 }
 
 static bool equals(VarHTItemKey first, VarHTItemKey second) {

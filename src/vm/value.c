@@ -36,10 +36,16 @@ void write_value(ValueArray *value_array, CrispyValue value) {
 void write_at(ValueArray *value_array, uint64_t index, CrispyValue value) {
     while (index >= value_array->cap) {
         value_array->cap = GROW_CAP(value_array->cap);
-        value_array->values = GROW_ARR(value_array->values, CrispyValue, value_array->cap);
+        // value_array->values = GROW_ARR(value_array->values, CrispyValue, value_array->cap);
+        CrispyValue *temp = calloc(value_array->cap, sizeof(CrispyValue));
+        memcpy(temp, value_array->values, value_array->count * sizeof(CrispyValue));
+        free(value_array->values);
+        value_array->values = temp;
     }
 
-    if (index >= value_array->count) {
+    if (index > value_array->count) {
+        value_array->count = index + 1;
+    } else if (index == value_array->count) {
         ++value_array->count;
     }
 
@@ -275,6 +281,7 @@ CallFrame *new_temp_call_frame(CallFrame *other) {
 
 void temp_call_frame_free(CallFrame *call_frame) {
     val_arr_free(&call_frame->variables);
+    val_arr_init(&call_frame->variables);
     free(call_frame);
 }
 
@@ -303,6 +310,9 @@ void call_frame_free(CallFrame *call_frame) {
     val_arr_free(&call_frame->variables);
     val_arr_free(&call_frame->constants);
 
+    val_arr_init(&call_frame->variables);
+    val_arr_init(&call_frame->constants);
+
     free(call_frame);
 }
 
@@ -324,7 +334,7 @@ static Object *allocate_object(Vm *vm, size_t size, ObjectType type) {
 
     Object *object = malloc(size);
     object->type = type;
-    object->marked = false;
+    object->marked = true;
 
     object->next = vm->first_object;
     vm->first_object = object;

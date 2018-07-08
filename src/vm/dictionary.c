@@ -12,7 +12,7 @@
 #include "value.h"
 #include "memory.h"
 
-
+// TODO cleanup
 static size_t ht_key_to_string(HTKeyType type, HTItemKey key, char **dest) {
     switch (type) {
         case HT_KEY_CSTRING:

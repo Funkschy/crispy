@@ -29,7 +29,8 @@ typedef enum {
 typedef enum {
     VM_STATUS_INIT,
     VM_STATUS_COMPILING,
-    VM_STATUS_RUNNING
+    VM_STATUS_RUNNING,
+    VM_STATUS_NO_GC
 } VmStatus;
 
 typedef struct {

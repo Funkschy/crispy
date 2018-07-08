@@ -105,12 +105,12 @@ static inline OP_CODE last_instruction(Vm *vm) {
     return last <= OP_RETURN ? (OP_CODE) last : OP_NOP;
 }
 
-static inline uint32_t emit_jump(Vm *vm, OP_CODE op_code) {
+static inline uint64_t emit_jump(Vm *vm, OP_CODE op_code) {
     emit_short_arg(vm, op_code, 0xFF, 0xFF);
     return CURR_FRAME(vm)->code_buffer.count - 2;
 }
 
-static void patch_jump_to(Vm *vm, uint32_t offset, uint32_t address) {
+static void patch_jump_to(Vm *vm, uint64_t offset, uint64_t address) {
     if (address > UINT16_MAX) {
         error(&vm->compiler, "Jump too big");
     }
@@ -119,7 +119,7 @@ static void patch_jump_to(Vm *vm, uint32_t offset, uint32_t address) {
     CURR_FRAME(vm)->code_buffer.code[offset + 1] = (uint8_t) (address & 0xFF);
 }
 
-static inline void patch_jump(Vm *vm, uint32_t offset) {
+static inline void patch_jump(Vm *vm, uint64_t offset) {
     patch_jump_to(vm, offset, CURR_FRAME(vm)->code_buffer.count);
 }
 
@@ -701,10 +701,10 @@ static void if_expr(Vm *vm) {
     advance(vm);
     expr(vm);
 
-    uint32_t false_jump = emit_jump(vm, OP_JMF);
+    uint64_t false_jump = emit_jump(vm, OP_JMF);
     block_expr(vm);
 
-    uint32_t exit_jump = emit_jump(vm, OP_JMP);
+    uint64_t exit_jump = emit_jump(vm, OP_JMP);
     patch_jump(vm, false_jump);
 
     if (vm->compiler.token.type == TOKEN_ELSE) {
@@ -845,20 +845,20 @@ static void for_stmt(Vm *vm) {
         }
     }
 
-    uint32_t start_instruction = CURR_FRAME(vm)->code_buffer.count;
+    uint64_t start_instruction = CURR_FRAME(vm)->code_buffer.count;
     if (!match(vm, TOKEN_SEMICOLON)) {
         expr(vm);
         consume(vm, TOKEN_SEMICOLON, "Expected ';' after for-condition");
     }
-    uint32_t exit_jmp = emit_jump(vm, OP_JMF);
-    uint32_t body_jmp = emit_jump(vm, OP_JMP);
+    uint64_t exit_jmp = emit_jump(vm, OP_JMF);
+    uint64_t body_jmp = emit_jump(vm, OP_JMP);
 
-    uint32_t increment_instruction = CURR_FRAME(vm)->code_buffer.count;
+    uint64_t increment_instruction = CURR_FRAME(vm)->code_buffer.count;
     if (!check(vm, TOKEN_OPEN_BRACE)) {
         assignment(vm);
         emit_no_arg(vm, OP_POP);
     }
-    uint32_t start_jmp = emit_jump(vm, OP_JMP);
+    uint64_t start_jmp = emit_jump(vm, OP_JMP);
 
     if (!check(vm, TOKEN_OPEN_BRACE)) {
         error(&vm->compiler, "Expected '{' after assignment block in 'for'");
@@ -866,7 +866,7 @@ static void for_stmt(Vm *vm) {
 
     patch_jump_to(vm, body_jmp, CURR_FRAME(vm)->code_buffer.count);
     loop_body(vm);
-    uint32_t increment_jmp = emit_jump(vm, OP_JMP);
+    uint64_t increment_jmp = emit_jump(vm, OP_JMP);
 
     patch_jump_to(vm, start_jmp, start_instruction);
     patch_jump_to(vm, exit_jmp, CURR_FRAME(vm)->code_buffer.count);
@@ -877,13 +877,13 @@ static void for_stmt(Vm *vm) {
 
 static void while_stmt(Vm *vm) {
     advance(vm);
-    uint32_t start_instruction = CURR_FRAME(vm)->code_buffer.count;
+    uint64_t start_instruction = CURR_FRAME(vm)->code_buffer.count;
     expr(vm);
 
-    uint32_t exit_jmp = emit_jump(vm, OP_JMF);
+    uint64_t exit_jmp = emit_jump(vm, OP_JMF);
     loop_body(vm);
 
-    uint32_t to_start = emit_jump(vm, OP_JMP);
+    uint64_t to_start = emit_jump(vm, OP_JMP);
     patch_jump_to(vm, to_start, start_instruction);
     patch_jump_to(vm, exit_jmp, CURR_FRAME(vm)->code_buffer.count);
 }

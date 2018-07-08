@@ -99,13 +99,13 @@ size_t free_object(Object *object) {
             ObjList *list = (ObjList *) object;
             val_arr_free(&list->content);
             free(list);
-            break;
+            return sizeof(ObjList);
         }
         case OBJ_DICT: {
             ObjDict *dict = (ObjDict *) object;
             ht_free(&dict->content);
             free(dict);
-            break;
+            return sizeof(ObjDict);
         }
     }
 
@@ -144,7 +144,7 @@ uint32_t add_constant(Vm *vm, CrispyValue value) {
     CallFrame *call_frame = CURR_FRAME(vm);
     if (call_frame->constants.count >= UINT16_MAX) {
         fprintf(stderr, "Too many constants.\n");
-        exit(42);
+        exit(45);
     }
 
     write_value(&call_frame->constants, value);
@@ -190,7 +190,7 @@ static void panic(Vm *vm, const char *reason) {
     }
 
     vm_free(vm);
-    exit(42);
+    exit(44);
 }
 
 InterpretResult interpret(Vm *vm, const char *source) {
@@ -205,10 +205,11 @@ InterpretResult interpret(Vm *vm, const char *source) {
     }
 
 #if DEBUG_SHOW_DISASSEMBLY
-        disassemble_curr_frame(vm, "Main Program");
+    disassemble_curr_frame(vm, "Main Program");
 #endif
 
     CURR_FRAME(vm)->ip = CURR_FRAME(vm)->code_buffer.code;
+    vm->current_status = VM_STATUS_RUNNING;
     InterpretResult result = run(vm);
     free_compiler(&vm->compiler);
 
@@ -242,17 +243,17 @@ InterpretResult interpret_interactive(Vm *vm, const char *source) {
     }
 
 #if DEBUG_SHOW_DISASSEMBLY
-        disassemble_curr_frame(vm, "Last input");
+    disassemble_curr_frame(vm, "Last input");
 #endif
 
     CURR_FRAME(vm)->ip = CURR_FRAME(vm)->code_buffer.code;
+    vm->current_status = VM_STATUS_RUNNING;
     InterpretResult result = run(vm);
 
     return result;
 }
 
 static InterpretResult run(Vm *vm) {
-    vm->current_status = VM_STATUS_RUNNING;
     CallFrame *curr_frame = CURR_FRAME(vm);
 
     register uint8_t *ip = curr_frame->ip;
@@ -350,6 +351,7 @@ static InterpretResult run(Vm *vm) {
                 }
 
                 Object *object = pos->o_value;
+                object->marked = true;
 
                 if (object->type == OBJ_NATIVE_FUNC) {
                     ObjNativeFunc *n_fn = (ObjNativeFunc *) object;
@@ -372,7 +374,11 @@ static InterpretResult run(Vm *vm) {
                     CrispyValue res;
                     if (n_fn->system_func) {
                         vm->sp = sp;
+
+                        // Disable garbage collection while executing native functions
+                        vm->current_status = VM_STATUS_NO_GC;
                         res = ((CrispyValue (*)(CrispyValue *, Vm *vm)) n_fn->func_ptr)(args, vm);
+                        vm->current_status = VM_STATUS_RUNNING;
 
                         if (vm->err_flag) {
                             vm->err_flag = false;
@@ -410,18 +416,22 @@ static InterpretResult run(Vm *vm) {
                     args[i] = POP();
                 }
 
+                // Create a temp callframe with its own var array
+                // otherwise recursion would override the variables of its predecessors on the callstack
                 CallFrame *call_frame = new_temp_call_frame(lambda->call_frame);
 
                 PUSH_FRAME(vm, call_frame);
                 CrispyValue *before_sp = sp;
+
                 for (int i = 0; i < num_args; ++i) {
                     PUSH(args[i]);
                 }
+
                 vm->sp = sp;
                 InterpretResult result = run(vm);
 
-                RM_FRAME(vm);
-                temp_call_frame_free(call_frame);
+                // free temp callframe
+                temp_call_frame_free(POP_FRAME(vm));
 
                 if (result != INTERPRET_OK) {
                     return result;
@@ -442,6 +452,7 @@ static InterpretResult run(Vm *vm) {
 
                 if (first.type == OBJECT) {
                     Object *first_obj = first.o_value;
+                    first_obj->marked = true;
 
                     switch (first_obj->type) {
                         case OBJ_STRING: {
@@ -452,8 +463,10 @@ static InterpretResult run(Vm *vm) {
                             }
                             ObjString *first_str = (ObjString *) first_obj;
                             ObjString *second_str = (ObjString *) second.o_value;
+                            second_str->object.marked = true;
 
                             ObjString *dest = new_empty_string(vm, (first_str->length + second_str->length));
+
                             memcpy((char *) dest->start, first_str->start, first_str->length);
                             memcpy((char *) (dest->start + first_str->length), second_str->start, second_str->length);
 
@@ -472,6 +485,7 @@ static InterpretResult run(Vm *vm) {
                             goto ERROR;
                     }
                 } else {
+                    fprintf(stderr, "Invalid target for addition\n");
                     goto ERROR;
                 }
 
