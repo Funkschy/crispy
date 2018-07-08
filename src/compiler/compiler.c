@@ -105,12 +105,12 @@ static inline OP_CODE last_instruction(Vm *vm) {
     return last <= OP_RETURN ? (OP_CODE) last : OP_NOP;
 }
 
-static inline uint32_t emit_jump(Vm *vm, OP_CODE op_code) {
+static inline uint64_t emit_jump(Vm *vm, OP_CODE op_code) {
     emit_short_arg(vm, op_code, 0xFF, 0xFF);
     return CURR_FRAME(vm)->code_buffer.count - 2;
 }
 
-static void patch_jump_to(Vm *vm, uint32_t offset, uint32_t address) {
+static void patch_jump_to(Vm *vm, uint64_t offset, uint64_t address) {
     if (address > UINT16_MAX) {
         error(&vm->compiler, "Jump too big");
     }
@@ -119,7 +119,7 @@ static void patch_jump_to(Vm *vm, uint32_t offset, uint32_t address) {
     CURR_FRAME(vm)->code_buffer.code[offset + 1] = (uint8_t) (address & 0xFF);
 }
 
-static inline void patch_jump(Vm *vm, uint32_t offset) {
+static inline void patch_jump(Vm *vm, uint64_t offset) {
     patch_jump_to(vm, offset, CURR_FRAME(vm)->code_buffer.count);
 }
 
@@ -201,17 +201,20 @@ static void make_native(Vm *vm, const char *name, size_t length, void *fn_ptr, u
 }
 
 void declare_natives(Vm *vm) {
-    make_native(vm, "println", 7, println, 1, false);
-    make_native(vm, "input", 5, input, 0, true);
-    make_native(vm, "print", 5, print, 1, false);
-    make_native(vm, "exit", 4, exit_vm, 1, true);
-    make_native(vm, "split", 5, split, 2, true);
-    make_native(vm, "str", 3, str, 1, true);
-    make_native(vm, "len", 3, len, 1, true);
+    make_native(vm, "println", 7, std_println, 1, false);
+    make_native(vm, "input", 5, std_input, 0, true);
+    make_native(vm, "print", 5, std_print, 1, false);
+    make_native(vm, "split", 5, std_split, 2, true);
+    make_native(vm, "list", 4, std_list, 1, true);
+    make_native(vm, "exit", 4, std_exit, 1, true);
+    make_native(vm, "num", 3, std_num, 1, true);
+    make_native(vm, "str", 3, std_str, 1, true);
+    make_native(vm, "len", 3, std_len, 1, true);
 }
 
 int compile(Vm *vm) {
     vm->compiler.print_expr = true;
+    vm->current_status = VM_STATUS_COMPILING;
 
     if (vm->compiler.scope[0].size <= 0) {
         declare_natives(vm);
@@ -289,10 +292,9 @@ static void primary(Vm *vm) {
             char str[length + 1];
             memcpy(str, compiler->token.start, length);
             str[length] = '\0';
-            char *ptr;
             double res;
 
-            res = strtod(str, &ptr);
+            res = strtod(str, NULL);
             uint16_t pos = (uint16_t) add_constant(vm, create_number(res));
 
             if (pos > 255) {
@@ -310,10 +312,9 @@ static void primary(Vm *vm) {
             char str[length + 1];
             memcpy(str, compiler->token.start, length);
             str[length] = '\0';
-            char *ptr;
             uint64_t res;
 
-            res = strtoul(str, &ptr, 16);
+            res = strtoul(str, NULL, 16);
             uint16_t pos = (uint16_t) add_constant(vm, create_number(res));
 
             if (pos > 255) {
@@ -700,10 +701,10 @@ static void if_expr(Vm *vm) {
     advance(vm);
     expr(vm);
 
-    uint32_t false_jump = emit_jump(vm, OP_JMF);
+    uint64_t false_jump = emit_jump(vm, OP_JMF);
     block_expr(vm);
 
-    uint32_t exit_jump = emit_jump(vm, OP_JMP);
+    uint64_t exit_jump = emit_jump(vm, OP_JMP);
     patch_jump(vm, false_jump);
 
     if (vm->compiler.token.type == TOKEN_ELSE) {
@@ -844,20 +845,20 @@ static void for_stmt(Vm *vm) {
         }
     }
 
-    uint32_t start_instruction = CURR_FRAME(vm)->code_buffer.count;
+    uint64_t start_instruction = CURR_FRAME(vm)->code_buffer.count;
     if (!match(vm, TOKEN_SEMICOLON)) {
         expr(vm);
         consume(vm, TOKEN_SEMICOLON, "Expected ';' after for-condition");
     }
-    uint32_t exit_jmp = emit_jump(vm, OP_JMF);
-    uint32_t body_jmp = emit_jump(vm, OP_JMP);
+    uint64_t exit_jmp = emit_jump(vm, OP_JMF);
+    uint64_t body_jmp = emit_jump(vm, OP_JMP);
 
-    uint32_t increment_instruction = CURR_FRAME(vm)->code_buffer.count;
+    uint64_t increment_instruction = CURR_FRAME(vm)->code_buffer.count;
     if (!check(vm, TOKEN_OPEN_BRACE)) {
         assignment(vm);
         emit_no_arg(vm, OP_POP);
     }
-    uint32_t start_jmp = emit_jump(vm, OP_JMP);
+    uint64_t start_jmp = emit_jump(vm, OP_JMP);
 
     if (!check(vm, TOKEN_OPEN_BRACE)) {
         error(&vm->compiler, "Expected '{' after assignment block in 'for'");
@@ -865,7 +866,7 @@ static void for_stmt(Vm *vm) {
 
     patch_jump_to(vm, body_jmp, CURR_FRAME(vm)->code_buffer.count);
     loop_body(vm);
-    uint32_t increment_jmp = emit_jump(vm, OP_JMP);
+    uint64_t increment_jmp = emit_jump(vm, OP_JMP);
 
     patch_jump_to(vm, start_jmp, start_instruction);
     patch_jump_to(vm, exit_jmp, CURR_FRAME(vm)->code_buffer.count);
@@ -876,13 +877,13 @@ static void for_stmt(Vm *vm) {
 
 static void while_stmt(Vm *vm) {
     advance(vm);
-    uint32_t start_instruction = CURR_FRAME(vm)->code_buffer.count;
+    uint64_t start_instruction = CURR_FRAME(vm)->code_buffer.count;
     expr(vm);
 
-    uint32_t exit_jmp = emit_jump(vm, OP_JMF);
+    uint64_t exit_jmp = emit_jump(vm, OP_JMF);
     loop_body(vm);
 
-    uint32_t to_start = emit_jump(vm, OP_JMP);
+    uint64_t to_start = emit_jump(vm, OP_JMP);
     patch_jump_to(vm, to_start, start_instruction);
     patch_jump_to(vm, exit_jmp, CURR_FRAME(vm)->code_buffer.count);
 }

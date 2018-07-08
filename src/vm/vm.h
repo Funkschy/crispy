@@ -26,6 +26,13 @@ typedef enum {
     INTERPRET_COMPILE_ERROR
 } InterpretResult;
 
+typedef enum {
+    VM_STATUS_INIT,
+    VM_STATUS_COMPILING,
+    VM_STATUS_RUNNING,
+    VM_STATUS_NO_GC
+} VmStatus;
+
 typedef struct {
     uint32_t count;
     uint32_t cap;
@@ -52,6 +59,7 @@ typedef struct {
     bool interactive;
 
     bool err_flag;
+    VmStatus current_status;
 } Vm;
 
 /**

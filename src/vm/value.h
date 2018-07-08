@@ -38,8 +38,8 @@ typedef struct {
 } ValueArray;
 
 typedef struct {
-    uint32_t cap;
-    uint32_t count;
+    uint64_t cap;
+    uint64_t count;
     uint8_t *code;
 } CodeBuffer;
 

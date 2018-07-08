@@ -3,4 +3,4 @@
 3. fix truthfulness
 4. add string multiplication
 5. substrings (maybe slices)
-6. move dict to primary()
+6. don't segfault when using number as key in dict
