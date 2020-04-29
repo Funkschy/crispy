@@ -205,6 +205,7 @@ void declare_natives(Vm *vm) {
     make_native(vm, "input", 5, std_input, 0, true);
     make_native(vm, "print", 5, std_print, 1, false);
     make_native(vm, "split", 5, std_split, 2, true);
+    make_native(vm, "append", 6, std_list_append, 2, true);
     make_native(vm, "list", 4, std_list, 1, true);
     make_native(vm, "exit", 4, std_exit, 1, true);
     make_native(vm, "num", 3, std_num, 1, true);

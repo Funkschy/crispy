@@ -25,6 +25,8 @@ CrispyValue std_input(CrispyValue *value, Vm *vm);
 
 CrispyValue std_list(CrispyValue *value, Vm *vm);
 
+CrispyValue std_list_append(CrispyValue *value, Vm *vm);
+
 CrispyValue std_num(CrispyValue *value, Vm *vm);
 
 #endif //CRISPY_STDLIB_H
