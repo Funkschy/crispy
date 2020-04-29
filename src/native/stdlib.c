@@ -107,6 +107,17 @@ CrispyValue std_len(CrispyValue *value, Vm *vm) {
     }
 }
 
+CrispyValue std_list_append(CrispyValue *value, Vm *vm) {
+    if (value->type != OBJECT || value->o_value->type != OBJ_LIST) {
+        vm->err_flag = true;
+        return create_object((Object *) new_string(vm, "You can only append to list", 27));
+    }
+
+    ObjList *list = (ObjList *) value->o_value;
+    list_append(list, value[1]);
+    return value[0];
+}
+
 CrispyValue std_split(CrispyValue *value, Vm *vm) {
     if (value->type != OBJECT || value->o_value->type != OBJ_STRING) {
         vm->err_flag = true;

@@ -85,3 +85,10 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+.ccls-cache/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+crispy

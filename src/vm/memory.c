@@ -95,6 +95,7 @@ static void sweep(Vm *vm) {
             Object *unreached = *object;
             *object = unreached->next;
 
+            // TODO don't free referenced elements in list
             vm->allocated_mem -= free_object(unreached);
         } else {
             (*object)->marked = 0;
