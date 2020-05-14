@@ -42,6 +42,7 @@ static ssize_t windows_get_line(char **line_ptr) {
         }
 
         if (in == EOF) {
+            free(string);
             return -1;
         }
 
