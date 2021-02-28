@@ -30,7 +30,7 @@ static ssize_t windows_get_line(char **line_ptr) {
         in = getchar();
 
         if (length >= buf_size) {
-            char *new_string = malloc(2 * buf_size);
+            char *new_string = malloc(2 * length);
 
             if (new_string == NULL) {
                 return -1;
